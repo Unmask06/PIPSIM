@@ -1,0 +1,6 @@
+*.xlsx
+*.pips
+_CommonScripts
+__pycache__
+*.pipr
+*test*
