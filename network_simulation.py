@@ -12,7 +12,7 @@ from sixgill.pipesim import Model, Units
 def dict_to_df(dict: dict) -> pd.DataFrame:
     return pd.DataFrame.from_dict(dict)
 
-
+print("Network Simulation.py")
 class ExcelHandler:
     def __init__(self, folder_directory, excel_filename) -> None:
         self.excel_filename = excel_filename
@@ -108,6 +108,7 @@ class NetworkSimulation:
         self.logger.info(f"Set Global Conditions")
 
     def get_boundary_conditions(self):
+        self.logger.info(f"Getting boundary conditions.....")
         boundary_conditions_dict: dict = (
             self.model.tasks.networksimulation.get_conditions()
         )
@@ -238,9 +239,9 @@ class NetworkSimulation:
             f"------------Network Simulation Object Closed----------------\n"
         )
 
-    def run_app(self, source_name, pump_name):
+    def run_app(self, source_name, pump_name,case=None, condition=None):
         try:
-            self.prepare_model()
+            self.prepare_model(case=case, condition=condition)
             self.set_global_conditions(source_name=source_name, pump_name=pump_name)
             self.get_boundary_conditions()
             self.get_well_values()
@@ -248,6 +249,7 @@ class NetworkSimulation:
             self.deactivate_noflow_wells()
             self.populate_flowrates_in_model_from_excel()
             self.run_simulation()
+            self.process_results()
             self.write_results_to_excel()
             self.saveAs_newModel()
             self.close_model()
