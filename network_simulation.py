@@ -12,7 +12,7 @@ from sixgill.pipesim import Model, Units
 def dict_to_df(dict: dict) -> pd.DataFrame:
     return pd.DataFrame.from_dict(dict)
 
-print("Network Simulation.py")
+
 class ExcelHandler:
     def __init__(self, folder_directory, excel_filename) -> None:
         self.excel_filename = excel_filename
@@ -67,7 +67,7 @@ class NetworkSimulation:
             f"------------Network Simulation Object Created----------------\n"
         )
 
-    def prepare_model(self, case=None, condition=None):
+    def prepare_model(self, case=None, condition=None, do_units_conversion=False):
         if case is None:
             case = self.all_profiles.columns[0]
             self.logger.info(f"case not specified, using {case}")
@@ -79,6 +79,7 @@ class NetworkSimulation:
         self.profile = self.all_profiles[[self.case]].fillna(0)
         self.model: Model = Model.open(filename=self.model_path, units=Units.FIELD)
         self.well_lists = self.profile.index.to_list()
+        self.do_units_conversion = do_units_conversion
         self.logger.info(
             f"Model prepared\n Case:{self.case}\n Condition: {self.condition.index[0]}"
         )
@@ -117,6 +118,7 @@ class NetworkSimulation:
         )
 
     def get_well_values(self):
+        self.logger.info(f"Getting well values.....")
         values_dict = self.model.get_values(show_units=True)
         self.values = pd.DataFrame.from_dict(values_dict)
         required_cols = ["Unit"] + self.well_lists
@@ -183,6 +185,12 @@ class NetworkSimulation:
 
     def process_results(self):
         self.node_results = pd.DataFrame.from_dict(self.results.node)
+        self.node_results["Type"] = [
+            self.boundary_conditions.loc["BoundaryNodeType", well]
+            if well in self.boundary_conditions.columns
+            else None
+            for well in self.node_results.index
+        ]
 
         units = pd.DataFrame(self.results.profile_units, index=["Units"])
         dfs = []
@@ -206,6 +214,100 @@ class NetworkSimulation:
             raise Exception("Simulation run Unsuccessful")
         else:
             self.logger.info(f"Simulation run Successful")
+
+    def convert_units(self):
+        self.logger.info(f"Converting units.....")
+        if self.do_units_conversion:
+            # Convert units in self.node_results
+            self.node_results.iloc[
+                1:, self.node_results.columns.get_loc("Pressure")
+            ] = (
+                self.node_results.iloc[
+                    1:, self.node_results.columns.get_loc("Pressure")
+                ]
+                - 14.7
+            ) / 14.5038
+            self.node_results.iloc[
+                0, self.node_results.columns.get_loc("Pressure")
+            ] = "barg"
+
+            self.node_results.iloc[
+                1:, self.node_results.columns.get_loc("Temperature")
+            ] = (
+                self.node_results.iloc[
+                    1:, self.node_results.columns.get_loc("Temperature")
+                ]
+                - 32
+            ) / 1.8
+            self.node_results.iloc[
+                0, self.node_results.columns.get_loc("Temperature")
+            ] = "C"
+
+            # Convert units in self.profile_results
+
+            # Pressure psia to barg
+            self.profile_results.iloc[
+                1:, self.profile_results.columns.get_loc("Pressure")
+            ] = (
+                self.profile_results.iloc[
+                    1:, self.profile_results.columns.get_loc("Pressure")
+                ]
+                - 14.7
+            ) / 14.5038
+            self.profile_results.iloc[
+                0, self.profile_results.columns.get_loc("Pressure")
+            ] = "barg"
+
+            # PressureGradientFriction psi/ft to bar/100m
+            self.profile_results.iloc[
+                1:, self.profile_results.columns.get_loc("PressureGradientFriction")
+            ] = self.profile_results.iloc[
+                1:, self.profile_results.columns.get_loc("PressureGradientFriction")
+            ] * (
+                14.5038 / (0.3048 / 100)
+            )
+            self.profile_results.iloc[
+                0, self.profile_results.columns.get_loc("PressureGradientFriction")
+            ] = "bar/100m"
+
+            # Elevation ft to m
+            self.profile_results.iloc[
+                1:, self.profile_results.columns.get_loc("Elevation")
+            ] = (
+                self.profile_results.iloc[
+                    1:, self.profile_results.columns.get_loc("Elevation")
+                ]
+                * 0.3048
+            )
+            self.profile_results.iloc[
+                0, self.profile_results.columns.get_loc("Elevation")
+            ] = "m"
+
+            # ErosionalVelocity ft/s to m/s
+            self.profile_results.iloc[
+                1:, self.profile_results.columns.get_loc("ErosionalVelocity")
+            ] = (
+                self.profile_results.iloc[
+                    1:, self.profile_results.columns.get_loc("ErosionalVelocity")
+                ]
+                * 0.3048
+            )
+            self.profile_results.iloc[
+                0, self.profile_results.columns.get_loc("ErosionalVelocity")
+            ] = "m/s"
+
+            # TotalDistance ft to m
+            self.profile_results.iloc[
+                1:, self.profile_results.columns.get_loc("TotalDistance")
+            ] = (
+                self.profile_results.iloc[
+                    1:, self.profile_results.columns.get_loc("TotalDistance")
+                ]
+                * 0.3048
+            )
+            self.profile_results.iloc[
+                0, self.profile_results.columns.get_loc("TotalDistance")
+            ] = "m"
 
     def write_results_to_excel(self):
         sheet_name = f"{self.case}_{self.condition.index.to_list()[0]}"
@@ -239,9 +341,18 @@ class NetworkSimulation:
             f"------------Network Simulation Object Closed----------------\n"
         )
 
-    def run_app(self, source_name, pump_name,case=None, condition=None):
+    def run_app(
+        self,
+        source_name,
+        pump_name,
+        case=None,
+        condition=None,
+        do_units_conversion=False,
+    ):
         try:
-            self.prepare_model(case=case, condition=condition)
+            self.prepare_model(
+                case=case, condition=condition, do_units_conversion=do_units_conversion
+            )
             self.set_global_conditions(source_name=source_name, pump_name=pump_name)
             self.get_boundary_conditions()
             self.get_well_values()
@@ -250,6 +361,7 @@ class NetworkSimulation:
             self.populate_flowrates_in_model_from_excel()
             self.run_simulation()
             self.process_results()
+            self.convert_units()
             self.write_results_to_excel()
             self.saveAs_newModel()
             self.close_model()
