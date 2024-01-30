@@ -22,7 +22,7 @@ class ExcelHandler:
         self,
         df,
         sheet_name,
-        range="A1",
+        range="B1",
         clear_sheet=False,
     ):
         wb = xw.Book(self.excel_path)
@@ -48,6 +48,10 @@ class ExcelHandler:
             self.excel_path, sheet_name="PIPSIM Input", header=3, index_col=0
         )
         return profiles
+    
+    # cut and paste the worksheet ending with "_NR" and "_PR" a new excel file
+    def move_sheets_to_new_excel(self, new_excel_path):
+        pass
 
 
 class NetworkSimulation:
@@ -77,12 +81,14 @@ class NetworkSimulation:
         self.condition = self.all_conditions.loc[[condition]]
         self.case = case
         self.profile = self.all_profiles[[self.case]].fillna(0)
-        self.model: Model = Model.open(filename=self.model_path, units=Units.FIELD)
         self.well_lists = self.profile.index.to_list()
         self.do_units_conversion = do_units_conversion
         self.logger.info(
             f"Model prepared\n Case:{self.case}\n Condition: {self.condition.index[0]}"
         )
+
+    def open_model(self):
+        self.model: Model = Model.open(filename=self.model_path, units=Units.FIELD)
 
     def set_global_conditions(self, source_name, pump_name):
         (
@@ -153,8 +159,9 @@ class NetworkSimulation:
         self.profile_variables = [
             ProfileVariables.PRESSURE,
             ProfileVariables.PRESSURE_GRADIENT_FRICTION,
-            ProfileVariables.EROSIONAL_VELOCITY_RATIO,
+            ProfileVariables.MEAN_VELOCITY_FLUID,
             ProfileVariables.EROSIONAL_VELOCITY,
+            ProfileVariables.EROSIONAL_VELOCITY_RATIO,
             ProfileVariables.ELEVATION,
             ProfileVariables.TOTAL_DISTANCE,
         ]
@@ -215,6 +222,29 @@ class NetworkSimulation:
         else:
             self.logger.info(f"Simulation run Successful")
 
+        self._reorder_columns()
+
+    def _reorder_columns(self):
+        new_node_cols = [
+            "Type",
+            "Pressure",
+            "Temperature",
+            "VolumeFlowrateWaterStockTank",
+        ]
+        new_profile_cols = [
+            "BranchEquipment",
+            "Pressure",
+            "PressureGradientFriction",
+            "MeanVelocityFluid",
+            "ErosionalVelocity",
+            "ErosionalVelocityRatio",
+            "Elevation",
+            "TotalDistance",
+        ]
+
+        self.node_results = self.node_results[new_node_cols]
+        self.profile_results = self.profile_results[new_profile_cols]
+
     def convert_units(self):
         self.logger.info(f"Converting units.....")
         if self.do_units_conversion:
@@ -264,7 +294,7 @@ class NetworkSimulation:
             ] = self.profile_results.iloc[
                 1:, self.profile_results.columns.get_loc("PressureGradientFriction")
             ] * (
-                14.5038 / (0.3048 / 100)
+                (1 / 14.5038) / (0.3048 / 100)
             )
             self.profile_results.iloc[
                 0, self.profile_results.columns.get_loc("PressureGradientFriction")
@@ -283,6 +313,18 @@ class NetworkSimulation:
                 0, self.profile_results.columns.get_loc("Elevation")
             ] = "m"
 
+            # MeanVelocityFluid ft/s to m/s
+            self.profile_results.iloc[
+                1:, self.profile_results.columns.get_loc("MeanVelocityFluid")
+            ] = (
+                self.profile_results.iloc[
+                    1:, self.profile_results.columns.get_loc("MeanVelocityFluid")
+                ]
+                * 0.3048
+            )
+            self.profile_results.iloc[
+                0, self.profile_results.columns.get_loc("MeanVelocityFluid")
+            ] = "m/s"
             # ErosionalVelocity ft/s to m/s
             self.profile_results.iloc[
                 1:, self.profile_results.columns.get_loc("ErosionalVelocity")
@@ -309,20 +351,23 @@ class NetworkSimulation:
                 0, self.profile_results.columns.get_loc("TotalDistance")
             ] = "m"
 
-    def write_results_to_excel(self):
-        sheet_name = f"{self.case}_{self.condition.index.to_list()[0]}"
+    def write_results_to_excel(self, update=False):
+        if update == False:
+            sheet_name = f"{self.case}_{self.condition.index.to_list()[0]}"
+        else:
+            sheet_name = f"{self.model_filename.split('.')[0]}"
         node_results_sheet_name = f"{sheet_name}_NR"
         profile_results_sheet_name = f"{sheet_name}_PR"
         self.excel_handler.write_excel(
             df=self.node_results,
             sheet_name=node_results_sheet_name,
-            range="A1",
+            range="B1",
             clear_sheet=True,
         )
         self.excel_handler.write_excel(
             df=self.profile_results,
             sheet_name=profile_results_sheet_name,
-            range="A1",
+            range="B1",
             clear_sheet=True,
         )
         self.logger.info(f"Results written to excel")
@@ -353,6 +398,7 @@ class NetworkSimulation:
             self.prepare_model(
                 case=case, condition=condition, do_units_conversion=do_units_conversion
             )
+            self.open_model()
             self.set_global_conditions(source_name=source_name, pump_name=pump_name)
             self.get_boundary_conditions()
             self.get_well_values()
