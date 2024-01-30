@@ -8,50 +8,12 @@ import xlwings as xw
 from sixgill.definitions import *
 from sixgill.pipesim import Model, Units
 
+from .excel_handling import ExcelHandler
+from .unit_conversion import UnitConversion
+
 
 def dict_to_df(dict: dict) -> pd.DataFrame:
     return pd.DataFrame.from_dict(dict)
-
-
-class ExcelHandler:
-    def __init__(self, folder_directory, excel_filename) -> None:
-        self.excel_filename = excel_filename
-        self.excel_path = f"{folder_directory}\\{excel_filename}"
-
-    def write_excel(
-        self,
-        df,
-        sheet_name,
-        range="B1",
-        clear_sheet=False,
-    ):
-        wb = xw.Book(self.excel_path)
-        if sheet_name not in [sheet.name for sheet in wb.sheets]:
-            wb.sheets.add(sheet_name)
-        ws = wb.sheets(sheet_name)
-        if clear_sheet:
-            ws.clear_contents()
-        ws.range(range).value = df
-
-    def get_all_condition(self):
-        conditions = pd.read_excel(
-            self.excel_path,
-            sheet_name="Conditions",
-            header=1,
-            index_col=0,
-            usecols="A:E",
-        )
-        return conditions
-
-    def get_all_profiles(self):
-        profiles = pd.read_excel(
-            self.excel_path, sheet_name="PIPSIM Input", header=3, index_col=0
-        )
-        return profiles
-    
-    # cut and paste the worksheet ending with "_NR" and "_PR" a new excel file
-    def move_sheets_to_new_excel(self, new_excel_path):
-        pass
 
 
 class NetworkSimulation:
@@ -71,7 +33,7 @@ class NetworkSimulation:
             f"------------Network Simulation Object Created----------------\n"
         )
 
-    def prepare_model(self, case=None, condition=None, do_units_conversion=False):
+    def prepare_model(self, case=None, condition=None):
         if case is None:
             case = self.all_profiles.columns[0]
             self.logger.info(f"case not specified, using {case}")
@@ -82,7 +44,6 @@ class NetworkSimulation:
         self.case = case
         self.profile = self.all_profiles[[self.case]].fillna(0)
         self.well_lists = self.profile.index.to_list()
-        self.do_units_conversion = do_units_conversion
         self.logger.info(
             f"Model prepared\n Case:{self.case}\n Condition: {self.condition.index[0]}"
         )
@@ -152,6 +113,7 @@ class NetworkSimulation:
 
     def _specify_system_profiles_variables(self):
         self.system_variables = [
+            SystemVariables.TYPE,
             SystemVariables.PRESSURE,
             SystemVariables.TEMPERATURE,
             SystemVariables.VOLUME_FLOWRATE_WATER_STOCKTANK,
@@ -226,130 +188,47 @@ class NetworkSimulation:
 
     def _reorder_columns(self):
         new_node_cols = [
-            "Type",
-            "Pressure",
-            "Temperature",
-            "VolumeFlowrateWaterStockTank",
+            SystemVariables.TYPE,
+            SystemVariables.PRESSURE,
+            SystemVariables.TEMPERATURE,
+            SystemVariables.VOLUME_FLOWRATE_WATER_STOCKTANK,
         ]
         new_profile_cols = [
             "BranchEquipment",
-            "Pressure",
-            "PressureGradientFriction",
-            "MeanVelocityFluid",
-            "ErosionalVelocity",
-            "ErosionalVelocityRatio",
-            "Elevation",
-            "TotalDistance",
+            ProfileVariables.PRESSURE,
+            ProfileVariables.PRESSURE_GRADIENT_FRICTION,
+            ProfileVariables.MEAN_VELOCITY_FLUID,
+            ProfileVariables.EROSIONAL_VELOCITY,
+            ProfileVariables.EROSIONAL_VELOCITY_RATIO,
+            ProfileVariables.ELEVATION,
+            ProfileVariables.TOTAL_DISTANCE,
         ]
 
         self.node_results = self.node_results[new_node_cols]
         self.profile_results = self.profile_results[new_profile_cols]
 
-    def convert_units(self):
+    def convert_units(self,unit_conversion = True):
         self.logger.info(f"Converting units.....")
-        if self.do_units_conversion:
-            # Convert units in self.node_results
-            self.node_results.iloc[
-                1:, self.node_results.columns.get_loc("Pressure")
-            ] = (
-                self.node_results.iloc[
-                    1:, self.node_results.columns.get_loc("Pressure")
-                ]
-                - 14.7
-            ) / 14.5038
-            self.node_results.iloc[
-                0, self.node_results.columns.get_loc("Pressure")
-            ] = "barg"
+        if unit_conversion:
+            node_conversions = {
+                SystemVariables.PRESSURE: ("psia", "barg"),
+                SystemVariables.TEMPERATURE: ("degF", "degC"),
+            }
+            profile_conversions = {
+                SystemVariables.PRESSURE: ("psia", "barg"),
+                ProfileVariables.PRESSURE_GRADIENT_FRICTION: ("psi/ft", "bar/100m"),
+                ProfileVariables.ELEVATION: ("ft", "m"),
+                ProfileVariables.MEAN_VELOCITY_FLUID: ("ft/s", "m/s"),
+                ProfileVariables.EROSIONAL_VELOCITY: ("ft/s", "m/s"),
+                ProfileVariables.TOTAL_DISTANCE: ("ft", "m"),
+            }
 
-            self.node_results.iloc[
-                1:, self.node_results.columns.get_loc("Temperature")
-            ] = (
-                self.node_results.iloc[
-                    1:, self.node_results.columns.get_loc("Temperature")
-                ]
-                - 32
-            ) / 1.8
-            self.node_results.iloc[
-                0, self.node_results.columns.get_loc("Temperature")
-            ] = "C"
-
-            # Convert units in self.profile_results
-
-            # Pressure psia to barg
-            self.profile_results.iloc[
-                1:, self.profile_results.columns.get_loc("Pressure")
-            ] = (
-                self.profile_results.iloc[
-                    1:, self.profile_results.columns.get_loc("Pressure")
-                ]
-                - 14.7
-            ) / 14.5038
-            self.profile_results.iloc[
-                0, self.profile_results.columns.get_loc("Pressure")
-            ] = "barg"
-
-            # PressureGradientFriction psi/ft to bar/100m
-            self.profile_results.iloc[
-                1:, self.profile_results.columns.get_loc("PressureGradientFriction")
-            ] = self.profile_results.iloc[
-                1:, self.profile_results.columns.get_loc("PressureGradientFriction")
-            ] * (
-                (1 / 14.5038) / (0.3048 / 100)
+            self.node_results = UnitConversion.convert_units(
+                dataframe=self.node_results, conversions=node_conversions
             )
-            self.profile_results.iloc[
-                0, self.profile_results.columns.get_loc("PressureGradientFriction")
-            ] = "bar/100m"
-
-            # Elevation ft to m
-            self.profile_results.iloc[
-                1:, self.profile_results.columns.get_loc("Elevation")
-            ] = (
-                self.profile_results.iloc[
-                    1:, self.profile_results.columns.get_loc("Elevation")
-                ]
-                * 0.3048
+            self.profile_results = UnitConversion.convert_units(
+                dataframe=self.profile_results, conversions=profile_conversions
             )
-            self.profile_results.iloc[
-                0, self.profile_results.columns.get_loc("Elevation")
-            ] = "m"
-
-            # MeanVelocityFluid ft/s to m/s
-            self.profile_results.iloc[
-                1:, self.profile_results.columns.get_loc("MeanVelocityFluid")
-            ] = (
-                self.profile_results.iloc[
-                    1:, self.profile_results.columns.get_loc("MeanVelocityFluid")
-                ]
-                * 0.3048
-            )
-            self.profile_results.iloc[
-                0, self.profile_results.columns.get_loc("MeanVelocityFluid")
-            ] = "m/s"
-            # ErosionalVelocity ft/s to m/s
-            self.profile_results.iloc[
-                1:, self.profile_results.columns.get_loc("ErosionalVelocity")
-            ] = (
-                self.profile_results.iloc[
-                    1:, self.profile_results.columns.get_loc("ErosionalVelocity")
-                ]
-                * 0.3048
-            )
-            self.profile_results.iloc[
-                0, self.profile_results.columns.get_loc("ErosionalVelocity")
-            ] = "m/s"
-
-            # TotalDistance ft to m
-            self.profile_results.iloc[
-                1:, self.profile_results.columns.get_loc("TotalDistance")
-            ] = (
-                self.profile_results.iloc[
-                    1:, self.profile_results.columns.get_loc("TotalDistance")
-                ]
-                * 0.3048
-            )
-            self.profile_results.iloc[
-                0, self.profile_results.columns.get_loc("TotalDistance")
-            ] = "m"
 
     def write_results_to_excel(self, update=False):
         if update == False:
@@ -392,11 +271,11 @@ class NetworkSimulation:
         pump_name,
         case=None,
         condition=None,
-        do_units_conversion=False,
+        unit_conversion=False,
     ):
         try:
             self.prepare_model(
-                case=case, condition=condition, do_units_conversion=do_units_conversion
+                case=case, condition=condition
             )
             self.open_model()
             self.set_global_conditions(source_name=source_name, pump_name=pump_name)
@@ -407,7 +286,7 @@ class NetworkSimulation:
             self.populate_flowrates_in_model_from_excel()
             self.run_simulation()
             self.process_results()
-            self.convert_units()
+            self.convert_units(unit_conversion=unit_conversion)
             self.write_results_to_excel()
             self.saveAs_newModel()
             self.close_model()

@@ -1,0 +1,7 @@
+{
+    "FOLDER_DIRECTORY": "c:\\Users\\IDM252577\\Desktop\\Python Projects\\PIPSIM",
+    "MODEL_FILENAME": "BAB HP.pips",
+    "EXCEL_FILE": "Water Injection Profile for BAB HP.xlsx",
+    "SOURCE_NAME": "Sea Water Supply",
+    "PUMP_NAME": ["HP Pump"]
+}
