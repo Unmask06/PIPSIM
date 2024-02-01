@@ -18,27 +18,36 @@ def dict_to_df(dict: dict) -> pd.DataFrame:
 
 class NetworkSimulation:
     def __init__(self, folder_directory, model_filename, excel_filename) -> None:
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(NetworkSimulation.__name__)
         self.folder_directory = folder_directory
         self.model_path = f"{folder_directory}\\{model_filename}"
         self.model_filename = model_filename
         self.excel_filename = excel_filename
         self.excel_path = f"{folder_directory}\\{excel_filename}"
+        self.logger.info(
+            f"------------Network Simulation Object Created----------------\n"
+            f"Model Path: {self.model_path}\n"
+        )
+
+    def initialize_excel_handler(self, pipsim_input_sheet, conditions_sheet):
         self.excel_handler = ExcelHandler(
             folder_directory=self.folder_directory, excel_filename=self.excel_filename
         )
-        self.all_conditions = self.excel_handler.get_all_condition()
-        self.all_profiles = self.excel_handler.get_all_profiles()
-        self.logger.info(
-            f"------------Network Simulation Object Created----------------\n"
+        self.all_conditions = self.excel_handler.get_all_condition(
+            sheet_name=conditions_sheet
         )
+        self.conditions = self.all_conditions.index.to_list()
+        self.all_profiles = self.excel_handler.get_all_profiles(
+            sheet_name=pipsim_input_sheet
+        )
+        self.cases = self.all_profiles.columns.to_list()
 
     def prepare_model(self, case=None, condition=None):
         if case is None:
-            case = self.all_profiles.columns[0]
+            case = self.cases[0]
             self.logger.info(f"case not specified, using {case}")
         if condition is None:
-            condition = self.all_conditions.index[0]
+            self.condition = self.conditions[0]
             self.logger.info(f"condition not specified, using {condition}")
         self.condition = self.all_conditions.loc[[condition]]
         self.case = case
@@ -86,7 +95,7 @@ class NetworkSimulation:
 
     def get_well_values(self):
         self.logger.info(f"Getting well values.....")
-        values_dict = self.model.get_values(show_units=True)
+        values_dict = self.model.get_values(parameters=["IsActive"], show_units=True)
         self.values = pd.DataFrame.from_dict(values_dict)
         required_cols = ["Unit"] + self.well_lists
         self.well_values = self.values[required_cols].dropna(
@@ -160,6 +169,10 @@ class NetworkSimulation:
             else None
             for well in self.node_results.index
         ]
+        node_results_unit = self.node_results.loc[["Unit"]]
+
+        self.node_results.dropna(subset=["Type"], inplace=True)
+        self.node_results = pd.concat([node_results_unit, self.node_results], axis=0)
 
         units = pd.DataFrame(self.results.profile_units, index=["Units"])
         dfs = []
@@ -207,7 +220,7 @@ class NetworkSimulation:
         self.node_results = self.node_results[new_node_cols]
         self.profile_results = self.profile_results[new_profile_cols]
 
-    def convert_units(self,unit_conversion = True):
+    def convert_units(self, unit_conversion=True):
         self.logger.info(f"Converting units.....")
         if unit_conversion:
             node_conversions = {
@@ -230,34 +243,38 @@ class NetworkSimulation:
                 dataframe=self.profile_results, conversions=profile_conversions
             )
 
-    def write_results_to_excel(self, update=False):
+    def write_results_to_excel(self, update=True):
         if update == False:
             sheet_name = f"{self.case}_{self.condition.index.to_list()[0]}"
         else:
-            sheet_name = f"{self.model_filename.split('.')[0]}"
+            sheet_name = self.model_filename.split(".")[0].split("_BAB")[0]
         node_results_sheet_name = f"{sheet_name}_NR"
         profile_results_sheet_name = f"{sheet_name}_PR"
         self.excel_handler.write_excel(
             df=self.node_results,
             sheet_name=node_results_sheet_name,
-            range="B1",
             clear_sheet=True,
+            workbook="Node Results.xlsx",
         )
         self.excel_handler.write_excel(
             df=self.profile_results,
             sheet_name=profile_results_sheet_name,
-            range="B1",
             clear_sheet=True,
+            workbook="Profile Results.xlsx",
         )
         self.logger.info(f"Results written to excel")
 
-    def saveAs_newModel(self):
-        new_file = (
-            Path(self.folder_directory)
-            / f"{self.case}_{self.condition.index.to_list()[0]}_{self.model_filename}"
-        )
-        self.model.save(new_file)
-        self.logger.info(f"Model saved as {new_file}")
+    def saveAs_newModel(self, update=False):
+        if update == False:
+            new_file = (
+                Path(self.folder_directory)
+                / f"{self.case}_{self.condition.index.to_list()[0]}_{self.model_filename}"
+            )
+            self.model.save(new_file)
+            self.logger.info(f"Model saved as {new_file}")
+        else:
+            self.model.save()
+            self.logger.info(f"Model saved as {self.model_filename}")
 
     def close_model(self):
         self.model.close()
@@ -265,18 +282,15 @@ class NetworkSimulation:
             f"------------Network Simulation Object Closed----------------\n"
         )
 
-    def run_app(
+    def create_model(
         self,
         source_name,
         pump_name,
         case=None,
         condition=None,
-        unit_conversion=False,
     ):
         try:
-            self.prepare_model(
-                case=case, condition=condition
-            )
+            self.prepare_model(case=case, condition=condition)
             self.open_model()
             self.set_global_conditions(source_name=source_name, pump_name=pump_name)
             self.get_boundary_conditions()
@@ -284,11 +298,22 @@ class NetworkSimulation:
             self.activate_all_wells()
             self.deactivate_noflow_wells()
             self.populate_flowrates_in_model_from_excel()
+            self.close_model()
+        except Exception as e:
+            self.logger.error(traceback.format_exc())
+            self.logger.error(e)
+            self.model.close()
+            raise e
+
+    def run_app(self, unit_conversion=True, update=True):
+        try:
+            self.open_model()
+            self.get_boundary_conditions()
             self.run_simulation()
             self.process_results()
             self.convert_units(unit_conversion=unit_conversion)
-            self.write_results_to_excel()
-            self.saveAs_newModel()
+            self.write_results_to_excel(update=update)
+            self.saveAs_newModel(update=update)
             self.close_model()
         except Exception as e:
             self.logger.error(traceback.format_exc())
