@@ -163,16 +163,21 @@ class NetworkSimulation:
 
     def process_results(self):
         self.node_results = pd.DataFrame.from_dict(self.results.node)
+        self.node_results.reset_index(inplace=True)
+        self.node_results.rename(columns={"index": "Node"}, inplace=True)
         self.node_results["Type"] = [
             self.boundary_conditions.loc["BoundaryNodeType", well]
             if well in self.boundary_conditions.columns
             else None
-            for well in self.node_results.index
+            for well in self.node_results["Node"]
         ]
-        node_results_unit = self.node_results.loc[["Unit"]]
-
+        node_results_unit = self.node_results.iloc[0:1]
+        self.node_results.sort_values(
+            by=["Type", "Node"], ascending=[False, True], inplace=True
+        )
         self.node_results.dropna(subset=["Type"], inplace=True)
         self.node_results = pd.concat([node_results_unit, self.node_results], axis=0)
+        self.node_results.reset_index(drop=True, inplace=True)
 
         units = pd.DataFrame(self.results.profile_units, index=["Units"])
         dfs = []
@@ -189,6 +194,7 @@ class NetworkSimulation:
             except Exception as e:
                 logging.error(f"{branch}")
         combined_df = pd.concat(dfs)
+        combined_df.sort_values(by=["BranchEquipment"], inplace=True)
         combined_df.reset_index(drop=True, inplace=True)
         self.profile_results = pd.concat([units, combined_df], axis=0)
 
@@ -201,6 +207,7 @@ class NetworkSimulation:
 
     def _reorder_columns(self):
         new_node_cols = [
+            "Node",
             SystemVariables.TYPE,
             SystemVariables.PRESSURE,
             SystemVariables.TEMPERATURE,
@@ -305,7 +312,7 @@ class NetworkSimulation:
             self.model.close()
             raise e
 
-    def run_app(self, unit_conversion=True, update=True):
+    def run_existing_model(self, unit_conversion=True, update=True):
         try:
             self.open_model()
             self.get_boundary_conditions()
