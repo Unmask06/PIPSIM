@@ -52,7 +52,8 @@ def wave_run_model():
     for MODEL_FILENAME in pipsim_files:
         ns = NetworkSimulation(FOLDER_DIRECTORY, MODEL_FILENAME, EXCEL_FILE)
         ns.initialize_excel_handler(PIPSIM_INPUT_SHEET, CONDITIONS_SHEET)
-        ns.run_existing_model()
+        ns.run_existing_model(source_name=SOURCE_NAME, pump_name=PUMP_NAME)
+
 
 
 while True:

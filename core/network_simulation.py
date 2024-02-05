@@ -1,5 +1,6 @@
 # Network Simulation.py
 import logging
+import re
 import traceback
 from pathlib import Path
 
@@ -17,13 +18,20 @@ def dict_to_df(dict: dict) -> pd.DataFrame:
 
 
 class NetworkSimulation:
-    def __init__(self, folder_directory, model_filename, excel_filename) -> None:
+    def __init__(
+        self,
+        folder_directory,
+        model_filename,
+        excel_filename,
+        update_existing_model=False,
+    ) -> None:
         self.logger = logging.getLogger(NetworkSimulation.__name__)
         self.folder_directory = folder_directory
         self.model_path = f"{folder_directory}\\{model_filename}"
         self.model_filename = model_filename
         self.excel_filename = excel_filename
         self.excel_path = f"{folder_directory}\\{excel_filename}"
+        self.update = update_existing_model
         self.logger.info(
             f"------------Network Simulation Object Created----------------\n"
             f"Model Path: {self.model_path}\n"
@@ -43,12 +51,20 @@ class NetworkSimulation:
         self.cases = self.all_profiles.columns.to_list()
 
     def prepare_model(self, case=None, condition=None):
-        if case is None:
-            case = self.cases[0]
-            self.logger.info(f"case not specified, using {case}")
-        if condition is None:
-            self.condition = self.conditions[0]
-            self.logger.info(f"condition not specified, using {condition}")
+        # for existing model
+        if self.update:
+            (case, condition) = NetworkSimulation._extract_case_and_condition(
+                self.model_filename
+            )
+        # for new model
+        elif self.update == False:
+            if case is None:
+                case = self.cases[0]
+                self.logger.info(f"case not specified, using {case}")
+            if condition is None:
+                self.condition = self.conditions[0]
+                self.logger.info(f"condition not specified, using {condition}")
+
         self.condition = self.all_conditions.loc[[condition]]
         self.case = case
         self.profile = self.all_profiles[[self.case]].fillna(0)
@@ -56,6 +72,18 @@ class NetworkSimulation:
         self.logger.info(
             f"Model prepared\n Case:{self.case}\n Condition: {self.condition.index[0]}"
         )
+
+    def _extract_case_and_condition(input_string):
+        pattern = r"([^_]+)_([^_]+)_([^_]+)"
+
+        match = re.match(pattern, input_string)
+
+        if match:
+            case = match.group(1) + "_" + match.group(2)
+            condition = match.group(3)
+            return (case, condition)
+        else:
+            raise Exception("Invalid input string")
 
     def open_model(self):
         self.model: Model = Model.open(filename=self.model_path, units=Units.FIELD)
@@ -166,9 +194,11 @@ class NetworkSimulation:
         self.node_results.reset_index(inplace=True)
         self.node_results.rename(columns={"index": "Node"}, inplace=True)
         self.node_results["Type"] = [
-            self.boundary_conditions.loc["BoundaryNodeType", well]
-            if well in self.boundary_conditions.columns
-            else None
+            (
+                self.boundary_conditions.loc["BoundaryNodeType", well]
+                if well in self.boundary_conditions.columns
+                else None
+            )
             for well in self.node_results["Node"]
         ]
         node_results_unit = self.node_results.iloc[0:1]
@@ -250,6 +280,20 @@ class NetworkSimulation:
                 dataframe=self.profile_results, conversions=profile_conversions
             )
 
+    def analysis_results(self):
+        self.logger.info("Analysis results.....")
+        sink_data = self.node_results[self.node_results["Type"] == "Sink"].copy()
+
+        min_pressure_idx = sink_data["Pressure"].idxmin()
+        max_pressure_idx = sink_data["Pressure"].idxmax()
+
+        sink_data.loc[min_pressure_idx, "Min/Max"] = "Minimum"
+        sink_data.loc[max_pressure_idx, "Min/Max"] = "Maximum"
+
+        self.max_min_node_results = pd.concat(
+            [sink_data.loc[[min_pressure_idx]], sink_data.loc[[max_pressure_idx]]]
+        )
+
     def write_results_to_excel(self, update=True):
         if update == False:
             sheet_name = f"{self.case}_{self.condition.index.to_list()[0]}"
@@ -261,6 +305,15 @@ class NetworkSimulation:
             df=self.node_results,
             sheet_name=node_results_sheet_name,
             clear_sheet=True,
+            range="A6",
+            workbook="Node Results.xlsx",
+        )
+        # write self.min_pressure and self.max_pressure to excel
+        self.excel_handler.write_excel(
+            df=self.max_min_node_results,
+            sheet_name=node_results_sheet_name,
+            clear_sheet=False,
+            range="A2",
             workbook="Node Results.xlsx",
         )
         self.excel_handler.write_excel(
@@ -312,13 +365,19 @@ class NetworkSimulation:
             self.model.close()
             raise e
 
-    def run_existing_model(self, unit_conversion=True, update=True):
+    def run_existing_model(
+        self, source_name, pump_name, unit_conversion=True, update=True
+    ):
         try:
+            self.update = update
+            self.prepare_model()
             self.open_model()
             self.get_boundary_conditions()
+            self.set_global_conditions(source_name=source_name, pump_name=pump_name)
             self.run_simulation()
             self.process_results()
             self.convert_units(unit_conversion=unit_conversion)
+            self.analysis_results()
             self.write_results_to_excel(update=update)
             self.saveAs_newModel(update=update)
             self.close_model()

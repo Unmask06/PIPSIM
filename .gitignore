@@ -4,3 +4,5 @@ _CommonScripts
 __pycache__
 *.pipr
 *test*
+*For Demo*
+*void*
