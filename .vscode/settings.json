@@ -1,0 +1,55 @@
+{
+  "editor.inlineSuggest.enabled": true,
+  "json.schemas": [],
+  "terminal.integrated.enableMultiLinePasteWarning": false,
+  "security.workspace.trust.untrustedFiles": "open",
+  "terminal.integrated.defaultProfile.windows": "Command Prompt",
+  "breadcrumbs.enabled": false,
+  "editor.fontWeight": "normal",
+  "jupyter.askForKernelRestart": false,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": true,
+    "markdown": true,
+    "scminput": false
+  },
+  "black-formatter.importStrategy": "fromEnvironment",
+  "diffEditor.renderSideBySide": false,
+  "workbench.startupEditor": "none",
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "gitlens.views.repositories.files.layout": "list",
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "files.autoSave": "afterDelay",
+  "python.autoComplete.extraPaths": [],
+  "python.analysis.extraPaths": [],
+  "isort.args": ["--profile", "black"],
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "githubPullRequests.createOnPublishBranch": "never",
+  "notebook.formatOnCellExecution": true,
+  "notebook.formatOnSave.enabled": true,
+  "python.analysis.autoFormatStrings": true,
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "workbench.settings.applyToAllProfiles": [],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "python.defaultInterpreterPath": "c:\\Program Files\\Schlumberger\\PIPESIM_PTK_2023.1\\python.exe",
+  "workbench.sideBar.location": "right",
+  "explorer.excludeGitIgnore": true,
+  "terminal.integrated.copyOnSelection": true,
+  "editor.indentSize": "tabSize",
+  "editor.fontLigatures": false,
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.completeFunctionParens": true,
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.exclude": ["logic.py"]
+}

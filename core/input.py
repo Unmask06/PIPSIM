@@ -1,14 +1,11 @@
-from pathlib import Path
 import logging
+from pathlib import Path
 from typing import List
-import xlwings as xw
 
-from pydantic import BaseModel, Field, ValidationError, field_validator
+import xlwings as xw
+from pydantic import BaseModel, field_validator, model_validator
 
 logger = logging.getLogger("Input Validation")
-
-class CustomException(Exception):
-    pass
 
 
 class PipSimInput(BaseModel):
@@ -16,7 +13,7 @@ class PipSimInput(BaseModel):
     MODEL_FILENAME: str
     EXCEL_FILE: str
     PIPSIM_INPUT_SHEET: str
-    CONDITIONS_SHEET:str
+    CONDITIONS_SHEET: str
     SOURCE_NAME: str
     PUMP_NAME: List[str]
 
@@ -26,25 +23,38 @@ class PipSimInput(BaseModel):
             raise ValueError("Folder directory does not exist")
         return v
 
-    @field_validator("MODEL_FILENAME")
-    def check_model_filename(cls, v, values):
-        if not Path(values.data["FOLDER_DIRECTORY"] / v).is_file():
+    @model_validator(mode="after")
+    def check_model_filename(self):
+        folder_directory = self.FOLDER_DIRECTORY
+        model_filename = self.MODEL_FILENAME
+        if (
+            not Path(folder_directory / model_filename).is_file()
+            or not Path(model_filename).is_file()
+        ):
             raise ValueError("Model file does not exist")
-        return v
+        return self
 
-    @field_validator("EXCEL_FILE")
-    def check_excel_file(cls, v, values):
-        if not Path(values.data["FOLDER_DIRECTORY"] / v).is_file():
+    @model_validator(mode="after")
+    def check_excel_file(self):
+        folder_directory = self.FOLDER_DIRECTORY
+        excel_file = self.EXCEL_FILE
+        if (
+            not Path(folder_directory / excel_file).is_file()
+            or not Path(excel_file).is_file()
+        ):
             raise ValueError("Excel file does not exist")
-        return v
-    
-    @field_validator("PIPSIM_INPUT_SHEET", "CONDITIONS_SHEET")
-    def check_pipsim_input_sheet(cls, v, values):
-        excel_file_path = values.data["FOLDER_DIRECTORY"] / values.data["EXCEL_FILE"]
+        return self
+
+    @model_validator(mode="after")
+    def check_pipsim_input_sheet(self):
+        folder_directory = self.FOLDER_DIRECTORY
+        excel_file = self.EXCEL_FILE
+        excel_file_path = folder_directory / excel_file
         with xw.App(visible=False) as app:
             wb = xw.Book(excel_file_path)
             sheet_names = [sheet.name for sheet in wb.sheets]
-            if not v in sheet_names:
-                raise ValueError(f"Sheet '{v}' does not exist in {values.data['EXCEL_FILE']}")
-        logger.info("PIPSIM Input Validation Successful")
-        return v
+            if not self.PIPSIM_INPUT_SHEET in sheet_names:
+                raise ValueError(
+                    f"Sheet '{self.PIPSIM_INPUT_SHEET}' does not exist in {excel_file}"
+                )
+            return self

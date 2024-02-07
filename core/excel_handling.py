@@ -2,48 +2,36 @@
 import logging
 import os
 import traceback
+from pathlib import Path
+from re import A
+from typing import Any, Optional
 
 import pandas as pd
+from traitlets import Bool
 import xlwings as xw
+from xlwings import constants as xw_const
+
+logger = logging.getLogger("ExcelHandler")
 
 
 class ExcelHandler:
-    def __init__(self, folder_directory, excel_filename) -> None:
-        self.excel_filename = excel_filename
-        self.excel_path = f"{folder_directory}\\{excel_filename}"
 
-    def write_excel(
-        self,
-        df,
-        sheet_name,
-        range="A2",
-        clear_sheet=False,
-        workbook=None,
-    ):
-        try:
-            with xw.App(visible=False) as app:
-                if workbook is None:
-                    wb = xw.Book(self.excel_path)
-                else:
-                    if os.path.isfile(workbook):
-                        wb = xw.Book(workbook)
-                    else:
-                        wb = xw.Book()
-                        wb.save(workbook)
-                if sheet_name not in [sheet.name for sheet in wb.sheets]:
-                    wb.sheets.add(sheet_name)
-                ws = wb.sheets(sheet_name)
-                if clear_sheet:
-                    ws.clear_contents()
-                ws.range(range).value = df
-                ws.range("A2:I2").api.Font.Bold = True
-                ws.range("A2:I2").api.EntireColumn.AutoFit()
-                ws.range("C4").api.CurrentRegion.NumberFormat = "0.0"
-                ws.range("B1").value = ws.name
-                ws.range("B1").api.Font.Bold = True
-                wb.save()
-        except Exception as e:
-            logging.error(f"Error writing to Excel: {str(e)}")
+    def __init__(
+        self, excel_filename: str, folder_directory: Optional[Path] = None
+    ) -> None:
+
+        self.excel_filename = excel_filename
+        self.excel_path = self._get_excel_path(excel_filename, folder_directory)
+
+    def _get_excel_path(
+        self, excel_filename: str, folder_directory: Optional[Path]
+    ) -> Path:
+
+        if folder_directory is None:
+            folder_directory = Path.cwd()
+
+        excel_path = folder_directory / excel_filename
+        return excel_path
 
     def get_all_condition(self, sheet_name="Conditions"):
         conditions = pd.read_excel(
@@ -60,3 +48,154 @@ class ExcelHandler:
             self.excel_path, sheet_name=sheet_name, header=3, index_col=0
         )
         return profiles
+
+    @staticmethod
+    def write_excel(
+        df,
+        workbook: str,
+        sheet_name: Optional[Any] = 1,
+        range: Optional[str] = "A2",
+        clear_sheet: bool = False,
+        save: bool = True,
+    ):
+        try:
+            with xw.App(visible=False) as app:
+                if os.path.isfile(workbook):
+                    wb = xw.Book(workbook)
+                else:
+                    wb = xw.Book()
+                    wb.save(workbook)
+                if not sheet_name is None:
+                    sheet_name = sheet_name[:28] if len(sheet_name) > 28 else sheet_name
+                    logger.warning(f"Sheet name too long. Truncated to {sheet_name}")
+
+                if sheet_name not in [sheet.name for sheet in wb.sheets]:
+                    wb.sheets.add(sheet_name)
+                ws = wb.sheets(sheet_name)
+                if clear_sheet:
+                    ws.clear_contents()
+                ws.range(range).value = df
+                if save:
+                    wb.save()
+        except Exception as e:
+            logging.error(f"Error writing to Excel: {str(e)}")
+
+    @staticmethod
+    def format_excel_general(workbook, sheet_name):
+        try:
+            with xw.App(visible=False) as app:
+                wb = xw.Book(workbook)
+                ws = wb.sheets(sheet_name)
+                ws.api.PageSetup.Orientation = xw_const.PageOrientation.xlPortrait
+                ws.api.PageSetup.Zoom = False
+                ws.api.PageSetup.FitToPagesWide = 1
+                ws.api.PageSetup.FitToPagesTall = False
+                ws.api.PageSetup.PaperSize = xw_const.PaperSize.xlPaperA4
+                used_range = ws.used_range
+                used_range.api.EntireColumn.AutoFit()
+                for border_id in range(7, 13):
+                    used_range.api.Borders(border_id).LineStyle = (
+                        xw_const.LineStyle.xlContinuous
+                    )
+                    used_range.api.Borders(border_id).Weight = (
+                        xw_const.BorderWeight.xlThin
+                    )
+                wb.save()
+        except Exception as e:
+            logging.error(f"Error formatting Excel: {str(e)}")
+
+    @staticmethod
+    def format_excel_node_results(workbook, sheet_name):
+        value_range = ["D3", "D8"]
+        header_range = ["B2", "B6"]
+        try:
+            with xw.App(visible=False) as app:
+                wb = xw.Book(workbook)
+                ws = wb.sheets(sheet_name)
+                ws.api.PageSetup.PrintTitleRows = "$1:$4"
+                for cell in value_range:
+                    ws.range(cell).expand("right").expand(
+                        "down"
+                    ).api.NumberFormat = "0.0"
+                for cell in header_range:
+                    ws.range(cell).expand("right").api.Font.Bold = True
+                ws.range("B1").value = ws.name
+                wb.save()
+        except Exception as e:
+            logging.error(f"Error formatting Excel: {str(e)}")
+
+    @staticmethod
+    def format_excel_profile_results(workbook, sheet_name):
+        value_range = ["C4"]
+        header_range = ["B2", "A2"]
+        try:
+            with xw.App(visible=False) as app:
+                wb = xw.Book(workbook)
+                ws = wb.sheets(sheet_name)
+                ws.api.PageSetup.PrintTitleRows = "$1:$3"
+                for cell in value_range:
+                    ws.range(cell).expand("right").expand(
+                        "down"
+                    ).api.NumberFormat = "0.0"
+                for cell in header_range:
+                    ws.range(cell).expand("right").api.Font.Bold = True
+                ws.range("B1").value = ws.name
+                wb.save()
+        except Exception as e:
+            logging.error(f"Error formatting Excel: {str(e)}")
+
+    @staticmethod
+    def create_node_results_summary():
+        excel_file = "Node Results.xlsx"
+        dfs = []
+
+        try:
+            with xw.App(visible=False) as app:
+                wb = xw.Book(excel_file)
+                for sheet_name in wb.sheet_names:
+                    if sheet_name != "Node Summary":
+                        df = pd.read_excel(
+                            excel_file,
+                            sheet_name=sheet_name,
+                            usecols="B:G",
+                            header=0,
+                            index_col=None,
+                            skiprows=1,
+                            nrows=3,
+                        )
+
+                        df["Sheet Name"] = sheet_name
+                        dfs.append(df)
+
+                combined_df = pd.concat(dfs, ignore_index=True)
+                sheet_name = "Node Summary"
+
+                if sheet_name not in [sheet.name for sheet in wb.sheets]:
+                    wb.sheets.add(sheet_name)
+                ws = wb.sheets(sheet_name)
+                ws.clear_contents()
+                ws.range("A1").value = combined_df
+                ExcelHandler.format_excel_general(excel_file, sheet_name)
+                wb.save()
+        except Exception as e:
+            logging.error(f"Error creating Node Summary: {str(e)}")
+            raise e
+
+    @staticmethod
+    def _format_node_summary(workbook, sheet_name):
+        value_range = ["D2"]
+        header_range = ["B1"]
+        try:
+            with xw.App(visible=False) as app:
+                wb = xw.Book(workbook)
+                ws = wb.sheets(sheet_name)
+                ws.api.PageSetup.PrintTitleRows = "$1:$1"
+                for cell in value_range:
+                    ws.range(cell).expand("right").expand(
+                        "down"
+                    ).api.NumberFormat = "0.0"
+                for cell in header_range:
+                    ws.range(cell).expand("right").api.Font.Bold = True
+                ws.range("B1").value = ws.name
+        except Exception as e:
+            logging.error(f"Error formatting Excel: {str(e)}")
