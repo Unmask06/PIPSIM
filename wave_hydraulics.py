@@ -58,15 +58,19 @@ def wave_run_model(config: PipSimInput) -> None:
     ]
     pipsim_files.remove(str(config.MODEL_FILENAME))
     for model_filename in pipsim_files:
-        ns = NetworkSimulation(
-            config.FOLDER_DIRECTORY, model_filename, config.EXCEL_FILE
-        )
-        ns.initialize_excel_handler(config.PIPSIM_INPUT_SHEET, config.CONDITIONS_SHEET)
-        ns.run_existing_model(
-            source_name=config.SOURCE_NAME, pump_name=config.PUMP_NAME
-        )
-
-    ExcelHandler.create_node_results_summary()
+        try:
+            ns = NetworkSimulation(
+                config.FOLDER_DIRECTORY, model_filename, config.EXCEL_FILE
+            )
+            ns.initialize_excel_handler(
+                config.PIPSIM_INPUT_SHEET, config.CONDITIONS_SHEET
+            )
+            ns.run_existing_model(
+                source_name=config.SOURCE_NAME, pump_name=config.PUMP_NAME
+            )
+        except Exception as e:
+            logger.error(f"Error in running model {model_filename}: {e}")
+            continue
 
 
 def main() -> None:

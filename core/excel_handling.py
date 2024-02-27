@@ -7,8 +7,8 @@ from re import A
 from typing import Any, Optional
 
 import pandas as pd
-from traitlets import Bool
 import xlwings as xw
+from traitlets import Bool
 from xlwings import constants as xw_const
 
 logger = logging.getLogger("ExcelHandler")
@@ -53,10 +53,11 @@ class ExcelHandler:
     def write_excel(
         df,
         workbook: str,
-        sheet_name: Optional[Any] = 1,
+        sheet_name: str,
         range: Optional[str] = "A2",
         clear_sheet: bool = False,
         save: bool = True,
+        only_values: bool = False,
     ):
         try:
             with xw.App(visible=False) as app:
@@ -65,16 +66,18 @@ class ExcelHandler:
                 else:
                     wb = xw.Book()
                     wb.save(workbook)
-                if not sheet_name is None:
-                    sheet_name = sheet_name[:28] if len(sheet_name) > 28 else sheet_name
+                if len(sheet_name) > 30:
+                    sheet_name = sheet_name[:30]
                     logger.warning(f"Sheet name too long. Truncated to {sheet_name}")
-
                 if sheet_name not in [sheet.name for sheet in wb.sheets]:
                     wb.sheets.add(sheet_name)
                 ws = wb.sheets(sheet_name)
                 if clear_sheet:
                     ws.clear_contents()
-                ws.range(range).value = df
+                if only_values:
+                    ws.range(range).value = df.values
+                else:
+                    ws.range(range).value = df
                 if save:
                     wb.save()
         except Exception as e:
@@ -145,43 +148,6 @@ class ExcelHandler:
             logging.error(f"Error formatting Excel: {str(e)}")
 
     @staticmethod
-    def create_node_results_summary():
-        excel_file = "Node Results.xlsx"
-        dfs = []
-
-        try:
-            with xw.App(visible=False) as app:
-                wb = xw.Book(excel_file)
-                for sheet_name in wb.sheet_names:
-                    if sheet_name != "Node Summary":
-                        df = pd.read_excel(
-                            excel_file,
-                            sheet_name=sheet_name,
-                            usecols="B:G",
-                            header=0,
-                            index_col=None,
-                            skiprows=1,
-                            nrows=3,
-                        )
-
-                        df["Sheet Name"] = sheet_name
-                        dfs.append(df)
-
-                combined_df = pd.concat(dfs, ignore_index=True)
-                sheet_name = "Node Summary"
-
-                if sheet_name not in [sheet.name for sheet in wb.sheets]:
-                    wb.sheets.add(sheet_name)
-                ws = wb.sheets(sheet_name)
-                ws.clear_contents()
-                ws.range("A1").value = combined_df
-                ExcelHandler.format_excel_general(excel_file, sheet_name)
-                wb.save()
-        except Exception as e:
-            logging.error(f"Error creating Node Summary: {str(e)}")
-            raise e
-
-    @staticmethod
     def _format_node_summary(workbook, sheet_name):
         value_range = ["D2"]
         header_range = ["B1"]
@@ -199,3 +165,11 @@ class ExcelHandler:
                 ws.range("B1").value = ws.name
         except Exception as e:
             logging.error(f"Error formatting Excel: {str(e)}")
+
+    @staticmethod
+    def get_last_row(workbook: str, sheet_name: str):
+        with xw.App(visible=False) as app:
+            wb = xw.Book(workbook)
+            ws = wb.sheets(sheet_name)
+            last_row = ws.range("B1").end("down").row
+            return last_row

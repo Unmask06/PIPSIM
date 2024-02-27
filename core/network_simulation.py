@@ -3,10 +3,11 @@ import logging
 import re
 import traceback
 from pathlib import Path
-from typing import Dict, NoReturn, Any
+from typing import Any, Dict, List, NoReturn, Optional
 
 import pandas as pd
-from sixgill.definitions import * # type: ignore
+from pyparsing import WordEnd
+from sixgill.definitions import *  # type: ignore
 from sixgill.pipesim import Model, Units
 
 from .excel_handling import ExcelHandler
@@ -24,7 +25,7 @@ class NetworkSimulation:
         folder_directory: Path,
         model_filename: str,
         excel_filename: str,
-        update_existing_model=False,
+        update_existing_model: bool = False,
     ) -> None:
         self.logger = logging.getLogger(NetworkSimulation.__name__)
         self.folder_directory = folder_directory
@@ -32,8 +33,8 @@ class NetworkSimulation:
         self.model_filename = model_filename
         self.excel_filename = excel_filename
         self.excel_path = Path(folder_directory) / excel_filename
-        self.update = update_existing_model
-        self.well_lists = None
+        self.update: bool = update_existing_model
+        self.well_lists: Optional[List] = None
         self.logger.info(
             f"------------Network Simulation Object Created----------------\n"
             f"Model Path: {self.model_path}\n"
@@ -95,9 +96,10 @@ class NetworkSimulation:
         Returns:
             self.model:Model: Model object.
         """
-        self.model:Model = Model.open(filename=str(self.model_path), units=Units.FIELD)
+        self.model: Model = Model.open(filename=str(self.model_path), units=Units.FIELD)
+        self._validate_model()
 
-    def validate_model(self):
+    def _validate_model(self):
         """
         Validates the model file specified in the configuration file.
 
@@ -142,11 +144,8 @@ class NetworkSimulation:
         Returns:
             self.boundary_conditions:DataFrame: DataFrame containing all boundary conditions.
         """
-        self.validate_model()
         self.logger.info(f"Getting boundary conditions.....")
-        boundary_conditions_dict: dict = (
-            self.networksimulation.get_conditions()
-        )
+        boundary_conditions_dict: dict = self.networksimulation.get_conditions()
         self.boundary_conditions: pd.DataFrame = pd.DataFrame.from_dict(
             boundary_conditions_dict
         )
@@ -253,10 +252,12 @@ class NetworkSimulation:
         )
 
     def process_results(self):
-        if self.results is None:
-            raise Exception("Simulation results are not available.")
+        self.node_results = pd.DataFrame.from_dict(self.results.node)
+        if self.node_results.empty:
+            raise Exception(
+                "Simulation run Unsuccessful. No results found. Check License availablity or model validity."
+            )
         else:
-            self.node_results = pd.DataFrame.from_dict(self.results.node)
             self.node_results.reset_index(inplace=True)
             self.node_results.rename(columns={"index": "Node"}, inplace=True)
             self.node_results["Type"] = [
@@ -345,7 +346,7 @@ class NetworkSimulation:
             )
 
     def analysis_results(self):
-        self.logger.info("Analysis results.....")
+        self.logger.info("Analyzing the results.....")
         sink_data = self.node_results[self.node_results["Type"] == "Sink"].copy()
 
         min_pressure_idx = sink_data["Pressure"].idxmin()
@@ -353,16 +354,14 @@ class NetworkSimulation:
 
         sink_data.loc[min_pressure_idx, "Min/Max"] = "Minimum"
         sink_data.loc[max_pressure_idx, "Min/Max"] = "Maximum"
+        sink_data["case"] = f"{self.case}_{self.condition.index.to_list()[0]}"
 
         self.max_min_node_results = pd.concat(
             [sink_data.loc[[min_pressure_idx]], sink_data.loc[[max_pressure_idx]]]
         )
 
     def write_results_to_excel(self, update=True):
-        if update == False:
-            sheet_name = f"{self.case}_{self.condition.index.to_list()[0]}"
-        else:
-            sheet_name = self.model_filename.split(".")[0].split("_BAB")[0]
+        sheet_name = f"{self.case}_{self.condition.index.to_list()[0]}"
         node_results_sheet_name = f"{sheet_name}_NR"
         profile_results_sheet_name = f"{sheet_name}_PR"
         ExcelHandler.write_excel(
@@ -398,6 +397,20 @@ class NetworkSimulation:
         )
         ExcelHandler.format_excel_profile_results(
             workbook="Profile Results.xlsx", sheet_name=profile_results_sheet_name
+        )
+
+        # write self.min_pressure and self.max_pressure to excel
+        lastrow = ExcelHandler.get_last_row(
+            workbook="Node Results.xlsx", sheet_name="Node Summary"
+        )
+        new_range = f"A{lastrow+1}"
+        ExcelHandler.write_excel(
+            df=self.max_min_node_results,
+            sheet_name="Node Summary",
+            clear_sheet=False,
+            range=new_range,
+            workbook="Node Results.xlsx",
+            only_values=True,
         )
 
         self.logger.info(f"Results written to excel")
@@ -461,7 +474,7 @@ class NetworkSimulation:
             self.saveAs_newModel(update=update)
             self.close_model()
         except Exception as e:
-            self.logger.error(traceback.format_exc())
+            # self.logger.error(traceback.format_exc())
             self.logger.error(e)
             self.model.close()
             raise e

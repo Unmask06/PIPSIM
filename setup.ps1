@@ -1,1 +1,1 @@
-pip install pydantic openpyxl
+pip install pydantic openpyxl pathlib2 typing_extensions
