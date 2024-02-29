@@ -217,6 +217,7 @@ class NetworkSimulation:
         ]
         self.profile_variables = [
             ProfileVariables.PRESSURE,
+            ProfileVariables.TEMPERATURE,
             ProfileVariables.PRESSURE_GRADIENT_FRICTION,
             ProfileVariables.MEAN_VELOCITY_FLUID,
             ProfileVariables.EROSIONAL_VELOCITY,
@@ -278,18 +279,20 @@ class NetworkSimulation:
             )
             self.node_results.reset_index(drop=True, inplace=True)
 
+            # Profile results
             units = pd.DataFrame(self.results.profile_units, index=["Units"])
             dfs = []
             for branch in sorted(self.results.profile.keys()):
                 try:
                     res = self.results.profile
-                    branch_df = dict_to_df(res[branch])
-                    branch_equipement = branch_df["BranchEquipment"][0]
-                    branch_df["BranchEquipment"] = branch_df["BranchEquipment"].fillna(
-                        branch_equipement
+                    branch_df = dict_to_df(res[branch]).dropna(
+                        subset=["BranchEquipment"]
                     )
-                    branch_dff = branch_df.iloc[[-1]]
-                    dfs.append(branch_dff)
+                    branch_df["BranchEquipment"] = branch_df["BranchEquipment"].ffill()
+                    df_unique = branch_df.drop_duplicates(
+                        subset=["BranchEquipment"], keep="last"
+                    )
+                    dfs.append(df_unique)
                 except Exception as e:
                     logging.error(f"{branch}")
             combined_df = pd.concat(dfs)
@@ -311,6 +314,7 @@ class NetworkSimulation:
         new_profile_cols = [
             "BranchEquipment",
             ProfileVariables.PRESSURE,
+            ProfileVariables.TEMPERATURE,
             ProfileVariables.PRESSURE_GRADIENT_FRICTION,
             ProfileVariables.MEAN_VELOCITY_FLUID,
             ProfileVariables.EROSIONAL_VELOCITY,
@@ -330,7 +334,8 @@ class NetworkSimulation:
                 SystemVariables.TEMPERATURE: ("degF", "degC"),
             }
             profile_conversions = {
-                SystemVariables.PRESSURE: ("psia", "barg"),
+                ProfileVariables.PRESSURE: ("psia", "barg"),
+                ProfileVariables.TEMPERATURE: ("degF", "degC"),
                 ProfileVariables.PRESSURE_GRADIENT_FRICTION: ("psi/ft", "bar/100m"),
                 ProfileVariables.ELEVATION: ("ft", "m"),
                 ProfileVariables.MEAN_VELOCITY_FLUID: ("ft/s", "m/s"),
@@ -349,6 +354,7 @@ class NetworkSimulation:
         self.logger.info("Analyzing the results.....")
         sink_data = self.node_results[self.node_results["Type"] == "Sink"].copy()
 
+        pd.to_numeric(sink_data["Pressure"], errors="coerce")
         min_pressure_idx = sink_data["Pressure"].idxmin()
         max_pressure_idx = sink_data["Pressure"].idxmax()
 
@@ -368,17 +374,10 @@ class NetworkSimulation:
             df=self.node_results,
             sheet_name=node_results_sheet_name,
             clear_sheet=True,
-            range="A6",
-            workbook="Node Results.xlsx",
-        )
-        # write self.min_pressure and self.max_pressure to excel
-        ExcelHandler.write_excel(
-            df=self.max_min_node_results,
-            sheet_name=node_results_sheet_name,
-            clear_sheet=False,
             range="A2",
             workbook="Node Results.xlsx",
         )
+
         ExcelHandler.format_excel_general(
             workbook="Node Results.xlsx", sheet_name=node_results_sheet_name
         )

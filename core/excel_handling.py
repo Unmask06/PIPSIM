@@ -167,9 +167,20 @@ class ExcelHandler:
             logging.error(f"Error formatting Excel: {str(e)}")
 
     @staticmethod
-    def get_last_row(workbook: str, sheet_name: str):
-        with xw.App(visible=False) as app:
-            wb = xw.Book(workbook)
-            ws = wb.sheets(sheet_name)
-            last_row = ws.range("B1").end("down").row
-            return last_row
+    def get_last_row(workbook: str, sheet_name: str) -> int:
+        try:
+            with xw.App(visible=False) as app:
+                wb = xw.Book(workbook)
+                if sheet_name not in [s.name for s in wb.sheets]:
+                    print(f"Sheet '{sheet_name}' does not exist in the workbook.")
+                    return -1
+
+                ws = wb.sheets[sheet_name]
+
+                if ws.range("B2").value is None:
+                    return 1
+                last_row = ws.range("B1").end("down").row
+                return last_row
+        except Exception as e:
+            logging.error(f"An error occurred: {e}")
+            return -1

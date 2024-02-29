@@ -1,17 +1,9 @@
 {
   "FOLDER_DIRECTORY": "c:\\Users\\IDM252577\\Desktop\\Python Projects\\PIPSIM",
-  "MODEL_FILENAME": "BAB LP.pips",
-  "EXCEL_FILE": "Water Injection Profile for BAB LP.xlsx",
+  "MODEL_FILENAME": "BAB HP.pips",
+  "EXCEL_FILE": "Water Injection Profile for BAB HP.xlsx",
   "PIPSIM_INPUT_SHEET": "PIPSIM Input",
   "CONDITIONS_SHEET": "Conditions",
-  "SOURCE_NAME": "Src",
-  "PUMP_NAME": [
-    "LP Pump 1",
-    "LP Pump 2",
-    "LP Pump 3",
-    "LP Pump 4",
-    "LP Pump 5",
-    "LP Pump 6",
-    "LP Pump 7"
-  ]
+  "SOURCE_NAME": "Sea Water Supply",
+  "PUMP_NAME": ["HP Pump", "HP Pump 2"]
 }
