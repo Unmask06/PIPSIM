@@ -6,7 +6,7 @@ from typing import NoReturn
 
 from pydantic import ValidationError
 
-from core import ExcelHandler, NetworkSimulation, PipSimInput
+from core import ExcelHandler, NetworkSimulation, NetworkSimulationSummary, PipSimInput
 
 logger = logging.getLogger("Hydraulics")
 
@@ -65,12 +65,26 @@ def wave_run_model(config: PipSimInput) -> None:
             ns.initialize_excel_handler(
                 config.PIPSIM_INPUT_SHEET, config.CONDITIONS_SHEET
             )
-            ns.run_existing_model(
-                source_name=config.SOURCE_NAME, pump_name=config.PUMP_NAME
-            )
+            ns.run_existing_model()
         except Exception as e:
             logger.error(f"Error in running model {model_filename}: {e}")
             continue
+
+
+def wave_summarize_results(config: PipSimInput) -> None:
+    """Summarize the results of the model Node and Profile Results."""
+    netsimsum = NetworkSimulationSummary()
+    netsimsum.get_node_summary()
+    netsimsum.get_profile_summary()
+    suction_node = config.STRAINER_NAME[0]
+    discharge_node = config.PUMP_NAME[0]
+    netsimsum.get_pump_operating_points(
+        suction_node=suction_node, discharge_node=discharge_node
+    )
+    netsimsum.write_node_summary()
+    netsimsum.write_profile_summary()
+    netsimsum.write_pump_operating_points()
+    logger.info("Summary written successfully.")
 
 
 def main() -> None:
@@ -78,7 +92,7 @@ def main() -> None:
 
     while True:
         response = input(
-            "Do you want to \n (1) create a new model,\n (2) run an existing model,\n (3) create and run a new model?\n (4) to exit: "
+            "Do you want to \n (1) create a new model,\n (2) run an existing model,\n (3) Create summary for the results\n (4) to exit: "
         )
 
         if response == "1":
@@ -88,8 +102,7 @@ def main() -> None:
             wave_run_model(config)
 
         elif response == "3":
-            wave_create_model(config)
-            wave_run_model(config)
+            wave_summarize_results(config)
 
         elif response == "4":
             break

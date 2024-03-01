@@ -16,6 +16,7 @@ class PipSimInput(BaseModel):
     CONDITIONS_SHEET: str
     SOURCE_NAME: str
     PUMP_NAME: List[str]
+    STRAINER_NAME: List[str]
 
     @field_validator("FOLDER_DIRECTORY")
     def check_folder_directory(cls, v):

@@ -5,5 +5,7 @@
   "PIPSIM_INPUT_SHEET": "PIPSIM Input",
   "CONDITIONS_SHEET": "Conditions",
   "SOURCE_NAME": "Sea Water Supply",
-  "PUMP_NAME": ["HP Pump", "HP Pump 2"]
+  "PUMP_NAME": ["HP PUMP", "HP PUMP 2"],
+  "STRAINER_NAME": ["ST-2101-01"]
+
 }

@@ -3,7 +3,7 @@ import logging
 import re
 import traceback
 from pathlib import Path
-from typing import Any, Dict, List, NoReturn, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from pyparsing import WordEnd
@@ -19,6 +19,8 @@ def dict_to_df(dict: dict) -> pd.DataFrame:
 
 
 class NetworkSimulation:
+    NODE_RESULTS_FILE = "Node Results.xlsx"
+    PROFILE_RESULTS_FILE = "Profile Results.xlsx"
 
     def __init__(
         self,
@@ -252,7 +254,7 @@ class NetworkSimulation:
             profile_variables=self.profile_variables,
         )
 
-    def process_results(self):
+    def process_node_results(self):
         self.node_results = pd.DataFrame.from_dict(self.results.node)
         if self.node_results.empty:
             raise Exception(
@@ -279,29 +281,27 @@ class NetworkSimulation:
             )
             self.node_results.reset_index(drop=True, inplace=True)
 
-            # Profile results
-            units = pd.DataFrame(self.results.profile_units, index=["Units"])
-            dfs = []
-            for branch in sorted(self.results.profile.keys()):
-                try:
-                    res = self.results.profile
-                    branch_df = dict_to_df(res[branch]).dropna(
-                        subset=["BranchEquipment"]
-                    )
-                    branch_df["BranchEquipment"] = branch_df["BranchEquipment"].ffill()
-                    df_unique = branch_df.drop_duplicates(
-                        subset=["BranchEquipment"], keep="last"
-                    )
-                    dfs.append(df_unique)
-                except Exception as e:
-                    logging.error(f"{branch}")
-            combined_df = pd.concat(dfs)
-            combined_df.sort_values(by=["BranchEquipment"], inplace=True)
-            combined_df.reset_index(drop=True, inplace=True)
-            self.profile_results = pd.concat([units, combined_df], axis=0)
-            self.logger.info(f"Simulation run Successful")
+    def process_profile_results(self):
+        units = pd.DataFrame(self.results.profile_units, index=["Units"])
+        dfs = []
+        for branch in sorted(self.results.profile.keys()):
+            try:
+                res = self.results.profile
+                branch_df = dict_to_df(res[branch]).dropna(subset=["BranchEquipment"])
+                branch_df["BranchEquipment"] = branch_df["BranchEquipment"].ffill()
+                df_unique = branch_df.drop_duplicates(
+                    subset=["BranchEquipment"], keep="last"
+                )
+                dfs.append(df_unique)
+            except Exception as e:
+                logging.error(f"{branch}")
+        combined_df = pd.concat(dfs)
+        combined_df.sort_values(by=["BranchEquipment"], inplace=True)
+        combined_df.reset_index(drop=True, inplace=True)
+        self.profile_results = pd.concat([units, combined_df], axis=0)
+        self.logger.info(f"Simulation run Successful")
 
-            self._reorder_columns()
+        self._reorder_columns()
 
     def _reorder_columns(self):
         new_node_cols = [
@@ -350,22 +350,6 @@ class NetworkSimulation:
                 dataframe=self.profile_results, conversions=profile_conversions
             )
 
-    def analysis_results(self):
-        self.logger.info("Analyzing the results.....")
-        sink_data = self.node_results[self.node_results["Type"] == "Sink"].copy()
-
-        pd.to_numeric(sink_data["Pressure"], errors="coerce")
-        min_pressure_idx = sink_data["Pressure"].idxmin()
-        max_pressure_idx = sink_data["Pressure"].idxmax()
-
-        sink_data.loc[min_pressure_idx, "Min/Max"] = "Minimum"
-        sink_data.loc[max_pressure_idx, "Min/Max"] = "Maximum"
-        sink_data["case"] = f"{self.case}_{self.condition.index.to_list()[0]}"
-
-        self.max_min_node_results = pd.concat(
-            [sink_data.loc[[min_pressure_idx]], sink_data.loc[[max_pressure_idx]]]
-        )
-
     def write_results_to_excel(self, update=True):
         sheet_name = f"{self.case}_{self.condition.index.to_list()[0]}"
         node_results_sheet_name = f"{sheet_name}_NR"
@@ -375,41 +359,31 @@ class NetworkSimulation:
             sheet_name=node_results_sheet_name,
             clear_sheet=True,
             range="A2",
-            workbook="Node Results.xlsx",
+            workbook=NetworkSimulation.NODE_RESULTS_FILE,
         )
 
         ExcelHandler.format_excel_general(
-            workbook="Node Results.xlsx", sheet_name=node_results_sheet_name
+            workbook=NetworkSimulation.NODE_RESULTS_FILE,
+            sheet_name=node_results_sheet_name,
         )
         ExcelHandler.format_excel_profile_results(
-            workbook="Node Results.xlsx", sheet_name=node_results_sheet_name
+            workbook=NetworkSimulation.NODE_RESULTS_FILE,
+            sheet_name=node_results_sheet_name,
         )
 
         ExcelHandler.write_excel(
             df=self.profile_results,
             sheet_name=profile_results_sheet_name,
             clear_sheet=True,
-            workbook="Profile Results.xlsx",
+            workbook=NetworkSimulation.PROFILE_RESULTS_FILE,
         )
         ExcelHandler.format_excel_general(
-            workbook="Profile Results.xlsx", sheet_name=profile_results_sheet_name
+            workbook=NetworkSimulation.PROFILE_RESULTS_FILE,
+            sheet_name=profile_results_sheet_name,
         )
         ExcelHandler.format_excel_profile_results(
-            workbook="Profile Results.xlsx", sheet_name=profile_results_sheet_name
-        )
-
-        # write self.min_pressure and self.max_pressure to excel
-        lastrow = ExcelHandler.get_last_row(
-            workbook="Node Results.xlsx", sheet_name="Node Summary"
-        )
-        new_range = f"A{lastrow+1}"
-        ExcelHandler.write_excel(
-            df=self.max_min_node_results,
-            sheet_name="Node Summary",
-            clear_sheet=False,
-            range=new_range,
-            workbook="Node Results.xlsx",
-            only_values=True,
+            workbook=NetworkSimulation.PROFILE_RESULTS_FILE,
+            sheet_name=profile_results_sheet_name,
         )
 
         self.logger.info(f"Results written to excel")
@@ -451,24 +425,21 @@ class NetworkSimulation:
             self.populate_flowrates_in_model_from_excel()
             self.close_model()
         except Exception as e:
-            self.logger.error(traceback.format_exc())
+            # self.logger.error(traceback.format_exc())
             self.logger.error(e)
             self.model.close()
             raise e
 
-    def run_existing_model(
-        self, source_name, pump_name, unit_conversion=True, update=True
-    ):
+    def run_existing_model(self, unit_conversion=True, update=True):
         try:
             self.update = update
             self.prepare_model()
             self.open_model()
             self.get_boundary_conditions()
-            self.set_global_conditions(source_name=source_name, pump_name=pump_name)
             self.run_simulation()
-            self.process_results()
+            self.process_node_results()
+            self.process_profile_results()
             self.convert_units(unit_conversion=unit_conversion)
-            self.analysis_results()
             self.write_results_to_excel(update=update)
             self.saveAs_newModel(update=update)
             self.close_model()
