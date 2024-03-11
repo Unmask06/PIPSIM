@@ -60,6 +60,11 @@ class ExcelHandler:
         only_values: bool = False,
     ):
         try:
+            if df.index.name is None or df.index.name == "":
+                df.index.name = "Index"
+            if df.index.to_list()[0] == 0:
+                df.index += 1
+
             with xw.App(visible=False) as app:
                 if os.path.isfile(workbook):
                     wb = xw.Book(workbook)
@@ -84,7 +89,7 @@ class ExcelHandler:
             logging.error(f"Error writing to Excel: {str(e)}")
 
     @staticmethod
-    def format_excel_general(workbook:str, sheet_name):
+    def format_excel_general(workbook: str, sheet_name):
         try:
             with xw.App(visible=False) as app:
                 wb = xw.Book(workbook)

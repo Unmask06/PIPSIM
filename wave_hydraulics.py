@@ -1,14 +1,16 @@
+# wave_hydraulics.py
 import json
 import logging
 import os
 import sys
+import traceback
 from typing import NoReturn
 
 from pydantic import ValidationError
 
 from core import ExcelHandler, NetworkSimulation, NetworkSimulationSummary, PipSimInput
 
-logger = logging.getLogger("Hydraulics")
+logger = logging.getLogger(__name__)
 
 
 def load_config(file_path: str) -> PipSimInput:
@@ -73,18 +75,29 @@ def wave_run_model(config: PipSimInput) -> None:
 
 def wave_summarize_results(config: PipSimInput) -> None:
     """Summarize the results of the model Node and Profile Results."""
-    netsimsum = NetworkSimulationSummary()
-    netsimsum.get_node_summary()
-    netsimsum.get_profile_summary()
-    suction_node = config.STRAINER_NAME[0]
-    discharge_node = config.PUMP_NAME[0]
-    netsimsum.get_pump_operating_points(
-        suction_node=suction_node, discharge_node=discharge_node
-    )
-    netsimsum.write_node_summary()
-    netsimsum.write_profile_summary()
-    netsimsum.write_pump_operating_points()
-    logger.info("Summary written successfully.")
+    try:
+        netsimsum = NetworkSimulationSummary()
+        netsimsum.get_node_summary()
+        netsimsum.get_profile_summary()
+
+        suction_node = config.STRAINER_NAME[0]
+        discharge_node = config.PUMP_NAME[0]
+        netsimsum.get_pump_operating_points(
+            suction_node=suction_node, discharge_node=discharge_node
+        )
+        netsimsum.write_node_summary()
+        netsimsum.write_profile_summary()
+        netsimsum.write_pump_operating_points()
+        logger.info("Summary written successfully.")
+    except Exception as e:
+        logger.error(f"Error in summarizing results: {e}")
+        # traceback.print_exc()
+        sys.exit(1)
+
+
+def exit_program() -> NoReturn:
+    logger.info("Exiting the program.")
+    sys.exit(0)
 
 
 def main() -> None:
@@ -95,20 +108,20 @@ def main() -> None:
             "Do you want to \n (1) create a new model,\n (2) run an existing model,\n (3) Create summary for the results\n (4) to exit: "
         )
 
-        if response == "1":
-            wave_create_model(config)
-
-        elif response == "2":
-            wave_run_model(config)
-
-        elif response == "3":
-            wave_summarize_results(config)
-
-        elif response == "4":
-            break
-
-        else:
+        action = {
+            "1": wave_create_model,
+            "2": wave_run_model,
+            "3": wave_summarize_results,
+            "4": exit_program,
+        }
+        try:
+            if response == "4":
+                action[response]()
+            else:
+                action[response](config)
+        except KeyError:
             print("Invalid option. Please choose 1, 2, 3, or 4.")
+            continue
 
 
 if __name__ == "__main__":

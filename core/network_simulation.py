@@ -218,6 +218,7 @@ class NetworkSimulation:
             SystemVariables.VOLUME_FLOWRATE_WATER_STOCKTANK,
         ]
         self.profile_variables = [
+            ProfileVariables.VOLUME_FLOWRATE_WATER_STOCKTANK,
             ProfileVariables.PRESSURE,
             ProfileVariables.TEMPERATURE,
             ProfileVariables.PRESSURE_GRADIENT_FRICTION,
@@ -313,6 +314,7 @@ class NetworkSimulation:
         ]
         new_profile_cols = [
             "BranchEquipment",
+            ProfileVariables.VOLUME_FLOWRATE_WATER_STOCKTANK,
             ProfileVariables.PRESSURE,
             ProfileVariables.TEMPERATURE,
             ProfileVariables.PRESSURE_GRADIENT_FRICTION,
