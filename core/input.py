@@ -1,3 +1,5 @@
+"""This module contains the Pydantic model for the input configuration file"""
+
 import logging
 from pathlib import Path
 from typing import List
@@ -9,6 +11,8 @@ logger = logging.getLogger("Input Validation")
 
 
 class PipSimInput(BaseModel):
+    """Pydantic model for the input configuration file."""
+
     FOLDER_DIRECTORY: Path
     MODEL_FILENAME: str
     EXCEL_FILE: str
@@ -19,6 +23,7 @@ class PipSimInput(BaseModel):
     STRAINER_NAME: List[str]
 
     @field_validator("FOLDER_DIRECTORY")
+    @classmethod
     def check_folder_directory(cls, v):
         if not Path(v).is_dir():
             raise ValueError("Folder directory does not exist")
@@ -51,7 +56,7 @@ class PipSimInput(BaseModel):
         folder_directory = self.FOLDER_DIRECTORY
         excel_file = self.EXCEL_FILE
         excel_file_path = folder_directory / excel_file
-        with xw.App(visible=False) as app:
+        with xw.App(visible=False):
             wb = xw.Book(excel_file_path)
             sheet_names = [sheet.name for sheet in wb.sheets]
             if not self.PIPSIM_INPUT_SHEET in sheet_names:

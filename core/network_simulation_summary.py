@@ -1,12 +1,12 @@
-# network_simulation_summary.py
+"""network_simulation_summary"""
+
 import logging
-from os import error
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import xlwings as xw
-from sixgill.definitions import *  # type: ignore
+from sixgill.definitions import ProfileVariables
 
 from core import ExcelHandler, NetworkSimulation
 
@@ -16,7 +16,17 @@ parameters = [
 ]
 
 
+class SummaryError(Exception):
+    """Base class for exceptions in this module."""
+
+
 class NetworkSimulationSummary:
+    """
+    Class to get summary of the network simulation results produced
+    by the 'NetworkSimulation' class.
+
+    """
+
     def __init__(
         self,
         node_result_xl: str = NetworkSimulation.NODE_RESULTS_FILE,
@@ -82,18 +92,20 @@ class NetworkSimulationSummary:
             pump_op_df["Pump Head"] = (
                 pump_op_df["Discharge Pressure"] - pump_op_df["Suction Pressure"]
             )
-        except IndexError:
+        except IndexError as exc:
             err_msg = (
-                f"Error in getting pump operating points for '{suction_node}' and '{discharge_node}' in {case}.\n"
-                "Check if the Pump and Strainer in 'inputs.json' file is in the Profile Results.xlsx are present in the profile results."
+                f"Error in getting pump operating points '{suction_node}' and '{discharge_node}' "
+                f"in {case}.\n"
+                "Check if the Pump and Strainer in 'inputs.json' file is in Profile Results.xlsx "
+                "are present in the profile results."
             )
-            raise IndexError(err_msg)
+            raise IndexError(err_msg) from exc
 
         return pump_op_df
 
     def get_node_summary(self):
         self.logger.info("Getting Node Summary.....")
-        with xw.App(visible=False) as app:
+        with xw.App(visible=False):
             node_wb = xw.Book(self.node_result_xl)
             node_sheets = [
                 sheet.name for sheet in node_wb.sheets if sheet.name != "Node Summary"
@@ -108,9 +120,9 @@ class NetworkSimulationSummary:
                     df=node_df, case=sht, parameter="Pressure", equipment_column="Node"
                 )
                 node_summary_list.append(node_df)
-            except Exception as e:
-                err = f"Error in getting node summary for {sht}: {e}"
-                raise Exception(err)
+            except Exception as exc:
+                err = f"Error in getting node summary for {sht}: {exc}"
+                raise SummaryError(err) from exc
 
         node_summary = pd.concat(node_summary_list, ignore_index=True)
         self.node_summary = node_summary
@@ -146,15 +158,18 @@ class NetworkSimulationSummary:
                             equipment_column="BranchEquipment",
                         )
                         profile_summaries.append(profile_df)
-                    except KeyError as ke:
+                    except KeyError:
                         if not sht in parameters:
-                            error_msg = f"Error in getting profile summary for parameter: {parameter} in {sht}"
+                            error_msg = (
+                                "Error in getting profile summary for parameter:\n"
+                                f"{parameter} in {sht}"
+                            )
                             logging.warning(error_msg)
 
                 summary_df = pd.concat(profile_summaries, ignore_index=True)
 
                 self.profile_summary_list[parameter] = summary_df
-                
+
             except Exception as e:
                 logging.error(f"Error in getting profile summary for {parameter}: {e}")
                 raise e
@@ -188,7 +203,7 @@ class NetworkSimulationSummary:
             self.node_summary,
             self.node_result_xl,
             "Node Summary",
-            range="A2",
+            sht_range="A2",
             clear_sheet=True,
         )
 
@@ -201,7 +216,7 @@ class NetworkSimulationSummary:
                 df,
                 self.profile_result_xl,
                 sheet_name=parameter,
-                range="A2",
+                sht_range="A2",
                 clear_sheet=True,
             )
 
@@ -211,6 +226,6 @@ class NetworkSimulationSummary:
             self.pump_operating_points,
             self.profile_result_xl,
             sheet_name="Pump Operating Points",
-            range="A2",
+            sht_range="A2",
             clear_sheet=True,
         )

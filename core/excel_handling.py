@@ -1,25 +1,33 @@
 # excel_handling.py
+"""
+This module contains the ExcelHandler class for reading and writing to Excel files.
+"""
 import logging
 import os
-import traceback
+
+# import traceback
 from pathlib import Path
-from re import A
-from typing import Any, Optional
+from typing import Optional
 
 import pandas as pd
 import xlwings as xw
-from traitlets import Bool
 from xlwings import constants as xw_const
 
 logger = logging.getLogger("ExcelHandler")
 
 
+class ExcelHandlerError(Exception):
+    """Base class for exceptions in this module."""
+
+
 class ExcelHandler:
+    """
+    A class for handling Excel files.
+    """
 
     def __init__(
         self, excel_filename: str, folder_directory: Optional[Path] = None
     ) -> None:
-
         self.excel_filename = excel_filename
         self.excel_path = self._get_excel_path(excel_filename, folder_directory)
 
@@ -34,6 +42,7 @@ class ExcelHandler:
         return excel_path
 
     def get_all_condition(self, sheet_name="Conditions"):
+
         conditions = pd.read_excel(
             self.excel_path,
             sheet_name=sheet_name,
@@ -44,6 +53,7 @@ class ExcelHandler:
         return conditions
 
     def get_all_profiles(self, sheet_name="PIPSIM Input"):
+
         profiles = pd.read_excel(
             self.excel_path, sheet_name=sheet_name, header=3, index_col=0
         )
@@ -54,7 +64,7 @@ class ExcelHandler:
         df: pd.DataFrame,
         workbook: str,
         sheet_name: str,
-        range: Optional[str] = "A2",
+        sht_range: Optional[str] = "A2",
         clear_sheet: bool = False,
         save: bool = True,
         only_values: bool = False,
@@ -65,7 +75,7 @@ class ExcelHandler:
             if df.index.to_list()[0] == 0:
                 df.index += 1
 
-            with xw.App(visible=False) as app:
+            with xw.App(visible=False):
                 if os.path.isfile(workbook):
                     wb = xw.Book(workbook)
                 else:
@@ -80,18 +90,18 @@ class ExcelHandler:
                 if clear_sheet:
                     ws.clear_contents()
                 if only_values:
-                    ws.range(range).value = df.values
+                    ws.range(sht_range).value = df.values
                 else:
-                    ws.range(range).value = df
+                    ws.range(sht_range).value = df
                 if save:
                     wb.save()
-        except Exception as e:
+        except ExcelHandlerError as e:
             logging.error(f"Error writing to Excel: {str(e)}")
 
     @staticmethod
     def format_excel_general(workbook: str, sheet_name):
         try:
-            with xw.App(visible=False) as app:
+            with xw.App(visible=False):
                 wb = xw.Book(workbook)
                 ws = wb.sheets(sheet_name)
                 ws.api.PageSetup.Orientation = xw_const.PageOrientation.xlPortrait
@@ -109,7 +119,7 @@ class ExcelHandler:
                         xw_const.BorderWeight.xlThin
                     )
                 wb.save()
-        except Exception as e:
+        except ExcelHandlerError as e:
             logging.error(f"Error formatting Excel: {str(e)}")
 
     @staticmethod
@@ -117,7 +127,7 @@ class ExcelHandler:
         value_range = ["D3", "D8"]
         header_range = ["B2", "B6"]
         try:
-            with xw.App(visible=False) as app:
+            with xw.App(visible=False):
                 wb = xw.Book(workbook)
                 ws = wb.sheets(sheet_name)
                 ws.api.PageSetup.PrintTitleRows = "$1:$4"
@@ -129,7 +139,7 @@ class ExcelHandler:
                     ws.range(cell).expand("right").api.Font.Bold = True
                 ws.range("B1").value = ws.name
                 wb.save()
-        except Exception as e:
+        except ExcelHandlerError as e:
             logging.error(f"Error formatting Excel: {str(e)}")
 
     @staticmethod
@@ -137,7 +147,7 @@ class ExcelHandler:
         value_range = ["C4"]
         header_range = ["B2", "A2"]
         try:
-            with xw.App(visible=False) as app:
+            with xw.App(visible=False):
                 wb = xw.Book(workbook)
                 ws = wb.sheets(sheet_name)
                 ws.api.PageSetup.PrintTitleRows = "$1:$3"
@@ -149,7 +159,7 @@ class ExcelHandler:
                     ws.range(cell).expand("right").api.Font.Bold = True
                 ws.range("B1").value = ws.name
                 wb.save()
-        except Exception as e:
+        except ExcelHandlerError as e:
             logging.error(f"Error formatting Excel: {str(e)}")
 
     @staticmethod
@@ -157,7 +167,7 @@ class ExcelHandler:
         value_range = ["D2"]
         header_range = ["B1"]
         try:
-            with xw.App(visible=False) as app:
+            with xw.App(visible=False):
                 wb = xw.Book(workbook)
                 ws = wb.sheets(sheet_name)
                 ws.api.PageSetup.PrintTitleRows = "$1:$1"
@@ -168,13 +178,13 @@ class ExcelHandler:
                 for cell in header_range:
                     ws.range(cell).expand("right").api.Font.Bold = True
                 ws.range("B1").value = ws.name
-        except Exception as e:
+        except ExcelHandlerError as e:
             logging.error(f"Error formatting Excel: {str(e)}")
 
     @staticmethod
     def get_last_row(workbook: str, sheet_name: str) -> int:
         try:
-            with xw.App(visible=False) as app:
+            with xw.App(visible=False):
                 wb = xw.Book(workbook)
                 if sheet_name not in [s.name for s in wb.sheets]:
                     print(f"Sheet '{sheet_name}' does not exist in the workbook.")
@@ -186,6 +196,6 @@ class ExcelHandler:
                     return 1
                 last_row = ws.range("B1").end("down").row
                 return last_row
-        except Exception as e:
+        except ExcelHandlerError as e:
             logging.error(f"An error occurred: {e}")
             return -1

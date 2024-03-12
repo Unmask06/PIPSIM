@@ -1,14 +1,19 @@
-# wave_hydraulics.py
+"""wave_hydraulics"""
 import json
 import logging
 import os
 import sys
-import traceback
-from typing import NoReturn
 
+# import traceback
 from pydantic import ValidationError
 
-from core import ExcelHandler, NetworkSimulation, NetworkSimulationSummary, PipSimInput
+from core import (
+    NetworkSimulation,
+    NetworkSimulationError,
+    NetworkSimulationSummary,
+    PipSimInput,
+    SummaryError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +21,7 @@ logger = logging.getLogger(__name__)
 def load_config(file_path: str) -> PipSimInput:
     """Load and validate configuration from a JSON file."""
     try:
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             config_dict = json.load(f)
         config = PipSimInput(**config_dict)
         logger.info("Input file loaded successfully.")
@@ -32,7 +37,8 @@ def load_config(file_path: str) -> PipSimInput:
 
     except json.decoder.JSONDecodeError as e:
         logger.error(
-            f"Error in the configuration file: \n {e} \n make sure to use '/' or '\\\\' in the file path"
+            f"Error in the configuration file: \n {e} \n"
+            f"make sure to use '/' or '\\\\' in the file path"
         )
         sys.exit(1)
 
@@ -68,7 +74,7 @@ def wave_run_model(config: PipSimInput) -> None:
                 config.PIPSIM_INPUT_SHEET, config.CONDITIONS_SHEET
             )
             ns.run_existing_model()
-        except Exception as e:
+        except NetworkSimulationError as e:
             logger.error(f"Error in running model {model_filename}: {e}")
             continue
 
@@ -89,13 +95,13 @@ def wave_summarize_results(config: PipSimInput) -> None:
         netsimsum.write_profile_summary()
         netsimsum.write_pump_operating_points()
         logger.info("Summary written successfully.")
-    except Exception as e:
+    except SummaryError as e:
         logger.error(f"Error in summarizing results: {e}")
         # traceback.print_exc()
         sys.exit(1)
 
 
-def exit_program() -> NoReturn:
+def exit_program() -> None:
     logger.info("Exiting the program.")
     sys.exit(0)
 
@@ -105,7 +111,11 @@ def main() -> None:
 
     while True:
         response = input(
-            "Do you want to \n (1) create a new model,\n (2) run an existing model,\n (3) Create summary for the results\n (4) to exit: "
+            "Do you want to \n"
+            "(1) create a new model \n"
+            "(2) run an existing model \n"
+            "(3) Create summary for the results\n"
+            "(4) to exit: "
         )
 
         action = {

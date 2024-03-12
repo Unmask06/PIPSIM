@@ -1,24 +1,67 @@
-# Network Simulation.py
+# network_simulation.py
+"""
+Performs network simulation using the Pipesim model.
+
+This module contains the NetworkSimulation class 
+which is responsible for performing network simulation using the Pipesim model.
+    - Initializes the simulation.
+    - Prepares the model.
+    - Sets global conditions.
+    - Retrieves boundary conditions and values.
+    - Activates and deactivates wells.
+    - Runs the simulation.
+    - Processes node and profile results.
+    - Converts units.
+    - Writes results to Excel.
+    - Saves the model.
+    - Closes the model.
+
+Classes:
+- NetworkSimulation: Performs network simulation using the Pipesim model.
+
+Exceptions:
+- NetworkSimulationError: Exception raised for errors in the NetworkSimulation class.
+
+Functions:
+- dict_to_df: Converts a dictionary to a DataFrame.
+
+"""
+
 import logging
 import re
-import traceback
+
+# import traceback
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
-from pyparsing import WordEnd
-from sixgill.definitions import *  # type: ignore
+from sixgill.definitions import Parameters, ProfileVariables, SystemVariables
 from sixgill.pipesim import Model, Units
 
 from .excel_handling import ExcelHandler
 from .unit_conversion import UnitConversion
 
 
-def dict_to_df(dict: dict) -> pd.DataFrame:
-    return pd.DataFrame.from_dict(dict)
+def dict_to_df(data: dict) -> pd.DataFrame:
+    """
+    Converts a dictionary to a DataFrame.
+
+    """
+    return pd.DataFrame.from_dict(data)
+
+
+class NetworkSimulationError(Exception):
+    """
+    Exception raised for errors in the NetworkSimulation class.
+    """
 
 
 class NetworkSimulation:
+    """
+    Performs network simulation using the Pipesim model.
+
+    """
+
     NODE_RESULTS_FILE = "Node Results.xlsx"
     PROFILE_RESULTS_FILE = "Profile Results.xlsx"
 
@@ -36,7 +79,7 @@ class NetworkSimulation:
         self.excel_filename = excel_filename
         self.excel_path = Path(folder_directory) / excel_filename
         self.update: bool = update_existing_model
-        self.well_lists: Optional[List] = None
+
         self.logger.info(
             f"------------Network Simulation Object Created----------------\n"
             f"Model Path: {self.model_path}\n"
@@ -44,7 +87,8 @@ class NetworkSimulation:
 
     def initialize_excel_handler(self, pipsim_input_sheet, conditions_sheet):
         self.excel_handler = ExcelHandler(
-            folder_directory=self.folder_directory, excel_filename=self.excel_filename
+            folder_directory=self.folder_directory,
+            excel_filename=self.excel_filename,
         )
         self.all_conditions = self.excel_handler.get_all_condition(
             sheet_name=conditions_sheet
@@ -62,7 +106,7 @@ class NetworkSimulation:
                 self.model_filename
             )
         # for new model
-        elif self.update == False:
+        elif self.update is False:
             if case is None:
                 case = self.cases[0]
                 self.logger.info(f"case not specified, using {case}")
@@ -84,12 +128,11 @@ class NetworkSimulation:
 
         match = re.match(pattern, input_string)
 
-        if match:
-            case = match.group(1) + "_" + match.group(2)
-            condition = match.group(3)
-            return (case, condition)
-        else:
-            raise Exception("Invalid input string")
+        if not match:
+            raise NetworkSimulationError("Invalid input string")
+        case = match.group(1) + "_" + match.group(2)
+        condition = match.group(3)
+        return (case, condition)
 
     def open_model(self):
         """
@@ -98,7 +141,7 @@ class NetworkSimulation:
         Returns:
             self.model:Model: Model object.
         """
-        self.model: Model = Model.open(filename=str(self.model_path), units=Units.FIELD)
+        self.model = Model.open(filename=str(self.model_path), units=Units.FIELD)
         self._validate_model()
 
     def _validate_model(self):
@@ -111,33 +154,37 @@ class NetworkSimulation:
 
         if self.model.tasks is not None:
             if getattr(self.model.tasks, "networksimulation", None) is None:
-                raise Exception("Network Simulation Task not found in the model")
+                raise NetworkSimulationError(
+                    "Network Simulation Task not found in the model"
+                )
             self.networksimulation: Any = self.model.tasks.networksimulation
 
     def set_global_conditions(self, source_name, pump_name):
         (
-            AMBIENT_TEMPERATURE,
-            SOURCE_PRESSURE,
-            SOURCE_TEMPERATURE,
-            DIFFERENTIAL_PRESSURE,
+            ambient_temperature,
+            source_pressure,
+            source_temperature,
+            differential_pressure,
         ) = self.condition.iloc[0]
 
         if self.model.sim_settings is not None:
-            self.model.sim_settings.ambient_temperature = AMBIENT_TEMPERATURE
+            self.model.sim_settings.ambient_temperature = ambient_temperature
 
         self.model.set_values(
             {
                 source_name: {
-                    "Pressure": SOURCE_PRESSURE,
-                    "Temperature": SOURCE_TEMPERATURE,
+                    SystemVariables.PRESSURE: source_pressure,
+                    SystemVariables.TEMPERATURE: source_temperature,
                 },
                 **{
-                    pump: {"PressureDifferential": DIFFERENTIAL_PRESSURE}
+                    pump: {
+                        Parameters.SharedPumpParameters.PRESSUREDIFFERENTIAL: differential_pressure
+                    }
                     for pump in pump_name
                 },
             }
         )
-        self.logger.info(f"Set Global Conditions")
+        self.logger.info("Set Global Conditions")
 
     def get_boundary_conditions(self):
         """
@@ -146,7 +193,7 @@ class NetworkSimulation:
         Returns:
             self.boundary_conditions:DataFrame: DataFrame containing all boundary conditions.
         """
-        self.logger.info(f"Getting boundary conditions.....")
+        self.logger.info("Getting boundary conditions.....")
         boundary_conditions_dict: dict = self.networksimulation.get_conditions()
         self.boundary_conditions: pd.DataFrame = pd.DataFrame.from_dict(
             boundary_conditions_dict
@@ -160,7 +207,7 @@ class NetworkSimulation:
             self.values:DataFrame: DataFrame containing all values.
             self.model_inputs:DataFrame: DataFrame containing all components and their types.
         """
-        self.logger.info(f"Getting all values.....")
+        self.logger.info("Getting all values.....")
         values_dict = self.model.get_values(show_units=True)
         data = []
         for key in values_dict.keys():
@@ -184,7 +231,7 @@ class NetworkSimulation:
         Returns:
             self.well_values:DataFrame: DataFrame containing all wells.
         """
-        self.logger.info(f"Getting well values.....")
+        self.logger.info("Getting well values.....")
         if self.well_lists is None:
             self.well_lists = self.model_inputs.loc[
                 self.model_inputs["type"] == "Well", "component"
@@ -199,16 +246,18 @@ class NetworkSimulation:
         self.model.set_values(dict=self.well_values[self.well_lists].to_dict())
         self.networksimulation.reset_conditions()
         self.get_boundary_conditions()
-        self.logger.info(f"Activated all wells")
+        self.logger.info("Activated all wells")
 
     def deactivate_noflow_wells(self):
         condition = self.profile[self.case] < 0.001
         self.no_flow_wells = self.profile.loc[condition, self.case].index.to_list()
         self.values.loc[["IsActive"], self.no_flow_wells] = False
-        _deactivated_wells = self.values.loc[["IsActive"], self.no_flow_wells].to_dict()
+        _deactivated_wells = self.values.loc[
+            ["IsActive"], self.no_flow_wells
+        ].to_dict()
         self.model.set_values(dict=_deactivated_wells)
         self.networksimulation.reset_conditions()
-        self.logger.info(f"Deactivated no flow wells")
+        self.logger.info("Deactivated no flow wells")
 
     def _specify_system_profiles_variables(self):
         self.system_variables = [
@@ -231,7 +280,7 @@ class NetworkSimulation:
 
     def populate_flowrates_in_model_from_excel(self):
         if self.well_lists is None:
-            raise Exception("Well lists not available")
+            raise NetworkSimulationError("Well lists not available")
         for well in self.well_lists:
             if well in self.boundary_conditions.columns:
                 _flowrate = self.profile.loc[well, self.case]
@@ -242,12 +291,12 @@ class NetworkSimulation:
         _bc_dict = self.boundary_conditions.loc[["LiquidFlowRate"]].to_dict()
         self.networksimulation.set_conditions(boundaries=_bc_dict)
         self.get_boundary_conditions()
-        self.logger.info(f"Populated flowrates in model from excel")
-        self.saveAs_newModel()
+        self.logger.info("Populated flowrates in model from excel")
+        self.save_as_new_model()
 
     def run_simulation(self):
         if len(self.networksimulation.validate()) > 0:
-            raise Exception("Model Validation Unsuccessful")
+            raise NetworkSimulationError("Model Validation Unsuccessful")
 
         self._specify_system_profiles_variables()
         self.results = self.networksimulation.run(
@@ -257,30 +306,31 @@ class NetworkSimulation:
 
     def process_node_results(self):
         self.node_results = pd.DataFrame.from_dict(self.results.node)
+
         if self.node_results.empty:
-            raise Exception(
-                "Simulation run Unsuccessful. No results found. Check License availablity or model validity."
+            raise NetworkSimulationError(
+                "Simulation run Unsuccessful."
+                "No results found. Check License availablity or model validity."
             )
-        else:
-            self.node_results.reset_index(inplace=True)
-            self.node_results.rename(columns={"index": "Node"}, inplace=True)
-            self.node_results["Type"] = [
-                (
-                    self.boundary_conditions.loc["BoundaryNodeType", well]
-                    if well in self.boundary_conditions.columns
-                    else None
-                )
-                for well in self.node_results["Node"]
-            ]
-            node_results_unit = self.node_results.iloc[0:1]
-            self.node_results.sort_values(
-                by=["Type", "Node"], ascending=[False, True], inplace=True
+        self.node_results.reset_index(inplace=True)
+        self.node_results.rename(columns={"index": "Node"}, inplace=True)
+        self.node_results["Type"] = [
+            (
+                self.boundary_conditions.loc["BoundaryNodeType", well]
+                if well in self.boundary_conditions.columns
+                else None
             )
-            self.node_results.dropna(subset=["Type"], inplace=True)
-            self.node_results = pd.concat(
-                [node_results_unit, self.node_results], axis=0
-            )
-            self.node_results.reset_index(drop=True, inplace=True)
+            for well in self.node_results["Node"]
+        ]
+        node_results_unit = self.node_results.iloc[0:1]
+        self.node_results.sort_values(
+            by=["Type", "Node"], ascending=[False, True], inplace=True
+        )
+        self.node_results.dropna(subset=["Type"], inplace=True)
+        self.node_results = pd.concat(
+            [node_results_unit, self.node_results], axis=0
+        )
+        self.node_results.reset_index(drop=True, inplace=True)
 
     def process_profile_results(self):
         units = pd.DataFrame(self.results.profile_units, index=["Units"])
@@ -288,19 +338,23 @@ class NetworkSimulation:
         for branch in sorted(self.results.profile.keys()):
             try:
                 res = self.results.profile
-                branch_df = dict_to_df(res[branch]).dropna(subset=["BranchEquipment"])
-                branch_df["BranchEquipment"] = branch_df["BranchEquipment"].ffill()
+                branch_df: pd.DataFrame = dict_to_df(res[branch]).dropna(
+                    subset=["BranchEquipment"]
+                )
+                branch_df.loc[:, "BranchEquipment"] = branch_df.loc[
+                    :, "BranchEquipment"
+                ].ffill()
                 df_unique = branch_df.drop_duplicates(
                     subset=["BranchEquipment"], keep="last"
                 )
                 dfs.append(df_unique)
-            except Exception as e:
+            except NetworkSimulationError:
                 logging.error(f"{branch}")
         combined_df = pd.concat(dfs)
         combined_df.sort_values(by=["BranchEquipment"], inplace=True)
         combined_df.reset_index(drop=True, inplace=True)
         self.profile_results = pd.concat([units, combined_df], axis=0)
-        self.logger.info(f"Simulation run Successful")
+        self.logger.info("Simulation run Successful")
 
         self._reorder_columns()
 
@@ -329,7 +383,7 @@ class NetworkSimulation:
         self.profile_results = self.profile_results[new_profile_cols]
 
     def convert_units(self, unit_conversion=True):
-        self.logger.info(f"Converting units.....")
+        self.logger.info("Converting units.....")
         if unit_conversion:
             node_conversions = {
                 SystemVariables.PRESSURE: ("psia", "barg"),
@@ -352,7 +406,7 @@ class NetworkSimulation:
                 dataframe=self.profile_results, conversions=profile_conversions
             )
 
-    def write_results_to_excel(self, update=True):
+    def write_results_to_excel(self):
         sheet_name = f"{self.case}_{self.condition.index.to_list()[0]}"
         node_results_sheet_name = f"{sheet_name}_NR"
         profile_results_sheet_name = f"{sheet_name}_PR"
@@ -360,7 +414,7 @@ class NetworkSimulation:
             df=self.node_results,
             sheet_name=node_results_sheet_name,
             clear_sheet=True,
-            range="A2",
+            sht_range="A2",
             workbook=NetworkSimulation.NODE_RESULTS_FILE,
         )
 
@@ -388,10 +442,10 @@ class NetworkSimulation:
             sheet_name=profile_results_sheet_name,
         )
 
-        self.logger.info(f"Results written to excel")
+        self.logger.info("Results written to excel")
 
-    def saveAs_newModel(self, update=False):
-        if update == False:
+    def save_as_new_model(self, update=False):
+        if update is False:
             new_file = (
                 Path(self.folder_directory)
                 / f"{self.case}_{self.condition.index.to_list()[0]}_{self.model_filename}"
@@ -405,7 +459,7 @@ class NetworkSimulation:
     def close_model(self):
         self.model.close()
         self.logger.info(
-            f"------------Network Simulation Object Closed----------------\n"
+            "------------Network Simulation Object Closed----------------\n"
         )
 
     def create_model(
@@ -442,8 +496,8 @@ class NetworkSimulation:
             self.process_node_results()
             self.process_profile_results()
             self.convert_units(unit_conversion=unit_conversion)
-            self.write_results_to_excel(update=update)
-            self.saveAs_newModel(update=update)
+            self.write_results_to_excel()
+            self.save_as_new_model(update=update)
             self.close_model()
         except Exception as e:
             # self.logger.error(traceback.format_exc())
