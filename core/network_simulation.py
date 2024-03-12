@@ -87,7 +87,8 @@ class NetworkSimulation:
 
     def initialize_excel_handler(self, pipsim_input_sheet, conditions_sheet):
         self.excel_handler = ExcelHandler(
-            folder_directory=self.folder_directory, excel_filename=self.excel_filename
+            folder_directory=self.folder_directory,
+            excel_filename=self.excel_filename,
         )
         self.all_conditions = self.excel_handler.get_all_condition(
             sheet_name=conditions_sheet
@@ -127,12 +128,11 @@ class NetworkSimulation:
 
         match = re.match(pattern, input_string)
 
-        if match:
-            case = match.group(1) + "_" + match.group(2)
-            condition = match.group(3)
-            return (case, condition)
-        else:
+        if not match:
             raise NetworkSimulationError("Invalid input string")
+        case = match.group(1) + "_" + match.group(2)
+        condition = match.group(3)
+        return (case, condition)
 
     def open_model(self):
         """
@@ -252,7 +252,9 @@ class NetworkSimulation:
         condition = self.profile[self.case] < 0.001
         self.no_flow_wells = self.profile.loc[condition, self.case].index.to_list()
         self.values.loc[["IsActive"], self.no_flow_wells] = False
-        _deactivated_wells = self.values.loc[["IsActive"], self.no_flow_wells].to_dict()
+        _deactivated_wells = self.values.loc[
+            ["IsActive"], self.no_flow_wells
+        ].to_dict()
         self.model.set_values(dict=_deactivated_wells)
         self.networksimulation.reset_conditions()
         self.logger.info("Deactivated no flow wells")
@@ -303,36 +305,32 @@ class NetworkSimulation:
         )
 
     def process_node_results(self):
-        if "node" in self.results:
-            self.node_results = pd.DataFrame.from_dict(self.results["node"])
-        else:
-            raise NetworkSimulationError("Key 'node' not found in results")
+        self.node_results = pd.DataFrame.from_dict(self.results.node)
 
         if self.node_results.empty:
             raise NetworkSimulationError(
                 "Simulation run Unsuccessful."
                 "No results found. Check License availablity or model validity."
             )
-        else:
-            self.node_results.reset_index(inplace=True)
-            self.node_results.rename(columns={"index": "Node"}, inplace=True)
-            self.node_results["Type"] = [
-                (
-                    self.boundary_conditions.loc["BoundaryNodeType", well]
-                    if well in self.boundary_conditions.columns
-                    else None
-                )
-                for well in self.node_results["Node"]
-            ]
-            node_results_unit = self.node_results.iloc[0:1]
-            self.node_results.sort_values(
-                by=["Type", "Node"], ascending=[False, True], inplace=True
+        self.node_results.reset_index(inplace=True)
+        self.node_results.rename(columns={"index": "Node"}, inplace=True)
+        self.node_results["Type"] = [
+            (
+                self.boundary_conditions.loc["BoundaryNodeType", well]
+                if well in self.boundary_conditions.columns
+                else None
             )
-            self.node_results.dropna(subset=["Type"], inplace=True)
-            self.node_results = pd.concat(
-                [node_results_unit, self.node_results], axis=0
-            )
-            self.node_results.reset_index(drop=True, inplace=True)
+            for well in self.node_results["Node"]
+        ]
+        node_results_unit = self.node_results.iloc[0:1]
+        self.node_results.sort_values(
+            by=["Type", "Node"], ascending=[False, True], inplace=True
+        )
+        self.node_results.dropna(subset=["Type"], inplace=True)
+        self.node_results = pd.concat(
+            [node_results_unit, self.node_results], axis=0
+        )
+        self.node_results.reset_index(drop=True, inplace=True)
 
     def process_profile_results(self):
         units = pd.DataFrame(self.results.profile_units, index=["Units"])
