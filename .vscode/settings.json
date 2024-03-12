@@ -1,13 +1,10 @@
 {
   "editor.inlineSuggest.enabled": true,
   "json.schemas": [],
-  "terminal.integrated.enableMultiLinePasteWarning": false,
-  "security.workspace.trust.untrustedFiles": "open",
   "terminal.integrated.defaultProfile.windows": "Command Prompt",
   "breadcrumbs.enabled": false,
   "editor.fontWeight": "normal",
   "jupyter.askForKernelRestart": false,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
   "editor.formatOnPaste": true,
   "github.copilot.enable": {
@@ -30,14 +27,9 @@
   "editor.codeActionsOnSave": {
     "source.organizeImports": "explicit"
   },
-  "githubPullRequests.createOnPublishBranch": "never",
   "notebook.formatOnCellExecution": true,
   "notebook.formatOnSave.enabled": true,
   "python.analysis.autoFormatStrings": true,
-  "[html]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "workbench.settings.applyToAllProfiles": [],
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
@@ -47,9 +39,17 @@
   "terminal.integrated.copyOnSelection": true,
   "editor.indentSize": "tabSize",
   "editor.fontLigatures": false,
-  "python.analysis.autoImportCompletions": true,
+  "python.analysis.autoImportCompletions": false,
   "python.analysis.completeFunctionParens": true,
   "python.analysis.diagnosticMode": "workspace",
-  "python.analysis.typeCheckingMode": "basic",
-  "python.analysis.exclude": ["logic.py"]
+  "python.analysis.typeCheckingMode": "standard",
+  "python.analysis.exclude": [
+    "logic.py"
+  ],
+  "pylint.args": [
+    "--disable=W0401",
+    "--disable=W1203",
+    "--disable=W0201",
+    "--disable=C0116"
+  ]
 }

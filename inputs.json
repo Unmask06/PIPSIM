@@ -1,5 +1,5 @@
 {
-  "FOLDER_DIRECTORY": "c:\\Users\\IDM252577\\Desktop\\Python Projects\\PIPSIM",
+  "FOLDER_DIRECTORY": "F:\\Project\\AET01083.00 Wave-Component_3A\\09. Documents, Drawings\\9.31 Process\\09.31.01 Current documents\\BAB Pump Hydraulics\\1. HP Model\\Rev B\\PIPSIM Models",
   "MODEL_FILENAME": "BAB HP.pips",
   "EXCEL_FILE": "Water Injection Profile for BAB HP.xlsx",
   "PIPSIM_INPUT_SHEET": "PIPSIM Input",
@@ -7,5 +7,4 @@
   "SOURCE_NAME": "Sea Water Supply",
   "PUMP_NAME": ["HP PUMP", "HP PUMP 2"],
   "STRAINER_NAME": ["ST-2101-01"]
-
 }

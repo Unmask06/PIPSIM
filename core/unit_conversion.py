@@ -1,7 +1,13 @@
+"""unit_conversion"""
+
 import pandas as pd
 
 
 class UnitConversion:
+    """
+    Class to convert units in a dataframe.
+    """
+
     unit_conversions = {
         ("psia", "barg"): lambda x: (x - 14.7) / 14.5038,
         ("degF", "degC"): lambda x: (x - 32) / 1.8,
@@ -21,7 +27,8 @@ class UnitConversion:
         :param conversions: Dictionary where keys are column names in dataframe,
                             and values are tuples of (source_unit, target_unit).
 
-        :param first_row_is_unit: Boolean indicating whether the first row of the dataframe contains unit labels.
+        :param first_row_is_unit: Boolean indicating whether the first row of the dataframe
+                                  contains unit labels.
 
         Eg. conversions = { 'Pressure': ('psia', 'barg'), 'Temperature': ('F', 'C') }
         """
