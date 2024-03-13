@@ -252,9 +252,7 @@ class NetworkSimulation:
         condition = self.profile[self.case] < 0.001
         self.no_flow_wells = self.profile.loc[condition, self.case].index.to_list()
         self.values.loc[["IsActive"], self.no_flow_wells] = False
-        _deactivated_wells = self.values.loc[
-            ["IsActive"], self.no_flow_wells
-        ].to_dict()
+        _deactivated_wells = self.values.loc[["IsActive"], self.no_flow_wells].to_dict()
         self.model.set_values(dict=_deactivated_wells)
         self.networksimulation.reset_conditions()
         self.logger.info("Deactivated no flow wells")
@@ -327,9 +325,7 @@ class NetworkSimulation:
             by=["Type", "Node"], ascending=[False, True], inplace=True
         )
         self.node_results.dropna(subset=["Type"], inplace=True)
-        self.node_results = pd.concat(
-            [node_results_unit, self.node_results], axis=0
-        )
+        self.node_results = pd.concat([node_results_unit, self.node_results], axis=0)
         self.node_results.reset_index(drop=True, inplace=True)
 
     def process_profile_results(self):
@@ -422,6 +418,7 @@ class NetworkSimulation:
             workbook=NetworkSimulation.NODE_RESULTS_FILE,
             sheet_name=node_results_sheet_name,
         )
+        
         ExcelHandler.format_excel_profile_results(
             workbook=NetworkSimulation.NODE_RESULTS_FILE,
             sheet_name=node_results_sheet_name,
