@@ -68,11 +68,12 @@ class ExcelHandler:
         clear_sheet: bool = False,
         save: bool = True,
         only_values: bool = False,
+        change_index: bool = False,
     ):
         try:
             if df.index.name is None or df.index.name == "":
                 df.index.name = "Index"
-            if df.index.to_list()[0] == 0:
+            if df.index.to_list()[0] == 0 and change_index:
                 df.index += 1
 
             with xw.App(visible=False):
@@ -137,6 +138,7 @@ class ExcelHandler:
                     ).api.NumberFormat = "0.0"
                 for cell in header_range:
                     ws.range(cell).expand("right").api.Font.Bold = True
+                    ws.range(cell).expand("right").color = (192, 192, 192)
                 ws.range("B1").value = ws.name
                 wb.save()
         except ExcelHandlerError as e:
@@ -157,6 +159,7 @@ class ExcelHandler:
                     ).api.NumberFormat = "0.0"
                 for cell in header_range:
                     ws.range(cell).expand("right").api.Font.Bold = True
+                    ws.range(cell).expand("right").color = (192, 192, 192)
                 ws.range("B1").value = ws.name
                 wb.save()
         except ExcelHandlerError as e:

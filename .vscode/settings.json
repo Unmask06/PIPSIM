@@ -34,7 +34,7 @@
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
   "python.defaultInterpreterPath": "c:\\Program Files\\Schlumberger\\PIPESIM_PTK_2023.1\\python.exe",
-  "workbench.sideBar.location": "right",
+  "workbench.sideBar.location": "left",
   "explorer.excludeGitIgnore": true,
   "terminal.integrated.copyOnSelection": true,
   "editor.indentSize": "tabSize",

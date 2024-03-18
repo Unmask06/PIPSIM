@@ -98,6 +98,12 @@ class NetworkSimulation:
             sheet_name=pipsim_input_sheet
         )
         self.cases = self.all_profiles.columns.to_list()
+        self.NODE_RESULTS_FILE = str(
+            Path(self.folder_directory) / NetworkSimulation.NODE_RESULTS_FILE
+        )
+        self.PROFILE_RESULTS_FILE = str(
+            Path(self.folder_directory) / NetworkSimulation.PROFILE_RESULTS_FILE
+        )
 
     def prepare_model(self, case=None, condition=None):
         # for existing model
@@ -208,7 +214,15 @@ class NetworkSimulation:
             self.model_inputs:DataFrame: DataFrame containing all components and their types.
         """
         self.logger.info("Getting all values.....")
-        values_dict = self.model.get_values(show_units=True)
+        values_dict = self.model.get_values(
+            parameters=[
+                Parameters.ModelComponent.ISACTIVE,
+                SystemVariables.PRESSURE,
+                Parameters.Junction.TREATASSOURCE,
+                Parameters.Flowline.INNERDIAMETER,
+            ],
+            show_units=True,
+        )
         data = []
         for key in values_dict.keys():
             value = values_dict.get(key)
@@ -252,9 +266,7 @@ class NetworkSimulation:
         condition = self.profile[self.case] < 0.001
         self.no_flow_wells = self.profile.loc[condition, self.case].index.to_list()
         self.values.loc[["IsActive"], self.no_flow_wells] = False
-        _deactivated_wells = self.values.loc[
-            ["IsActive"], self.no_flow_wells
-        ].to_dict()
+        _deactivated_wells = self.values.loc[["IsActive"], self.no_flow_wells].to_dict()
         self.model.set_values(dict=_deactivated_wells)
         self.networksimulation.reset_conditions()
         self.logger.info("Deactivated no flow wells")
@@ -276,6 +288,7 @@ class NetworkSimulation:
             ProfileVariables.EROSIONAL_VELOCITY_RATIO,
             ProfileVariables.ELEVATION,
             ProfileVariables.TOTAL_DISTANCE,
+            ProfileVariables.VOLUME_FLOWRATE_WATER_INSITU,
         ]
 
     def populate_flowrates_in_model_from_excel(self):
@@ -284,11 +297,15 @@ class NetworkSimulation:
         for well in self.well_lists:
             if well in self.boundary_conditions.columns:
                 _flowrate = self.profile.loc[well, self.case]
-                self.boundary_conditions.at["LiquidFlowRate", well] = _flowrate
+                self.boundary_conditions.at[
+                    Parameters.Boundary.LIQUIDFLOWRATE, well
+                ] = _flowrate
             else:
                 self.logger.error(f"{well} not in the model")
 
-        _bc_dict = self.boundary_conditions.loc[["LiquidFlowRate"]].to_dict()
+        _bc_dict = self.boundary_conditions.loc[
+            [Parameters.Boundary.LIQUIDFLOWRATE]
+        ].to_dict()
         self.networksimulation.set_conditions(boundaries=_bc_dict)
         self.get_boundary_conditions()
         self.logger.info("Populated flowrates in model from excel")
@@ -312,9 +329,10 @@ class NetworkSimulation:
                 "Simulation run Unsuccessful."
                 "No results found. Check License availablity or model validity."
             )
+
         self.node_results.reset_index(inplace=True)
         self.node_results.rename(columns={"index": "Node"}, inplace=True)
-        self.node_results["Type"] = [
+        self.node_results[SystemVariables.TYPE] = [
             (
                 self.boundary_conditions.loc["BoundaryNodeType", well]
                 if well in self.boundary_conditions.columns
@@ -324,12 +342,10 @@ class NetworkSimulation:
         ]
         node_results_unit = self.node_results.iloc[0:1]
         self.node_results.sort_values(
-            by=["Type", "Node"], ascending=[False, True], inplace=True
+            by=[SystemVariables.TYPE, "Node"], ascending=[False, True], inplace=True
         )
-        self.node_results.dropna(subset=["Type"], inplace=True)
-        self.node_results = pd.concat(
-            [node_results_unit, self.node_results], axis=0
-        )
+        self.node_results.dropna(subset=[SystemVariables.TYPE], inplace=True)
+        self.node_results = pd.concat([node_results_unit, self.node_results], axis=0)
         self.node_results.reset_index(drop=True, inplace=True)
 
     def process_profile_results(self):
@@ -354,6 +370,7 @@ class NetworkSimulation:
         combined_df.sort_values(by=["BranchEquipment"], inplace=True)
         combined_df.reset_index(drop=True, inplace=True)
         self.profile_results = pd.concat([units, combined_df], axis=0)
+        self.profile_results.reset_index(drop=True, inplace=True)
         self.logger.info("Simulation run Successful")
 
         self._reorder_columns()
@@ -369,6 +386,7 @@ class NetworkSimulation:
         new_profile_cols = [
             "BranchEquipment",
             ProfileVariables.VOLUME_FLOWRATE_WATER_STOCKTANK,
+            ProfileVariables.VOLUME_FLOWRATE_WATER_INSITU,
             ProfileVariables.PRESSURE,
             ProfileVariables.TEMPERATURE,
             ProfileVariables.PRESSURE_GRADIENT_FRICTION,
@@ -408,22 +426,22 @@ class NetworkSimulation:
 
     def write_results_to_excel(self):
         sheet_name = f"{self.case}_{self.condition.index.to_list()[0]}"
-        node_results_sheet_name = f"{sheet_name}_NR"
-        profile_results_sheet_name = f"{sheet_name}_PR"
+        node_results_sheet_name = sheet_name
+        profile_results_sheet_name = sheet_name
         ExcelHandler.write_excel(
             df=self.node_results,
             sheet_name=node_results_sheet_name,
             clear_sheet=True,
             sht_range="A2",
-            workbook=NetworkSimulation.NODE_RESULTS_FILE,
+            workbook=self.NODE_RESULTS_FILE,
         )
 
         ExcelHandler.format_excel_general(
-            workbook=NetworkSimulation.NODE_RESULTS_FILE,
+            workbook=self.NODE_RESULTS_FILE,
             sheet_name=node_results_sheet_name,
         )
         ExcelHandler.format_excel_profile_results(
-            workbook=NetworkSimulation.NODE_RESULTS_FILE,
+            workbook=self.NODE_RESULTS_FILE,
             sheet_name=node_results_sheet_name,
         )
 
@@ -431,14 +449,14 @@ class NetworkSimulation:
             df=self.profile_results,
             sheet_name=profile_results_sheet_name,
             clear_sheet=True,
-            workbook=NetworkSimulation.PROFILE_RESULTS_FILE,
+            workbook=self.PROFILE_RESULTS_FILE,
         )
         ExcelHandler.format_excel_general(
-            workbook=NetworkSimulation.PROFILE_RESULTS_FILE,
+            workbook=self.PROFILE_RESULTS_FILE,
             sheet_name=profile_results_sheet_name,
         )
         ExcelHandler.format_excel_profile_results(
-            workbook=NetworkSimulation.PROFILE_RESULTS_FILE,
+            workbook=self.PROFILE_RESULTS_FILE,
             sheet_name=profile_results_sheet_name,
         )
 
@@ -486,11 +504,18 @@ class NetworkSimulation:
             self.model.close()
             raise e
 
-    def run_existing_model(self, unit_conversion=True, update=True):
+    def run_existing_model(
+        self,
+        source_name,
+        pump_name,
+        unit_conversion=True,
+        update=True,
+    ):
         try:
             self.update = update
             self.prepare_model()
             self.open_model()
+            self.set_global_conditions(source_name=source_name, pump_name=pump_name)
             self.get_boundary_conditions()
             self.run_simulation()
             self.process_node_results()
