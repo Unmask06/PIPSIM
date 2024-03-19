@@ -342,11 +342,11 @@ class NetworkSimulation:
         ]
         node_results_unit = self.node_results.iloc[0:1]
         self.node_results.sort_values(
+<<<<<<< main
             by=[SystemVariables.TYPE, "Node"], ascending=[False, True], inplace=True
         )
         self.node_results.dropna(subset=[SystemVariables.TYPE], inplace=True)
-        self.node_results = pd.concat([node_results_unit, self.node_results], axis=0)
-        self.node_results.reset_index(drop=True, inplace=True)
+
 
         # try
         self.node_results = self.excel_handler.first_row_as_second_header(
@@ -445,6 +445,7 @@ class NetworkSimulation:
             workbook=self.NODE_RESULTS_FILE,
             sheet_name=node_results_sheet_name,
         )
+        
         ExcelHandler.format_excel_profile_results(
             workbook=self.NODE_RESULTS_FILE,
             sheet_name=node_results_sheet_name,
