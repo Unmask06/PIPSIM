@@ -11,12 +11,16 @@ from sixgill.definitions import ProfileVariables
 from core import ExcelHandler, NetworkSimulation
 
 parameters = [
-    ProfileVariables.EROSIONAL_VELOCITY_RATIO,
     ProfileVariables.MEAN_VELOCITY_FLUID,
+    ProfileVariables.PRESSURE,
 ]
 
 
 class SummaryError(Exception):
+    """Base class for exceptions in this module."""
+
+
+class SummaryWarning(Exception):
     """Base class for exceptions in this module."""
 
 
@@ -46,6 +50,8 @@ class NetworkSimulationSummary:
     def get_min_max_parameter(
         df: pd.DataFrame, case: str, parameter: str, equipment_column: str
     ):
+        if parameter not in df.columns:
+            raise SummaryWarning(f"Parameter '{parameter}' not in the dataframe.")
         df[parameter] = pd.to_numeric(df[parameter], errors="coerce")
         min_parameter_idx = df[parameter].idxmin()
         max_parameter_idx = df[parameter].idxmax()
@@ -62,6 +68,19 @@ class NetworkSimulationSummary:
         ]
 
         return max_min_results
+
+    @staticmethod
+    def add_min_max_remarks(df: pd.DataFrame, parameter: str) -> pd.DataFrame:
+        if parameter not in df.columns:
+            raise SummaryWarning(f"Parameter '{parameter}' not in the dataframe.")
+        df_copy = df.copy()
+        df_copy[parameter] = pd.to_numeric(df_copy[parameter], errors="coerce")
+        min_parameter_idx = df_copy[parameter].idxmin()
+        max_parameter_idx = df_copy[parameter].idxmax()
+
+        df.loc[min_parameter_idx, "Remarks"] = f"Minimum {parameter}"
+        df.loc[max_parameter_idx, "Remarks"] = f"Maximum {parameter}"
+        return df
 
     @staticmethod
     def get_pump_operating_point(
@@ -92,6 +111,11 @@ class NetworkSimulationSummary:
             pump_op_df["Pump Head"] = (
                 pump_op_df["Discharge Pressure"] - pump_op_df["Suction Pressure"]
             )
+            pump_op_df["Pump Flow"] = df.loc[
+                df["BranchEquipment"] == discharge_node,
+                ProfileVariables.VOLUME_FLOWRATE_WATER_INSITU,
+            ].values[0]
+
         except IndexError as exc:
             err_msg = (
                 f"Error in getting pump operating points '{suction_node}' and '{discharge_node}' "
@@ -115,14 +139,29 @@ class NetworkSimulationSummary:
         for sht in node_sheets:
             try:
                 node_df = pd.read_excel(self.node_result_xl, sheet_name=sht, header=1)
+                # write back to excel
+                node_df = NetworkSimulationSummary.add_min_max_remarks(
+                    df=node_df, parameter=ProfileVariables.PRESSURE
+                )
+                ExcelHandler.write_excel(
+                    df=node_df,
+                    workbook=self.node_result_xl,
+                    sheet_name=sht,
+                    sht_range="A2",
+                    clear_sheet=True,
+                    save=True,
+                )
                 node_df = node_df.loc[node_df["Type"] == "Sink"]
                 node_df = NetworkSimulationSummary.get_min_max_parameter(
-                    df=node_df, case=sht, parameter="Pressure", equipment_column="Node"
+                    df=node_df,
+                    case=sht,
+                    parameter=ProfileVariables.PRESSURE,
+                    equipment_column="Node",
                 )
                 node_summary_list.append(node_df)
-            except Exception as exc:
+            except SummaryError as exc:
                 err = f"Error in getting node summary for {sht}: {exc}"
-                raise SummaryError(err) from exc
+                self.logger.warning(err)
 
         node_summary = pd.concat(node_summary_list, ignore_index=True)
         self.node_summary = node_summary
@@ -131,17 +170,20 @@ class NetworkSimulationSummary:
             "Early Operation",
             "Late Operation",
         )
-        self.node_summary.sort_values(by=["Operation", "Pressure"], inplace=True)
+        self.node_summary.sort_values(
+            by=["Operation", ProfileVariables.PRESSURE], inplace=True
+        )
         self.node_summary.reset_index(drop=True, inplace=True)
 
     def get_profile_summary(self):
         self.logger.info("Getting Profile Summary.....")
-        profile_wb = xw.Book(self.profile_result_xl)
-        self.profile_sheets = [
-            sheet.name
-            for sheet in profile_wb.sheets
-            if sheet.name not in parameters + ["Pump Operating Points"]
-        ]
+        with xw.App(visible=False):
+            profile_wb = xw.Book(self.profile_result_xl)
+            self.profile_sheets = [
+                sheet.name
+                for sheet in profile_wb.sheets
+                if sheet.name not in parameters + ["Pump Operating Points"]
+            ]
         self.profile_summary_list = {}
         for parameter in parameters:
             try:
@@ -151,6 +193,17 @@ class NetworkSimulationSummary:
                         profile_df = pd.read_excel(
                             self.profile_result_xl, sheet_name=sht, header=1
                         )
+                        profile_df = NetworkSimulationSummary.add_min_max_remarks(
+                            df=profile_df, parameter=parameter
+                        )
+                        ExcelHandler.write_excel(
+                            df=profile_df,
+                            workbook=self.profile_result_xl,
+                            sheet_name=sht,
+                            sht_range="A2",
+                            clear_sheet=True,
+                            save=True,
+                        )
                         profile_df = NetworkSimulationSummary.get_min_max_parameter(
                             df=profile_df,
                             case=sht,
@@ -158,7 +211,7 @@ class NetworkSimulationSummary:
                             equipment_column="BranchEquipment",
                         )
                         profile_summaries.append(profile_df)
-                    except KeyError:
+                    except SummaryWarning:
                         if not sht in parameters:
                             error_msg = (
                                 "Error in getting profile summary for parameter:\n"
@@ -206,6 +259,7 @@ class NetworkSimulationSummary:
             sht_range="A2",
             clear_sheet=True,
         )
+        ExcelHandler.format_excel_general(self.node_result_xl, "Node Summary")
 
     def write_profile_summary(self):
         self.logger.info("Writing Profile Summary.....")
@@ -219,6 +273,7 @@ class NetworkSimulationSummary:
                 sht_range="A2",
                 clear_sheet=True,
             )
+            ExcelHandler.format_excel_general(self.profile_result_xl, parameter)
 
     def write_pump_operating_points(self):
         self.logger.info("Writing Pump Operating Points.....")
@@ -228,4 +283,7 @@ class NetworkSimulationSummary:
             sheet_name="Pump Operating Points",
             sht_range="A2",
             clear_sheet=True,
+        )
+        ExcelHandler.format_excel_general(
+            self.profile_result_xl, "Pump Operating Points"
         )

@@ -67,13 +67,9 @@ class ExcelHandler:
         sht_range: Optional[str] = "A2",
         clear_sheet: bool = False,
         save: bool = True,
-        only_values: bool = False,
+        only_values: bool = False
     ):
         try:
-            if df.index.name is None or df.index.name == "":
-                df.index.name = "Index"
-            if df.index.to_list()[0] == 0:
-                df.index += 1
 
             with xw.App(visible=False):
                 if os.path.isfile(workbook):
@@ -137,6 +133,7 @@ class ExcelHandler:
                     ).api.NumberFormat = "0.0"
                 for cell in header_range:
                     ws.range(cell).expand("right").api.Font.Bold = True
+                    ws.range(cell).expand("right").color = (192, 192, 192)
                 ws.range("B1").value = ws.name
                 wb.save()
         except ExcelHandlerError as e:
@@ -157,6 +154,7 @@ class ExcelHandler:
                     ).api.NumberFormat = "0.0"
                 for cell in header_range:
                     ws.range(cell).expand("right").api.Font.Bold = True
+                    ws.range(cell).expand("right").color = (192, 192, 192)
                 ws.range("B1").value = ws.name
                 wb.save()
         except ExcelHandlerError as e:
@@ -199,3 +197,38 @@ class ExcelHandler:
         except ExcelHandlerError as e:
             logging.error(f"An error occurred: {e}")
             return -1
+
+    @staticmethod
+    def first_row_as_second_header(
+        df: pd.DataFrame, index_1: str, index_2: str
+    ) -> pd.DataFrame:
+        """
+        Add the first row of the DataFrame as a second level multi-header.
+
+        Parameters:
+        - df (pd.DataFrame): The original DataFrame.
+        - index_1 (str): The name of the first level index.
+        - index_2 (str): The name of the second level index.
+
+        Returns:
+        - pd.DataFrame: A new DataFrame with the first row as part of a multi-index header.
+        """
+
+        if df.empty:
+            raise ValueError("The DataFrame is empty.")
+
+        first_row = df.iloc[0]
+        columns_level_1 = df.columns
+
+        multi_index_tuples = list(zip(columns_level_1, first_row))
+
+        multi_index = pd.MultiIndex.from_tuples(
+            multi_index_tuples, names=[index_1, index_2]
+        )
+        df_modified = df.drop(index=df.index[0])
+        df_modified.columns = multi_index
+        df_modified.reset_index(drop=True, inplace=True)
+        df_modified.index = df_modified.index + 1
+        df_modified.index.names = [index_1]
+
+        return df_modified

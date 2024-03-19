@@ -1,4 +1,5 @@
 """wave_hydraulics"""
+
 import json
 import logging
 import os
@@ -65,6 +66,7 @@ def wave_run_model(config: PipSimInput) -> None:
         file for file in os.listdir(config.FOLDER_DIRECTORY) if file.endswith(".pips")
     ]
     pipsim_files.remove(str(config.MODEL_FILENAME))
+    pipsim_files = pipsim_files[:1]
     for model_filename in pipsim_files:
         try:
             ns = NetworkSimulation(
@@ -73,7 +75,9 @@ def wave_run_model(config: PipSimInput) -> None:
             ns.initialize_excel_handler(
                 config.PIPSIM_INPUT_SHEET, config.CONDITIONS_SHEET
             )
-            ns.run_existing_model()
+            ns.run_existing_model(
+                source_name=config.SOURCE_NAME, pump_name=config.PUMP_NAME
+            )
         except NetworkSimulationError as e:
             logger.error(f"Error in running model {model_filename}: {e}")
             continue
@@ -82,7 +86,13 @@ def wave_run_model(config: PipSimInput) -> None:
 def wave_summarize_results(config: PipSimInput) -> None:
     """Summarize the results of the model Node and Profile Results."""
     try:
-        netsimsum = NetworkSimulationSummary()
+        node_result_xl = os.path.join(
+            config.FOLDER_DIRECTORY, NetworkSimulation.NODE_RESULTS_FILE
+        )
+        profile_result_xl = os.path.join(
+            config.FOLDER_DIRECTORY, NetworkSimulation.PROFILE_RESULTS_FILE
+        )
+        netsimsum = NetworkSimulationSummary(node_result_xl, profile_result_xl)
         netsimsum.get_node_summary()
         netsimsum.get_profile_summary()
 
@@ -97,7 +107,6 @@ def wave_summarize_results(config: PipSimInput) -> None:
         logger.info("Summary written successfully.")
     except SummaryError as e:
         logger.error(f"Error in summarizing results: {e}")
-        # traceback.print_exc()
         sys.exit(1)
 
 
