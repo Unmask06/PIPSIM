@@ -66,7 +66,7 @@ def wave_run_model(config: PipSimInput) -> None:
         file for file in os.listdir(config.FOLDER_DIRECTORY) if file.endswith(".pips")
     ]
     pipsim_files.remove(str(config.MODEL_FILENAME))
-    # pipsim_files = pipsim_files[:1]
+    pipsim_files = pipsim_files[:1]
     for model_filename in pipsim_files:
         try:
             ns = NetworkSimulation(

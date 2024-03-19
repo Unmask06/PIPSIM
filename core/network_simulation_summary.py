@@ -70,6 +70,19 @@ class NetworkSimulationSummary:
         return max_min_results
 
     @staticmethod
+    def add_min_max_remarks(df: pd.DataFrame, parameter: str) -> pd.DataFrame:
+        if parameter not in df.columns:
+            raise SummaryWarning(f"Parameter '{parameter}' not in the dataframe.")
+        df_copy = df.copy()
+        df_copy[parameter] = pd.to_numeric(df_copy[parameter], errors="coerce")
+        min_parameter_idx = df_copy[parameter].idxmin()
+        max_parameter_idx = df_copy[parameter].idxmax()
+
+        df.loc[min_parameter_idx, "Remarks"] = f"Minimum {parameter}"
+        df.loc[max_parameter_idx, "Remarks"] = f"Maximum {parameter}"
+        return df
+
+    @staticmethod
     def get_pump_operating_point(
         df: pd.DataFrame, case: str, suction_node: str, discharge_node: str
     ):
@@ -126,6 +139,18 @@ class NetworkSimulationSummary:
         for sht in node_sheets:
             try:
                 node_df = pd.read_excel(self.node_result_xl, sheet_name=sht, header=1)
+                # write back to excel
+                node_df = NetworkSimulationSummary.add_min_max_remarks(
+                    df=node_df, parameter=ProfileVariables.PRESSURE
+                )
+                ExcelHandler.write_excel(
+                    df=node_df,
+                    workbook=self.node_result_xl,
+                    sheet_name=sht,
+                    sht_range="A2",
+                    clear_sheet=True,
+                    save=True,
+                )
                 node_df = node_df.loc[node_df["Type"] == "Sink"]
                 node_df = NetworkSimulationSummary.get_min_max_parameter(
                     df=node_df,
@@ -167,6 +192,17 @@ class NetworkSimulationSummary:
                     try:
                         profile_df = pd.read_excel(
                             self.profile_result_xl, sheet_name=sht, header=1
+                        )
+                        profile_df = NetworkSimulationSummary.add_min_max_remarks(
+                            df=profile_df, parameter=parameter
+                        )
+                        ExcelHandler.write_excel(
+                            df=profile_df,
+                            workbook=self.profile_result_xl,
+                            sheet_name=sht,
+                            sht_range="A2",
+                            clear_sheet=True,
+                            save=True,
                         )
                         profile_df = NetworkSimulationSummary.get_min_max_parameter(
                             df=profile_df,
@@ -222,7 +258,6 @@ class NetworkSimulationSummary:
             "Node Summary",
             sht_range="A2",
             clear_sheet=True,
-            change_index=True,
         )
         ExcelHandler.format_excel_general(self.node_result_xl, "Node Summary")
 
@@ -237,7 +272,6 @@ class NetworkSimulationSummary:
                 sheet_name=parameter,
                 sht_range="A2",
                 clear_sheet=True,
-                change_index=True,
             )
             ExcelHandler.format_excel_general(self.profile_result_xl, parameter)
 
@@ -249,6 +283,7 @@ class NetworkSimulationSummary:
             sheet_name="Pump Operating Points",
             sht_range="A2",
             clear_sheet=True,
-            change_index=True,
         )
-        ExcelHandler.format_excel_general(self.profile_result_xl, "Pump Operating Points")
+        ExcelHandler.format_excel_general(
+            self.profile_result_xl, "Pump Operating Points"
+        )

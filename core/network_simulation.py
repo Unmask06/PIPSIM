@@ -348,6 +348,11 @@ class NetworkSimulation:
         self.node_results = pd.concat([node_results_unit, self.node_results], axis=0)
         self.node_results.reset_index(drop=True, inplace=True)
 
+        # try
+        self.node_results = self.excel_handler.first_row_as_second_header(
+            df=self.node_results, index_1="Index", index_2="Unit"
+        )
+
     def process_profile_results(self):
         units = pd.DataFrame(self.results.profile_units, index=["Units"])
         dfs = []
