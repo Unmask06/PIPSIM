@@ -342,7 +342,6 @@ class NetworkSimulation:
         ]
         node_results_unit = self.node_results.iloc[0:1]
         self.node_results.sort_values(
-<<<<<<< main
             by=[SystemVariables.TYPE, "Node"], ascending=[False, True], inplace=True
         )
         self.node_results.dropna(subset=[SystemVariables.TYPE], inplace=True)

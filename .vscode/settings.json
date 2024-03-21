@@ -40,7 +40,7 @@
   "editor.indentSize": "tabSize",
   "editor.fontLigatures": false,
   "python.analysis.autoImportCompletions": false,
-  "python.analysis.completeFunctionParens": true,
+  "python.analysis.completeFunctionParens": false,
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.typeCheckingMode": "standard",
   "python.analysis.exclude": [
