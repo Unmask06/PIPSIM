@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import List
 
-import xlwings as xw
+from openpyxl import load_workbook
 from pydantic import BaseModel, field_validator, model_validator
 
 logger = logging.getLogger("Input Validation")
@@ -56,11 +56,9 @@ class PipSimInput(BaseModel):
         folder_directory = self.FOLDER_DIRECTORY
         excel_file = self.EXCEL_FILE
         excel_file_path = folder_directory / excel_file
-        with xw.App(visible=False):
-            wb = xw.Book(excel_file_path)
-            sheet_names = [sheet.name for sheet in wb.sheets]
-            if not self.PIPSIM_INPUT_SHEET in sheet_names:
-                raise ValueError(
-                    f"Sheet '{self.PIPSIM_INPUT_SHEET}' does not exist in {excel_file}"
-                )
-            return self
+        wb = load_workbook(excel_file_path, read_only=True)
+        if self.PIPSIM_INPUT_SHEET not in wb.sheetnames:
+            raise ValueError(
+                f"Sheet '{self.PIPSIM_INPUT_SHEET}' does not exist in {excel_file}"
+            )
+        return self

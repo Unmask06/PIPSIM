@@ -1,62 +1,25 @@
 # simulation_modeller.py
 """
 This module contains the class for building the model for network simulation using Pipesim model.
-    DataClasses:
-    - ModelConfig: Configuration for the model.
-    - GlobalConditions: Global conditions for the model.
-    
+  
     Classes:
     - PipsimModeller: Builds the model for network simulation using the Pipesim model.
-    - PipsimSimulator: Simulates the model for network simulation using the Pipesim model.
+    
+    Raises:
+    - PipsimModellingError: Raised when an error occurs in the modelling process.
 """
 import logging
-import os
-from dataclasses import dataclass, field
 
 # import traceback
 from pathlib import Path
-from typing import Any
+from typing import Optional
 
 import pandas as pd
-from sixgill.definitions import Parameters, ProfileVariables, SystemVariables
-from sixgill.pipesim import Model, Units
+from sixgill.definitions import Parameters, SystemVariables
 
-from core import NetworkSimulationError
+from .model_input import ModelInput, PipsimModel, PipsimModellingError
 
-
-@dataclass
-class ModelConfig:
-    """Dataclass for model configuration."""
-
-    model_filename: Path
-    case: str
-    condition: str
-    folder_path: str = ""
-    model_path: Path = field(init=False)
-
-    def __post_init__(self):
-        if self.folder_path == "":
-            self.folder_path = os.getcwd()
-
-        self.model_path = Path(self.folder_path) / Path(self.model_filename)
-
-        self.model = Model.open(filename=str(self.model_path), units=Units.FIELD)
-
-        if self.model.tasks is not None:
-            self.networksimulation = self.model.tasks.networksimulation
-
-
-@dataclass
-class ModelInputs:
-    """Dataclass for model inputs."""
-
-    source_name: str
-    pump_name: list
-    ambient_temperature: float
-    source_pressure: float
-    source_temperature: float
-    differential_pressure: float
-    well_profile: pd.DataFrame = field(default_factory=pd.DataFrame)
+logger = logging.getLogger(__name__)
 
 
 class PipsimModeller:
@@ -64,79 +27,101 @@ class PipsimModeller:
     Builds the model for network simulation using the Pipesim model.
     """
 
-    def __init__(self, config: ModelConfig, model_inputs: ModelInputs) -> None:
-        self.logger = logging.getLogger(__class__.__name__)
-        self.config = config
-        self.model_inputs = model_inputs
+    model: PipsimModel
+    model_input: ModelInput
+    boundary_conditions: pd.DataFrame
+    values: pd.DataFrame
+    category: pd.DataFrame
 
-    def set_global_conditions(self):
+    def __init__(self, model: PipsimModel, model_input: ModelInput) -> None:
+        self.model = model
+        self.model_input = model_input
 
-        if self.config.model.sim_settings is not None:
-            self.config.model.sim_settings.ambient_temperature = (
-                self.model_inputs.ambient_temperature
+    def set_global_conditions(self) -> None:
+
+        self.model_input.none_check()
+        if self.model.model.sim_settings is not None:
+            self.model.model.sim_settings.ambient_temperature = (
+                self.model_input.ambient_temperature
             )
 
-        self.config.model.set_values(
+        self.model.model.set_values(
             {
-                self.model_inputs.source_name: {
-                    SystemVariables.PRESSURE: self.model_inputs.source_pressure,
-                    SystemVariables.TEMPERATURE: self.model_inputs.source_temperature,
+                self.model_input.source_name: {
+                    SystemVariables.PRESSURE: self.model_input.source_pressure,
+                    SystemVariables.TEMPERATURE: self.model_input.source_temperature,
                 },
                 **{
                     pump: {
-                        Parameters.SharedPumpParameters.PRESSUREDIFFERENTIAL: self.model_inputs.differential_pressure
+                        Parameters.SharedPumpParameters.PRESSUREDIFFERENTIAL: self.model_input.differential_pressure
                     }
-                    for pump in self.model_inputs.pump_name
+                    for pump in self.model_input.pump_name
                 },
             }
         )
-        self.logger.info("Set Global Conditions")
+        logger.info("Set Global Conditions")
 
-    def get_boundary_conditions(self):
+    def get_boundary_conditions(self) -> None:
         """
         Retrieves all boundary conditions from the model and stores them in a DataFrame.
 
-        Returns:
-            self.boundary_conditions:DataFrame: DataFrame containing all boundary conditions.
+        Stores the boundary conditions in the attribute 'boundary_conditions'.
         """
-        self.logger.info("Getting boundary conditions.....")
+        logger.info("Getting boundary conditions.....")
         self.boundary_conditions: pd.DataFrame = pd.DataFrame.from_dict(
-            self.config.networksimulation.get_conditions()
+            self.model.networksimulation.get_conditions()
         )
 
-    def get_all_values(self):
+    def get_all_values(self) -> None:
         """
         Retrieves all values from the model and stores them in a DataFrame.
 
-        Returns:
-            self.values:DataFrame: DataFrame containing all values.
-            self.model_inputs:DataFrame: DataFrame containing all components and their types.
+        Stores the values in the attribute 'values'.
         """
-        self.logger.info("Getting all values.....")
-        values_dict = self.config.model.get_values(show_units=True)
-        data = []
-        for key in values_dict.keys():
-            value = values_dict.get(key)
-            if value is not None and "InnerDiameter" in value:
-                component_type = "FlowLine"
-            elif value is not None and "Pressure" in value:
-                component_type = "Well"
-            elif value is not None and "TreatAsSource" in value:
-                component_type = "Junction"
-            else:
-                component_type = None
-            data.append({"component": key, "type": component_type})
-        self.category = pd.DataFrame(data)
+        logger.info("Getting all values.....")
+        values_dict = self.model.model.get_values(
+            parameters=[
+                Parameters.ModelComponent.ISACTIVE,
+                SystemVariables.PRESSURE,
+                Parameters.Junction.TREATASSOURCE,
+                Parameters.Flowline.INNERDIAMETER,
+            ],
+            show_units=True,
+        )
         self.values = pd.DataFrame.from_dict(values_dict)
+        self._catergorize_components(values_dict)
 
-    def get_well_values(self):
+    def _catergorize_components(self, values_dict):  # TODO: improve this method
+        """
+        Categories the components in the model into their respective types.
+        """
+        keyword_to_component_type = {
+            "InnerDiameter": "FlowLine",
+            "Pressure": "Well",
+            "TreatAsSource": "Junction",
+        }
+
+        data_list = []
+        for key, value in values_dict.items():
+            component_type = None
+
+            for keyword, type_name in keyword_to_component_type.items():
+                if value is not None and keyword in value:
+                    component_type = type_name
+                    break
+
+            data_list.append({"component": key, "type": component_type})
+
+        self.category = pd.DataFrame(data_list)
+
+    def get_well_values(self) -> None:
         """
         Retrieves all values from the model and stores them in a DataFrame.
 
         Returns:
             self.well_values:DataFrame: DataFrame containing all wells.
         """
-        self.logger.info("Getting well values.....")
+        logger.info("Getting well values.....")
         self.well_lists = self.category.loc[
             self.category["type"] == "Well", "component"
         ].to_list()
@@ -145,58 +130,74 @@ class PipsimModeller:
             how="all", axis=0, subset=required_cols[1:]
         )
 
-    def activate_all_wells(self):
-        self.well_values.loc["IsActive"] = True
-        self.config.model.set_values(dict=self.well_values[self.well_lists].to_dict())
-        self.config.networksimulation.reset_conditions()
+    def _set_well_activity(self, wells, active=True):  # TODO: use this method
+        activity_values = {
+            well: active for well in wells if well in self.values.columns
+        }
+        if activity_values:
+            self.model.model.set_values(dict=activity_values)
+            logger.info(
+                f"{'Activated' if active else 'Deactivated'} wells: {list(activity_values.keys())}"
+            )
+        else:
+            logger.info("No wells to update.")
+
+    def activate_all_wells(self) -> None:  # TODO: use above method
+        self.well_values.loc[Parameters.ModelComponent.ISACTIVE] = True
+        self.model.model.set_values(dict=self.well_values[self.well_lists].to_dict())
+        self.model.networksimulation.reset_conditions()
         self.get_boundary_conditions()
-        self.logger.info("Activated all wells")
+        logger.info("Activated all wells")
 
-    def deactivate_noflow_wells(self):
-        condition = self.model_inputs.well_profile[self.config.case] < 0.001
-        no_flow_wells = self.model_inputs.well_profile.loc[
-            condition, self.config.case
-        ].index.to_list()
-
-        self.values.loc[["IsActive"], no_flow_wells] = False
-        _deactivated_wells = self.values.loc[["IsActive"], no_flow_wells].to_dict()
-        self.config.model.set_values(dict=_deactivated_wells)
-        self.config.networksimulation.reset_conditions()
-        self.logger.info("Deactivated no flow wells")
+    def deactivate_noflow_wells(self):  # TODO: use above method
+        condition = self.model_input.well_profile[self.model.case] < 0.001
+        no_flow_wells = self.model_input.well_profile.loc[condition, "Wells"]
+        self.values.loc[[Parameters.ModelComponent.ISACTIVE], no_flow_wells] = False
+        _deactivated_wells = self.values.loc[
+            [Parameters.ModelComponent.ISACTIVE], no_flow_wells
+        ].to_dict()
+        self.model.model.set_values(dict=_deactivated_wells)
+        self.model.networksimulation.reset_conditions()
+        logger.info("Deactivated no flow wells")
 
     def populate_flowrates_in_model_from_excel(self):
         if self.well_lists is None:
-            raise NetworkSimulationError("Well lists not available")
+            raise PipsimModellingError("Well lists not available")
         for well in self.well_lists:
-            if well in self.boundary_conditions.columns:
-                _flowrate = self.model_inputs.well_profile.loc[well, self.config.case]
-                self.boundary_conditions.at["LiquidFlowRate", well] = _flowrate
+            if (
+                well in self.boundary_conditions.columns
+                and well in self.model_input.well_profile["Wells"].to_list()
+            ):
+                _flowrate = self.model_input.well_profile.loc[
+                    self.model_input.well_profile["Wells"] == well, self.model.case
+                ]
+                self.boundary_conditions.at[Parameters.Boundary.LIQUIDFLOWRATE, well] = _flowrate.values[0]  # type: ignore
             else:
-                self.logger.error(f"{well} not in the model")
+                logger.error(f"{well} not in the model")
 
         _bc_dict = self.boundary_conditions.loc[["LiquidFlowRate"]].to_dict()
-        self.config.networksimulation.set_conditions(boundaries=_bc_dict)
+        self.model.networksimulation.set_conditions(boundaries=_bc_dict)
         self.get_boundary_conditions()
-        self.logger.info("Populated flowrates in model from excel")
+        logger.info("Populated flowrates in model from excel")
         self.save_as_new_model()
 
-    def save_as_new_model(self, update=False):
-        if update is False:
-            new_file = (
-                Path(self.config.folder_path)
-                / f"{self.config.case}_{self.config.condition}_{self.config.model_filename}"
-            )
-            self.config.model.save(str(new_file))
-            self.logger.info(f"Model saved as {new_file}")
-        else:
-            self.config.model.save()
-            self.logger.info(f"Model saved as {self.config.model_filename}")
+    def save_as_new_model(self):
+        if self.model.folder_path is None:
+            self.model.folder_path = str(Path.cwd())
+        new_file = (
+            Path(self.model.folder_path)
+            / f"{self.model.case}_{self.model.condition}_{self.model.model_filename}"
+        )
+        self.model.model.save(str(new_file))
+        logger.info(f"Model saved as {new_file}")
 
     def close_model(self):
-        self.config.model.close()
-        self.logger.info(
-            "------------Network Simulation Object Closed----------------\n"
-        )
+        self.model.model.close()
+        logger.info("------------Network Simulation Object Closed----------------\n")
+
+    def bulid_model_global_conditions(self):
+        self.set_global_conditions()
+        self.close_model()
 
     def build_model(self):
         self.set_global_conditions()
@@ -207,7 +208,3 @@ class PipsimModeller:
         self.deactivate_noflow_wells()
         self.populate_flowrates_in_model_from_excel()
         self.close_model()
-
-
-class PipsimSimulator(PipsimModeller):
-    pass

@@ -8,12 +8,15 @@ import sys
 # import traceback
 from pydantic import ValidationError
 
-from core import (
-    NetworkSimulation,
-    NetworkSimulationError,
-    NetworkSimulationSummary,
-    PipSimInput,
-    SummaryError,
+from core.input_validation import PipSimInput
+from core.inputdata import InputData
+from core.network_simulation import NetworkSimulationError, NetworkSimulator
+from core.network_simulation_summary import NetworkSimulationSummary, SummaryError
+from core.simulation_modeller import (
+    ModelInput,
+    PipsimModel,
+    PipsimModeller,
+    PipsimModellingError,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,20 +47,57 @@ def load_config(file_path: str) -> PipSimInput:
         sys.exit(1)
 
 
-def wave_create_model(config: PipSimInput) -> None:
-    """Create a new model based on the given configuration."""
-    ns = NetworkSimulation(
-        config.FOLDER_DIRECTORY, config.MODEL_FILENAME, config.EXCEL_FILE
+def load_input_data(config: PipSimInput) -> InputData:
+    """Load and validate input data from an Excel file."""
+    input_data = InputData(
+        excelfile=config.EXCEL_FILE,
+        well_profile_sheet=config.PIPSIM_INPUT_SHEET,
+        well_profile_starting_range="A4",
+        conditions_sheet=config.CONDITIONS_SHEET,
+        conditions_starting_range="A2",
     )
-    ns.initialize_excel_handler(config.PIPSIM_INPUT_SHEET, config.CONDITIONS_SHEET)
-    for case in ns.cases:
-        for condition in ns.conditions:
-            ns.create_model(
-                source_name=config.SOURCE_NAME,
-                pump_name=config.PUMP_NAME,
-                case=case,
-                condition=condition,
-            )
+
+    return input_data
+
+
+def wave_create_model(config: PipSimInput, input_data: InputData) -> None:
+    """Create a new model based on the given configuration."""
+    for case, condition in input_data.case_conditions:
+
+        ambient_temperature = input_data.get_parameter_for_condition(
+            condition=condition, param="Ambient Temperature"
+        )
+        source_pressure = input_data.get_parameter_for_condition(
+            condition=condition, param="Source Pressure"
+        )
+        source_temperature = input_data.get_parameter_for_condition(
+            condition=condition, param="Temperature"
+        )
+        differential_pressure = input_data.get_parameter_for_condition(
+            condition=condition, param="PressureDifferential"
+        )
+
+        model_input = ModelInput(
+            source_name=config.SOURCE_NAME,
+            pump_name=config.PUMP_NAME,
+            well_profile=input_data.well_profile,
+            ambient_temperature=ambient_temperature,
+            source_pressure=source_pressure,
+            source_temperature=source_temperature,
+            differential_pressure=differential_pressure,
+        )
+
+        model = PipsimModel(
+            model_filename=config.MODEL_FILENAME, case=case, condition=condition
+        )
+
+        try:
+            pipsim_modeller = PipsimModeller(model=model, model_input=model_input)
+            pipsim_modeller.build_model()
+            logger.info(f"Model for {case} - {condition} created successfully.")
+        except PipsimModellingError as e:
+            logger.error(f"Error in creating model for {case} - {condition}: {e}")
+            continue
 
 
 def wave_run_model(config: PipSimInput) -> None:
@@ -66,18 +106,16 @@ def wave_run_model(config: PipSimInput) -> None:
         file for file in os.listdir(config.FOLDER_DIRECTORY) if file.endswith(".pips")
     ]
     pipsim_files.remove(str(config.MODEL_FILENAME))
-    pipsim_files = pipsim_files[:1]
+    # pipsim_files = pipsim_files[:1]
     for model_filename in pipsim_files:
         try:
-            ns = NetworkSimulation(
-                config.FOLDER_DIRECTORY, model_filename, config.EXCEL_FILE
-            )
-            ns.initialize_excel_handler(
-                config.PIPSIM_INPUT_SHEET, config.CONDITIONS_SHEET
-            )
-            ns.run_existing_model(
-                source_name=config.SOURCE_NAME, pump_name=config.PUMP_NAME
-            )
+            model = PipsimModel(model_filename=model_filename)
+            model_input = ModelInput()
+            ns = NetworkSimulator(model=model, model_input=model_input)
+            ns.run_existing_model()
+        except PipsimModellingError as e:
+            logger.error(f"Error in {model_filename}: {e}")
+            continue
         except NetworkSimulationError as e:
             logger.error(f"Error in running model {model_filename}: {e}")
             continue
@@ -87,10 +125,10 @@ def wave_summarize_results(config: PipSimInput) -> None:
     """Summarize the results of the model Node and Profile Results."""
     try:
         node_result_xl = os.path.join(
-            config.FOLDER_DIRECTORY, NetworkSimulation.NODE_RESULTS_FILE
+            config.FOLDER_DIRECTORY, NetworkSimulator.NODE_RESULTS_FILE
         )
         profile_result_xl = os.path.join(
-            config.FOLDER_DIRECTORY, NetworkSimulation.PROFILE_RESULTS_FILE
+            config.FOLDER_DIRECTORY, NetworkSimulator.PROFILE_RESULTS_FILE
         )
         netsimsum = NetworkSimulationSummary(node_result_xl, profile_result_xl)
         netsimsum.get_node_summary()
@@ -117,6 +155,7 @@ def exit_program() -> None:
 
 def main() -> None:
     config = load_config("inputs.json")
+    input_data = load_input_data(config)
 
     while True:
         response = input(
@@ -124,22 +163,18 @@ def main() -> None:
             "(1) create a new model \n"
             "(2) run an existing model \n"
             "(3) Create summary for the results\n"
-            "(4) to exit: "
+            "(0) to exit: "
         )
-
-        action = {
-            "1": wave_create_model,
-            "2": wave_run_model,
-            "3": wave_summarize_results,
-            "4": exit_program,
-        }
-        try:
-            if response == "4":
-                action[response]()
-            else:
-                action[response](config)
-        except KeyError:
-            print("Invalid option. Please choose 1, 2, 3, or 4.")
+        if response == "0":
+            exit_program()
+        elif response == "1":
+            wave_create_model(config, input_data)
+        elif response == "2":
+            wave_run_model(config)
+        elif response == "3":
+            wave_summarize_results(config)
+        else:
+            print("Invalid option. Please choose 1, 2, 3, or 0.")
             continue
 
 

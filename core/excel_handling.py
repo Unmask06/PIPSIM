@@ -11,6 +11,7 @@ from typing import Optional
 
 import pandas as pd
 import xlwings as xw
+from openpyxl.utils import column_index_from_string
 from xlwings import constants as xw_const
 
 logger = logging.getLogger("ExcelHandler")
@@ -67,7 +68,7 @@ class ExcelHandler:
         sht_range: Optional[str] = "A2",
         clear_sheet: bool = False,
         save: bool = True,
-        only_values: bool = False
+        only_values: bool = False,
     ):
         try:
 
@@ -232,3 +233,23 @@ class ExcelHandler:
         df_modified.index.names = [index_1]
 
         return df_modified
+
+    @staticmethod
+    def split_cell_reference(cell_ref: str) -> dict[str, int]:
+        """
+        Splits an Excel cell reference into its numerical row and column indices.
+
+        Args:
+            cell_ref (str): The Excel cell reference, e.g., "A1".
+
+        Returns:
+            dict[str, int]: {"column": column_number, "row": row_number}
+            Example: {"column": 1, "row": 1}
+        """
+        column_letter = "".join(filter(str.isalpha, cell_ref))
+        row_number = "".join(filter(str.isdigit, cell_ref))
+
+        column_number = column_index_from_string(column_letter)
+        row_number = int(row_number)
+
+        return {"column": column_number, "row": row_number}

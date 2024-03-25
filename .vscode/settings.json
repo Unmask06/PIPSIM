@@ -40,7 +40,7 @@
   "editor.indentSize": "tabSize",
   "editor.fontLigatures": false,
   "python.analysis.autoImportCompletions": false,
-  "python.analysis.completeFunctionParens": true,
+  "python.analysis.completeFunctionParens": false,
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.typeCheckingMode": "standard",
   "python.analysis.exclude": [
@@ -50,10 +50,5 @@
     "--disable=W1203",
     "--disable=W0201",
     "--disable=C0116"
-  ],
-  "pylint.severity": {
-    "convention": "Warning",
-    "refactor": "Warning",
-    "info": "Warning"
-  }
+  ]
 }
