@@ -8,7 +8,7 @@ import pandas as pd
 import xlwings as xw
 from sixgill.definitions import ProfileVariables
 
-from core import ExcelHandler, NetworkSimulation
+from core import ExcelHandler, NetworkSimulator
 
 parameters = [
     ProfileVariables.MEAN_VELOCITY_FLUID,
@@ -33,8 +33,8 @@ class NetworkSimulationSummary:
 
     def __init__(
         self,
-        node_result_xl: str = NetworkSimulation.NODE_RESULTS_FILE,
-        profile_result_xl: str = NetworkSimulation.PROFILE_RESULTS_FILE,
+        node_result_xl: str = NetworkSimulator.NODE_RESULTS_FILE,
+        profile_result_xl: str = NetworkSimulator.PROFILE_RESULTS_FILE,
     ) -> None:
         self.logger = logging.getLogger(__name__)
 

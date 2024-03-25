@@ -1,79 +1,25 @@
 # simulation_modeller.py
 """
 This module contains the class for building the model for network simulation using Pipesim model.
-    DataClasses:
-    - ModelConfig: Configuration for the model.
-    - GlobalConditions: Global conditions for the model.
-    
+  
     Classes:
     - PipsimModeller: Builds the model for network simulation using the Pipesim model.
-    - PipsimSimulator: Simulates the model for network simulation using the Pipesim model.
+    
+    Raises:
+    - PipsimModellingError: Raised when an error occurs in the modelling process.
 """
 import logging
-import os
-from dataclasses import dataclass, field
 
 # import traceback
 from pathlib import Path
 from typing import Optional
 
 import pandas as pd
-from sixgill.definitions import Parameters, ProfileVariables, SystemVariables
-from sixgill.pipesim import Model, Units
+from sixgill.definitions import Parameters, SystemVariables
+
+from .model_input import ModelInput, PipsimModel, PipsimModellingError
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class PipsimModel:
-    """Dataclass for model configuration."""
-
-    model_filename: str
-    case: str
-    condition: str
-    folder_path: str = ""
-    model_path: str = field(init=False)
-    model: Model = field(init=False)
-
-    def __post_init__(self):
-        if self.folder_path == "":
-            self.folder_path = os.getcwd()
-
-        self.model_path = str(Path(self.folder_path) / Path(self.model_filename))
-
-        self.model = Model.open(filename=str(self.model_path), units=Units.FIELD)
-
-        if self.model.tasks is not None:
-            self.networksimulation = self.model.tasks.networksimulation
-
-
-@dataclass
-class ModelInput:
-    """Dataclass for model inputs."""
-
-    source_name: str
-    pump_name: list
-    well_profile: pd.DataFrame = field(default_factory=pd.DataFrame)
-    ambient_temperature: Optional[float] = None
-    source_pressure: Optional[float] = None
-    source_temperature: Optional[float] = None
-    differential_pressure: Optional[float] = None
-
-    def none_check(self):
-        if (
-            self.ambient_temperature is None
-            or self.source_pressure is None
-            or self.source_temperature is None
-            or self.differential_pressure is None
-        ):
-            raise PipsimModellingError(
-                "Ambient temperature, source pressure, and "
-                "source temperature are required for the model"
-            )
-
-
-class PipsimModellingError(Exception):
-    """Raised when an error occurs in the modelling process."""
 
 
 class PipsimModeller:
@@ -82,34 +28,34 @@ class PipsimModeller:
     """
 
     model: PipsimModel
-    model_inputs: ModelInput
+    model_input: ModelInput
     boundary_conditions: pd.DataFrame
     values: pd.DataFrame
     category: pd.DataFrame
 
-    def __init__(self, model: PipsimModel, model_inputs: ModelInput) -> None:
+    def __init__(self, model: PipsimModel, model_input: ModelInput) -> None:
         self.model = model
-        self.model_inputs = model_inputs
+        self.model_input = model_input
 
     def set_global_conditions(self) -> None:
 
-        self.model_inputs.none_check()
+        self.model_input.none_check()
         if self.model.model.sim_settings is not None:
             self.model.model.sim_settings.ambient_temperature = (
-                self.model_inputs.ambient_temperature
+                self.model_input.ambient_temperature
             )
 
         self.model.model.set_values(
             {
-                self.model_inputs.source_name: {
-                    SystemVariables.PRESSURE: self.model_inputs.source_pressure,
-                    SystemVariables.TEMPERATURE: self.model_inputs.source_temperature,
+                self.model_input.source_name: {
+                    SystemVariables.PRESSURE: self.model_input.source_pressure,
+                    SystemVariables.TEMPERATURE: self.model_input.source_temperature,
                 },
                 **{
                     pump: {
-                        Parameters.SharedPumpParameters.PRESSUREDIFFERENTIAL: self.model_inputs.differential_pressure
+                        Parameters.SharedPumpParameters.PRESSUREDIFFERENTIAL: self.model_input.differential_pressure
                     }
-                    for pump in self.model_inputs.pump_name
+                    for pump in self.model_input.pump_name
                 },
             }
         )
@@ -204,8 +150,8 @@ class PipsimModeller:
         logger.info("Activated all wells")
 
     def deactivate_noflow_wells(self):  # TODO: use above method
-        condition = self.model_inputs.well_profile[self.model.case] < 0.001
-        no_flow_wells = self.model_inputs.well_profile.loc[condition, "Wells"]
+        condition = self.model_input.well_profile[self.model.case] < 0.001
+        no_flow_wells = self.model_input.well_profile.loc[condition, "Wells"]
         self.values.loc[[Parameters.ModelComponent.ISACTIVE], no_flow_wells] = False
         _deactivated_wells = self.values.loc[
             [Parameters.ModelComponent.ISACTIVE], no_flow_wells
@@ -220,14 +166,12 @@ class PipsimModeller:
         for well in self.well_lists:
             if (
                 well in self.boundary_conditions.columns
-                and well in self.model_inputs.well_profile["Wells"].to_list()
+                and well in self.model_input.well_profile["Wells"].to_list()
             ):
-                _flowrate = self.model_inputs.well_profile.loc[
-                    self.model_inputs.well_profile["Wells"] == well, self.model.case
+                _flowrate = self.model_input.well_profile.loc[
+                    self.model_input.well_profile["Wells"] == well, self.model.case
                 ]
-                self.boundary_conditions.at["LiquidFlowRate", well] = _flowrate.values[
-                    0
-                ]
+                self.boundary_conditions.at[Parameters.Boundary.LIQUIDFLOWRATE, well] = _flowrate.values[0]  # type: ignore
             else:
                 logger.error(f"{well} not in the model")
 
@@ -238,6 +182,8 @@ class PipsimModeller:
         self.save_as_new_model()
 
     def save_as_new_model(self):
+        if self.model.folder_path is None:
+            self.model.folder_path = str(Path.cwd())
         new_file = (
             Path(self.model.folder_path)
             / f"{self.model.case}_{self.model.condition}_{self.model.model_filename}"
@@ -262,7 +208,3 @@ class PipsimModeller:
         self.deactivate_noflow_wells()
         self.populate_flowrates_in_model_from_excel()
         self.close_model()
-
-
-class PipsimSimulator(PipsimModeller):
-    pass

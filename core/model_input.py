@@ -1,0 +1,95 @@
+# model_input.py
+"""
+This module contains the dataclasses for model configuration and model inputs.
+
+DataClasses:
+- PipsimModel: Dataclass for model configuration.
+- ModelInput: Dataclass for model inputs.
+
+Raises:
+- PipsimModellingError: Raised when an error occurs in the modelling process.
+
+"""
+
+import logging
+import os
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional
+
+import pandas as pd
+from sixgill.pipesim import Model, Units
+
+logger = logging.getLogger(__name__)
+
+
+class PipsimModellingError(Exception):
+    """Raised when an error occurs in the modelling process."""
+
+
+@dataclass
+class PipsimModel:
+    """Dataclass for Pipsim Model configuration."""
+
+    model_filename: str
+    case: Optional[str] = None
+    condition: Optional[str] = None
+    folder_path: Optional[str] = None
+    model_path: str = field(init=False)
+    model: Model = field(init=False)
+
+    def __post_init__(self):
+        if self.folder_path is None:
+            self.folder_path = os.getcwd()
+
+        self.model_path = str(Path(self.folder_path) / Path(self.model_filename))
+
+        self.model = Model.open(filename=str(self.model_path), units=Units.FIELD)
+
+        if self.model.tasks is not None:
+            self.networksimulation = self.model.tasks.networksimulation
+
+        self._get_case_condition()
+
+    def _get_case_condition(self):
+        """
+        Get the case and condition from the model filename.
+        """
+        if self.case is None or self.condition is None:
+            filename_pattern = r"([^_]+)_([^_]+)_([^.]+)"
+            match = re.match(filename_pattern, self.model_filename)
+            if match:
+                self.case = match.group(1)
+                self.condition = match.group(2)
+            else:
+                raise PipsimModellingError(
+                    "Model filename must follow the pattern: 'case_condition_basefilename'"
+                )
+
+
+@dataclass
+class ModelInput:
+    """Dataclass for Pipsim model inputs."""
+
+    source_name: str = ""
+    pump_name: list = field(default_factory=list)
+    well_profile: pd.DataFrame = field(default_factory=pd.DataFrame)
+    ambient_temperature: Optional[float] = None
+    source_pressure: Optional[float] = None
+    source_temperature: Optional[float] = None
+    differential_pressure: Optional[float] = None
+
+    def none_check(self):
+        if (
+            self.ambient_temperature is None
+            or self.source_pressure is None
+            or self.source_temperature is None
+            or self.differential_pressure is None
+        ):
+            raise PipsimModellingError(
+                """
+                Ambient temperature, source pressure, and
+                source temperature are required for the model
+                """
+            )
