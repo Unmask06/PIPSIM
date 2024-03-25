@@ -1,4 +1,8 @@
-"""unit_conversion"""
+"""
+This module contains the UnitConversion class for converting units in a dataframe.
+unit conversion mappings are defined in the unit_conversions dictionary.
+unit nomenclature is based on the PIPSIM Units.
+"""
 
 import pandas as pd
 

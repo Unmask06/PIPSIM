@@ -39,6 +39,8 @@ class PipsimModel:
     model_path: str = field(init=False)
     model: Model = field(init=False)
 
+    FILENAME_PATTERN = r"([^_]+)_([^_]+)_([^.]+)(.[a-z]*)"
+
     def __post_init__(self):
         if self.folder_path is None:
             self.folder_path = os.getcwd()
@@ -52,16 +54,18 @@ class PipsimModel:
 
         self._get_case_condition()
 
+        logger.info(f"Model {self.model_filename} loaded successfully.")
+
     def _get_case_condition(self):
         """
         Get the case and condition from the model filename.
         """
         if self.case is None or self.condition is None:
-            filename_pattern = r"([^_]+)_([^_]+)_([^.]+)"
-            match = re.match(filename_pattern, self.model_filename)
+            match = re.match(self.FILENAME_PATTERN, self.model_filename)
             if match:
                 self.case = match.group(1)
                 self.condition = match.group(2)
+                self.base_model_filename = match.group(3)
             else:
                 raise PipsimModellingError(
                     "Model filename must follow the pattern: 'case_condition_basefilename'"

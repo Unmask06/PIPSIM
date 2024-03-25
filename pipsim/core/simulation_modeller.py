@@ -12,7 +12,6 @@ import logging
 
 # import traceback
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
 from sixgill.definitions import Parameters, SystemVariables
@@ -186,7 +185,7 @@ class PipsimModeller:
             self.model.folder_path = str(Path.cwd())
         new_file = (
             Path(self.model.folder_path)
-            / f"{self.model.case}_{self.model.condition}_{self.model.model_filename}"
+            / f"{self.model.case}_{self.model.condition}_{self.model.base_model_filename}"
         )
         self.model.model.save(str(new_file))
         logger.info(f"Model saved as {new_file}")
@@ -195,7 +194,7 @@ class PipsimModeller:
         self.model.model.close()
         logger.info("------------Network Simulation Object Closed----------------\n")
 
-    def bulid_model_global_conditions(self):
+    def build_model_global_conditions(self):
         self.set_global_conditions()
         self.close_model()
 
