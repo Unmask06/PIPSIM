@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 def load_config(file_path: str) -> PipSimInput:
     """Load and validate configuration from a JSON file."""
     try:
+        script_dir = os.path.dirname(__file__)
+        file_path = os.path.join(script_dir, file_path)
         with open(file_path, "r", encoding="utf-8") as f:
             config_dict = json.load(f)
         config = PipSimInput(**config_dict)
@@ -62,7 +64,8 @@ def load_input_data(config: PipSimInput) -> InputData:
 
 def wave_create_model(config: PipSimInput, input_data: InputData) -> None:
     """Create a new model based on the given configuration."""
-    for case, condition in input_data.case_conditions:
+    total_cases = len(input_data.case_conditions)
+    for idx, (case, condition) in enumerate(input_data.case_conditions, start=1):
 
         ambient_temperature = input_data.get_parameter_for_condition(
             condition=condition, param="Ambient Temperature"
@@ -99,6 +102,64 @@ def wave_create_model(config: PipSimInput, input_data: InputData) -> None:
             logger.error(f"Error in creating model for {case} - {condition}: {e}")
             continue
 
+        completion = (idx / total_cases) * 100
+        logger.info(f"{completion:.2f}% completed.")
+
+
+def update_global_conditions_existing_model(
+    config: PipSimInput, input_data: InputData
+) -> None:
+    """Update the global conditions of an existing model based on the given configuration."""
+    pipsim_files = [
+        file for file in os.listdir(config.FOLDER_DIRECTORY) if file.endswith(".pips")
+    ]
+    pipsim_files.remove(str(config.MODEL_FILENAME))
+
+    total_cases = len(pipsim_files)
+
+    for idx, model_filename in enumerate(pipsim_files, start=1):
+        try:
+            model = PipsimModel(model_filename=model_filename)
+            if model.condition is None:
+                raise PipsimModellingError(
+                    f"Condition not found in the model {model_filename}"
+                )
+
+            ambient_temperature = input_data.get_parameter_for_condition(
+                condition=model.condition, param="Ambient Temperature"
+            )
+            source_pressure = input_data.get_parameter_for_condition(
+                condition=model.condition, param="Source Pressure"
+            )
+            source_temperature = input_data.get_parameter_for_condition(
+                condition=model.condition, param="Temperature"
+            )
+            differential_pressure = input_data.get_parameter_for_condition(
+                condition=model.condition, param="PressureDifferential"
+            )
+
+            model_input = ModelInput(
+                source_name=config.SOURCE_NAME,
+                pump_name=config.PUMP_NAME,
+                well_profile=input_data.well_profile,
+                ambient_temperature=ambient_temperature,
+                source_pressure=source_pressure,
+                source_temperature=source_temperature,
+                differential_pressure=differential_pressure,
+            )
+
+            pipsim_modeller = PipsimModeller(model=model, model_input=model_input)
+            pipsim_modeller.build_model_global_conditions()
+            logger.info(
+                f"Model for {model.case} - {model.condition} created successfully."
+            )
+        except PipsimModellingError as e:
+            logger.error(f"Error in creating model for {model_filename}: {e}")
+            continue
+
+        completion = (idx / total_cases) * 100
+        logger.info(f"{completion:.2f}% completed.")
+
 
 def wave_run_model(config: PipSimInput) -> None:
     """Run an existing model based on the given configuration."""
@@ -106,8 +167,9 @@ def wave_run_model(config: PipSimInput) -> None:
         file for file in os.listdir(config.FOLDER_DIRECTORY) if file.endswith(".pips")
     ]
     pipsim_files.remove(str(config.MODEL_FILENAME))
+    total_cases = len(pipsim_files)
     # pipsim_files = pipsim_files[:1]
-    for model_filename in pipsim_files:
+    for idx, model_filename in enumerate(pipsim_files, start=1):
         try:
             model = PipsimModel(model_filename=model_filename)
             model_input = ModelInput()
@@ -119,6 +181,8 @@ def wave_run_model(config: PipSimInput) -> None:
         except NetworkSimulationError as e:
             logger.error(f"Error in running model {model_filename}: {e}")
             continue
+        completion = (idx / total_cases) * 100
+        logger.info(f"{completion:.2f}% completed.")
 
 
 def wave_summarize_results(config: PipSimInput) -> None:
@@ -161,8 +225,9 @@ def main() -> None:
         response = input(
             "Do you want to \n"
             "(1) create a new model \n"
-            "(2) run an existing model \n"
-            "(3) Create summary for the results\n"
+            "(2) update only the gloabl conditions \n"
+            "(3) run an existing model \n"
+            "(4) Create summary for the results\n"
             "(0) to exit: "
         )
         if response == "0":
@@ -170,11 +235,13 @@ def main() -> None:
         elif response == "1":
             wave_create_model(config, input_data)
         elif response == "2":
-            wave_run_model(config)
+            update_global_conditions_existing_model(config, input_data)
         elif response == "3":
+            wave_run_model(config)
+        elif response == "4":
             wave_summarize_results(config)
         else:
-            print("Invalid option. Please choose 1, 2, 3, or 0.")
+            print("Invalid option. Please try again.")
             continue
 
 

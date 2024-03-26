@@ -33,6 +33,8 @@ class NetworkSimulator(PipsimModeller):
 
     node_results: pd.DataFrame
     profile_results: pd.DataFrame
+    system_variables: list
+    profile_variables: list
     NODE_RESULTS_FILE: str = "Node Results.xlsx"
     PROFILE_RESULTS_FILE: str = "Profile Results.xlsx"
 
@@ -90,15 +92,13 @@ class NetworkSimulator(PipsimModeller):
             for well in self.node_results["Node"]
         ]
         node_results_unit = self.node_results.iloc[0:1]
+        self.node_results = self.node_results.iloc[1:]
         self.node_results.sort_values(
             by=[SystemVariables.TYPE, "Node"], ascending=[False, True], inplace=True
         )
         self.node_results.dropna(subset=[SystemVariables.TYPE], inplace=True)
-
-        # try
-        self.node_results = ExcelHandler.first_row_as_second_header(
-            df=self.node_results, index_1="Index", index_2="Unit"
-        )
+        self.node_results = pd.concat([node_results_unit, self.node_results], axis=0)
+        self.node_results.reset_index(drop=True, inplace=True)
 
     def process_profile_results(self):
         if self.results is None:
@@ -220,18 +220,17 @@ class NetworkSimulator(PipsimModeller):
     def run_existing_model(
         self,
         unit_conversion=True,
-        update=True,
     ):
         try:
-            self.update = update
             self.get_boundary_conditions()
             self.run_simulation()
             self.process_node_results()
             self.process_profile_results()
-            self.convert_units(unit_conversion=unit_conversion)
-            self.write_results_to_excel()
             self.save_as_new_model()
             self.close_model()
+            self.convert_units(unit_conversion=unit_conversion)
+            self.write_results_to_excel()
+
         except Exception as e:
             # logger.error(traceback.format_exc())
             logger.error(e)

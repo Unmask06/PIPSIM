@@ -31,6 +31,10 @@ class PipsimModeller:
     boundary_conditions: pd.DataFrame
     values: pd.DataFrame
     category: pd.DataFrame
+    well_values: pd.DataFrame
+    well_lists: list
+    
+    MINIMUM_FLOWRATE = 0.001  # Minimum flowrate for a well to be active (STBD)
 
     def __init__(self, model: PipsimModel, model_input: ModelInput) -> None:
         self.model = model
@@ -58,6 +62,7 @@ class PipsimModeller:
                 },
             }
         )
+        self.model.networksimulation.reset_conditions()
         logger.info("Set Global Conditions")
 
     def get_boundary_conditions(self) -> None:
@@ -149,7 +154,7 @@ class PipsimModeller:
         logger.info("Activated all wells")
 
     def deactivate_noflow_wells(self):  # TODO: use above method
-        condition = self.model_input.well_profile[self.model.case] < 0.001
+        condition = self.model_input.well_profile[self.model.case] < self.MINIMUM_FLOWRATE
         no_flow_wells = self.model_input.well_profile.loc[condition, "Wells"]
         self.values.loc[[Parameters.ModelComponent.ISACTIVE], no_flow_wells] = False
         _deactivated_wells = self.values.loc[
@@ -157,6 +162,7 @@ class PipsimModeller:
         ].to_dict()
         self.model.model.set_values(dict=_deactivated_wells)
         self.model.networksimulation.reset_conditions()
+        self.get_boundary_conditions()
         logger.info("Deactivated no flow wells")
 
     def populate_flowrates_in_model_from_excel(self):
@@ -171,14 +177,11 @@ class PipsimModeller:
                     self.model_input.well_profile["Wells"] == well, self.model.case
                 ]
                 self.boundary_conditions.at[Parameters.Boundary.LIQUIDFLOWRATE, well] = _flowrate.values[0]  # type: ignore
-            else:
-                logger.error(f"{well} not in the model")
 
         _bc_dict = self.boundary_conditions.loc[["LiquidFlowRate"]].to_dict()
         self.model.networksimulation.set_conditions(boundaries=_bc_dict)
         self.get_boundary_conditions()
         logger.info("Populated flowrates in model from excel")
-        self.save_as_new_model()
 
     def save_as_new_model(self):
         if self.model.folder_path is None:
@@ -196,6 +199,7 @@ class PipsimModeller:
 
     def build_model_global_conditions(self):
         self.set_global_conditions()
+        self.save_as_new_model()
         self.close_model()
 
     def build_model(self):
@@ -206,4 +210,5 @@ class PipsimModeller:
         self.activate_all_wells()
         self.deactivate_noflow_wells()
         self.populate_flowrates_in_model_from_excel()
+        self.save_as_new_model()
         self.close_model()

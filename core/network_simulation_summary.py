@@ -31,6 +31,11 @@ class NetworkSimulationSummary:
 
     """
 
+    node_summary: pd.DataFrame
+    profile_sheets: list
+    profile_summary_list: dict
+    pump_operating_points: pd.DataFrame
+
     def __init__(
         self,
         node_result_xl: str = NetworkSimulator.NODE_RESULTS_FILE,
@@ -52,12 +57,17 @@ class NetworkSimulationSummary:
     ):
         if parameter not in df.columns:
             raise SummaryWarning(f"Parameter '{parameter}' not in the dataframe.")
+        df = df.copy()
         df[parameter] = pd.to_numeric(df[parameter], errors="coerce")
-        min_parameter_idx = df[parameter].idxmin()
-        max_parameter_idx = df[parameter].idxmax()
-
+        if "Type" in df.columns:
+            min_parameter_idx = df.loc[df["Type"] == "Sink", parameter].idxmin()
+            max_parameter_idx = df.loc[df["Type"] == "Sink", parameter].idxmax()
+        else:
+            min_parameter_idx = df[parameter].idxmin()
+            max_parameter_idx = df[parameter].idxmax()
         df.loc[min_parameter_idx, "Min/Max"] = "Minimum"
         df.loc[max_parameter_idx, "Min/Max"] = "Maximum"
+
         df["Case"] = case
 
         max_min_results = pd.concat(
@@ -72,11 +82,20 @@ class NetworkSimulationSummary:
     @staticmethod
     def add_min_max_remarks(df: pd.DataFrame, parameter: str) -> pd.DataFrame:
         if parameter not in df.columns:
-            raise SummaryWarning(f"Parameter '{parameter}' not in the dataframe.")
+            raise SummaryWarning(f"Parameter '{parameter}' not in the {df.columns}.")
         df_copy = df.copy()
         df_copy[parameter] = pd.to_numeric(df_copy[parameter], errors="coerce")
-        min_parameter_idx = df_copy[parameter].idxmin()
-        max_parameter_idx = df_copy[parameter].idxmax()
+
+        if "Type" in df_copy.columns:
+            min_parameter_idx = df_copy.loc[
+                df_copy["Type"] == "Sink", parameter
+            ].idxmin()
+            max_parameter_idx = df_copy.loc[
+                df_copy["Type"] == "Sink", parameter
+            ].idxmax()
+        else:
+            min_parameter_idx = df_copy[parameter].idxmin()
+            max_parameter_idx = df_copy[parameter].idxmax()
 
         df.loc[min_parameter_idx, "Remarks"] = f"Minimum {parameter}"
         df.loc[max_parameter_idx, "Remarks"] = f"Maximum {parameter}"
@@ -138,10 +157,13 @@ class NetworkSimulationSummary:
             node_summary_list = []
         for sht in node_sheets:
             try:
-                node_df = pd.read_excel(self.node_result_xl, sheet_name=sht, header=1)
+                node_df = pd.read_excel(
+                    self.node_result_xl, sheet_name=sht, header=1, index_col=0
+                )
                 # write back to excel
                 node_df = NetworkSimulationSummary.add_min_max_remarks(
-                    df=node_df, parameter=ProfileVariables.PRESSURE
+                    df=node_df,
+                    parameter=ProfileVariables.PRESSURE,
                 )
                 ExcelHandler.write_excel(
                     df=node_df,
@@ -151,15 +173,14 @@ class NetworkSimulationSummary:
                     clear_sheet=True,
                     save=True,
                 )
-                node_df = node_df.loc[node_df["Type"] == "Sink"]
                 node_df = NetworkSimulationSummary.get_min_max_parameter(
-                    df=node_df,
+                    df=node_df.loc[node_df["Type"] == "Sink"],
                     case=sht,
                     parameter=ProfileVariables.PRESSURE,
                     equipment_column="Node",
                 )
                 node_summary_list.append(node_df)
-            except SummaryError as exc:
+            except SummaryWarning as exc:
                 err = f"Error in getting node summary for {sht}: {exc}"
                 self.logger.warning(err)
 
@@ -191,7 +212,10 @@ class NetworkSimulationSummary:
                 for sht in self.profile_sheets:
                     try:
                         profile_df = pd.read_excel(
-                            self.profile_result_xl, sheet_name=sht, header=1
+                            self.profile_result_xl,
+                            sheet_name=sht,
+                            header=1,
+                            index_col=0,
                         )
                         profile_df = NetworkSimulationSummary.add_min_max_remarks(
                             df=profile_df, parameter=parameter

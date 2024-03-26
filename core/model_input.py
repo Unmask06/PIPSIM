@@ -54,7 +54,11 @@ class PipsimModel:
 
         self._get_case_condition()
 
-        logger.info(f"Model {self.model_filename} loaded successfully.")
+        logger.info(
+            f"Model {self.model_filename} loaded successfully.\n"
+            f"case: {self.case}\n condition: {self.condition}\n"
+            f"base model: {self.base_model_filename}"
+        )
 
     def _get_case_condition(self):
         """
@@ -65,11 +69,13 @@ class PipsimModel:
             if match:
                 self.case = match.group(1)
                 self.condition = match.group(2)
-                self.base_model_filename = match.group(3)
+                self.base_model_filename = match.group(3) + match.group(4)
             else:
                 raise PipsimModellingError(
                     "Model filename must follow the pattern: 'case_condition_basefilename'"
                 )
+        elif self.case is not None and self.condition is not None:
+            self.base_model_filename = self.model_filename
 
 
 @dataclass

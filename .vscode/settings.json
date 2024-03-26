@@ -3,7 +3,7 @@
   "python.defaultInterpreterPath": "c:\\Program Files\\Schlumberger\\PIPESIM_PTK_2023.1\\python.exe",
   "explorer.excludeGitIgnore": true,
   "python.analysis.exclude": [
-    "pipsim/logic.py"
+    "logic.py"
   ],
   "pylint.args": [
     "--rcfile=.pylintrc"
