@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,8 +15,10 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Clone Rotalysis Repository
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
         run: |
-          git clone https://github.com/Unmask06/rotalysis.git
+          git clone https://Unmask06:${{ secrets.PAT }}@github.com/Unmask06/rotalysis.git
       
       - name: Copy HTML files to Rotalysis Application
         run: |
