@@ -20,7 +20,7 @@ jobs:
       - name: Copy HTML files to Pandora Application
         run: |
           cp -r core/* src/
-          cd pandora
+          cd rotalysis
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git config --global user.name 'github-actions[bot]'
           git add app/docs/

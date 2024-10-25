@@ -190,29 +190,11 @@ class NetworkSimulator(PipsimModeller):
             workbook=self.NODE_RESULTS_FILE,
         )
 
-        ExcelHandler.format_excel_general(
-            workbook=self.NODE_RESULTS_FILE,
-            sheet_name=node_results_sheet_name,
-        )
-
-        ExcelHandler.format_excel_profile_results(
-            workbook=self.NODE_RESULTS_FILE,
-            sheet_name=node_results_sheet_name,
-        )
-
         ExcelHandler.write_excel(
             df=self.profile_results,
             sheet_name=profile_results_sheet_name,
             clear_sheet=True,
             workbook=self.PROFILE_RESULTS_FILE,
-        )
-        ExcelHandler.format_excel_general(
-            workbook=self.PROFILE_RESULTS_FILE,
-            sheet_name=profile_results_sheet_name,
-        )
-        ExcelHandler.format_excel_profile_results(
-            workbook=self.PROFILE_RESULTS_FILE,
-            sheet_name=profile_results_sheet_name,
         )
 
         logger.info("Results written to excel")

@@ -225,7 +225,7 @@ def main() -> None:
         response = input(
             "Do you want to \n"
             "(1) create a new model \n"
-            "(2) update only the gloabl conditions \n"
+            "(2) update only the global conditions \n"
             "(3) run an existing model \n"
             "(4) Create summary for the results\n"
             "(0) to exit: "

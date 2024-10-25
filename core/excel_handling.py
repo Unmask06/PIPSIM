@@ -96,26 +96,25 @@ class ExcelHandler:
             logging.error(f"Error writing to Excel: {str(e)}")
 
     @staticmethod
-    def format_excel_general(workbook: str, sheet_name):
+    def format_excel_general(workbook: xw.Book, sheet_name):
         try:
-            with xw.App(visible=False):
-                wb = xw.Book(workbook)
-                ws = wb.sheets(sheet_name)
-                ws.api.PageSetup.Orientation = xw_const.PageOrientation.xlPortrait
-                ws.api.PageSetup.Zoom = False
-                ws.api.PageSetup.FitToPagesWide = 1
-                ws.api.PageSetup.FitToPagesTall = False
-                ws.api.PageSetup.PaperSize = xw_const.PaperSize.xlPaperA4
-                used_range = ws.used_range
-                used_range.api.EntireColumn.AutoFit()
-                for border_id in range(7, 13):
-                    used_range.api.Borders(border_id).LineStyle = (
-                        xw_const.LineStyle.xlContinuous
-                    )
-                    used_range.api.Borders(border_id).Weight = (
-                        xw_const.BorderWeight.xlThin
-                    )
-                wb.save()
+            wb = workbook
+            ws = wb.sheets(sheet_name)
+            ws.api.PageSetup.Orientation = xw_const.PageOrientation.xlPortrait
+            ws.api.PageSetup.Zoom = False
+            ws.api.PageSetup.FitToPagesWide = 1
+            ws.api.PageSetup.FitToPagesTall = False
+            ws.api.PageSetup.PaperSize = xw_const.PaperSize.xlPaperA4
+            used_range = ws.used_range
+            used_range.api.EntireColumn.AutoFit()
+            for border_id in range(7, 13):
+                used_range.api.Borders(border_id).LineStyle = (
+                    xw_const.LineStyle.xlContinuous
+                )
+                used_range.api.Borders(border_id).Weight = (
+                    xw_const.BorderWeight.xlThin
+                )
+            wb.save()
         except ExcelHandlerError as e:
             logging.error(f"Error formatting Excel: {str(e)}")
 
