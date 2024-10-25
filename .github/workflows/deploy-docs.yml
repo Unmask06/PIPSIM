@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v2
 
       - name: Clone Rotalysis Repository
@@ -19,13 +19,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT }}
         run: |
           git clone https://Unmask06:${{ secrets.PAT }}@github.com/Unmask06/rotalysis.git
-      
-      - name: Copy HTML files to Rotalysis Application
+
+      - name: Ensure Destination Directory Exists in Rotalysis
+        run: mkdir -p rotalysis/src
+
+      - name: Copy Documentation Files
+        run: cp -r core/* rotalysis/src/ # Adjust "core/" path as needed if it's located elsewhere
+
+      - name: Commit and Push Changes to Rotalysis
         run: |
-          cp -r core/* src/
           cd rotalysis
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git config --global user.name 'github-actions[bot]'
-          git add app/docs/
+          git add src/
           git commit -m "Update documentation"
           git push
