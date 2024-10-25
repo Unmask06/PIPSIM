@@ -36,7 +36,7 @@ jobs:
         run: git config --global user.name 'github-actions[bot]'
 
       - name: Stage Documentation Changes
-        run: git add rotalysis/src/
+        run: git add -A
 
       - name: Commit Documentation Changes
         run: git commit -m "Update documentation"
