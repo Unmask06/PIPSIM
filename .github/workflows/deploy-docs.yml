@@ -39,7 +39,7 @@ jobs:
         run: git add -A
 
       - name: Commit Documentation Changes
-        run: git commit -m "Update documentation"
+        run: git commit -m "Update documentation!"
 
       - name: Push Changes to Rotalysis Repository
         env:
