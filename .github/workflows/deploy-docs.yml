@@ -24,7 +24,7 @@ jobs:
         run: mkdir -p rotalysis/src
 
       - name: Copy Documentation Files
-        run: cp -r core/* rotalysis/src/ # Adjust "core/" path as needed if it's located elsewhere
+        run: cp -r core rotalysis/src/ # Adjust "core/" path as needed if it's located elsewhere
 
       - name: Configure Git User
         run: |
