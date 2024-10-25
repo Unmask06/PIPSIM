@@ -33,4 +33,4 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git add src/
           git commit -m "Update documentation"
-          git push
+          git push https://Unmask06:${{ secrets.PAT }}@github.com/Unmask06/rotalysis.git main
