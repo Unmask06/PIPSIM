@@ -13,11 +13,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Copy HTML files to Pandora Application
+      - name: Clone Rotalysis Repository
         run: |
           git clone https://github.com/Unmask06/rotalysis.git
       
-      - name: Copy HTML files to Pandora Application
+      - name: Copy HTML files to Rotalysis Application
         run: |
           cp -r core/* src/
           cd rotalysis
