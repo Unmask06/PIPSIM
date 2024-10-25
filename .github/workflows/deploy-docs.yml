@@ -26,26 +26,22 @@ jobs:
       - name: Copy Documentation Files
         run: cp -r core/* rotalysis/src/ # Adjust "core/" path as needed if it's located elsewhere
 
-      - name: Navigate to Rotalysis Directory
-        run: cd rotalysis
-
-      - name: Configure Git User Email
-        run: git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-
-      - name: Configure Git User Name
-        run: git config --global user.name 'github-actions[bot]'
+      - name: Configure Git User
+        run: |
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git config --global user.name 'github-actions[bot]'
+        working-directory: rotalysis
 
       - name: Stage Documentation Changes
         run: git add -A
+        working-directory: rotalysis
 
       - name: Commit Documentation Changes
         run: git commit -m "Update documentation!"
+        working-directory: rotalysis
 
       - name: Push Changes to Rotalysis Repository
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
-        run: |
-          cd rotalysis
-          git remote set-url origin https://Unmask06:${{ secrets.PAT }}@github.com/Unmask06/rotalysis.git
-          git push
-
+        run: git push
+        working-directory: rotalysis
