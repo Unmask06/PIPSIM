@@ -44,5 +44,8 @@ jobs:
       - name: Push Changes to Rotalysis Repository
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
-        run: git push https://Unmask06:${{ secrets.PAT }}@github.com/Unmask06/rotalysis.git main
+        run: |
+          cd rotalysis
+          git remote set-url origin https://Unmask06:${{ secrets.PAT }}@github.com/Unmask06/rotalysis.git
+          git push
 
