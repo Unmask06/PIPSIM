@@ -76,9 +76,9 @@ def wave_create_model(config: PipSimInput, input_data: InputData) -> None:
         source_temperature = input_data.get_parameter_for_condition(
             condition=condition, param="Temperature"
         )
-        differential_pressure = input_data.get_parameter_for_condition(
-            condition=condition, param="PressureDifferential"
-        )
+        # differential_pressure = input_data.get_parameter_for_condition(
+        #     condition=condition, param="PressureDifferential"
+        # )
 
         model_input = ModelInput(
             source_name=config.SOURCE_NAME,
@@ -87,7 +87,7 @@ def wave_create_model(config: PipSimInput, input_data: InputData) -> None:
             ambient_temperature=ambient_temperature,
             source_pressure=source_pressure,
             source_temperature=source_temperature,
-            differential_pressure=differential_pressure,
+            # differential_pressure=differential_pressure,
         )
 
         model = PipsimModel(
@@ -134,9 +134,9 @@ def update_global_conditions_existing_model(
             source_temperature = input_data.get_parameter_for_condition(
                 condition=model.condition, param="Temperature"
             )
-            differential_pressure = input_data.get_parameter_for_condition(
-                condition=model.condition, param="PressureDifferential"
-            )
+            # differential_pressure = input_data.get_parameter_for_condition(
+            #     condition=model.condition, param="PressureDifferential"
+            # )
 
             model_input = ModelInput(
                 source_name=config.SOURCE_NAME,
@@ -145,7 +145,7 @@ def update_global_conditions_existing_model(
                 ambient_temperature=ambient_temperature,
                 source_pressure=source_pressure,
                 source_temperature=source_temperature,
-                differential_pressure=differential_pressure,
+                # differential_pressure=differential_pressure,
             )
 
             pipsim_modeller = PipsimModeller(model=model, model_input=model_input)
@@ -212,12 +212,47 @@ def wave_summarize_results(config: PipSimInput) -> None:
         sys.exit(1)
 
 
+def wave_run_individual_model(model_filepath: str) -> None:
+    model = PipsimModel(model_filepath, quick_try=True)
+    ns = NetworkSimulator(model)
+    ns.run_existing_model()
+
+
 def exit_program() -> None:
     logger.info("Exiting the program.")
     sys.exit(0)
 
 
 def main() -> None:
+    while True:
+        initial_response = input(
+            "Do you want to \n"
+            "(1) Load configuration and input data \n"
+            "(2) Continue without configuration and input data \n"
+            "(0) to exit: "
+        )
+
+        if initial_response == "0":
+            exit_program()
+        elif initial_response == "2":
+            run_without_config()
+        elif initial_response == "1":
+            run_with_config()
+
+
+def run_without_config() -> None:
+    while True:
+        response = input(
+            "Do you want to \n" "(1) Run an existing model \n" "(0) to exit: "
+        )
+        if response == "0":
+            exit_program()
+        elif response == "1":
+            model_filepath = input("Enter the model file path: ")
+            wave_run_individual_model(model_filepath)
+
+
+def run_with_config() -> None:
     config = load_config("inputs.json")
     input_data = load_input_data(config)
 

@@ -38,8 +38,11 @@ class NetworkSimulator(PipsimModeller):
     NODE_RESULTS_FILE: str = "Node Results.xlsx"
     PROFILE_RESULTS_FILE: str = "Profile Results.xlsx"
 
-    def __init__(self, model: PipsimModel, model_input: ModelInput) -> None:
-        super().__init__(model=model, model_input=model_input)
+    # def __init__(self, model: PipsimModel, model_input: ModelInput) -> None:
+    #     super().__init__(model=model, model_input=model_input)
+
+    def __init__(self, model:str|PipsimModel) -> None:
+        self.model = model
 
     def _specify_system_profiles_variables(self):
         self.system_variables = [
