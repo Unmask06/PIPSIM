@@ -18,6 +18,8 @@ class UnitConversion:
         ("ft", "m"): lambda x: x * 0.3048,
         ("ft/s", "m/s"): lambda x: x * 0.3048,
         ("psi/ft", "bar/100m"): lambda x: x * ((1 / 14.5038) / (0.3048 / 100)),
+        ("lbm/ft3", "kg/m3"): lambda x: x * 16.0185,
+        ("lbm/s", "kg/s"): lambda x: x * 0.453592,
     }
 
     @staticmethod

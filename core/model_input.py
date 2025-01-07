@@ -33,7 +33,7 @@ class PipsimModel:
     """Dataclass for Pipsim Model configuration."""
 
     model_filename: str
-    quick_try:bool = False
+    quick_try: bool = False
     case: Optional[str] = None
     condition: Optional[str] = None
     folder_path: Optional[str] = None
@@ -72,7 +72,8 @@ class PipsimModel:
             return
 
         if self.case is None or self.condition is None:
-            match = re.match(self.FILENAME_PATTERN, self.model_filename)
+            filename = str(Path(self.model_filename).stem + Path(self.model_filename).suffix)
+            match = re.match(self.FILENAME_PATTERN, filename)
             if match:
                 self.case = match.group(1)
                 self.condition = match.group(2)
