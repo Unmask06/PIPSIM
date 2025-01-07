@@ -45,7 +45,7 @@ class NetworkSimulator(PipsimModeller):
             SystemVariables.TYPE,
             SystemVariables.PRESSURE,
             SystemVariables.TEMPERATURE,
-            SystemVariables.FLOWRATE,
+            SystemVariables.VOLUME_FLOWRATE_GAS_STOCKTANK,
         ]
         self.profile_variables = [
             ProfileVariables.PRESSURE,
@@ -60,7 +60,7 @@ class NetworkSimulator(PipsimModeller):
             ProfileVariables.MASS_FLOWRATE_GAS_INSITU,
             ProfileVariables.VISCOSITY_GAS_INSITU,
             ProfileVariables.VELOCITY_GAS,
-            ProfileVariables.FLOWRATE_GAS_INSITU,
+            ProfileVariables.VOLUME_FLOWRATE_GAS_STOCKTANK,
         ]
 
     def run_simulation(self):
@@ -117,7 +117,7 @@ class NetworkSimulator(PipsimModeller):
                 df_unique = branch_df.drop_duplicates(
                     subset=["BranchEquipment"], keep="last"
                 )
-                df_unique["Branch"] = branch
+                df_unique.insert(0, "Branch", branch)
                 dfs.append(df_unique)
             except NetworkSimulationError:
                 logging.error(f"{branch}")
@@ -136,7 +136,7 @@ class NetworkSimulator(PipsimModeller):
             SystemVariables.TYPE,
             SystemVariables.PRESSURE,
             SystemVariables.TEMPERATURE,
-            SystemVariables.FLOWRATE,
+            SystemVariables.VOLUME_FLOWRATE_GAS_STOCKTANK,
         ]
         new_profile_cols = [
             "Branch",
@@ -153,7 +153,7 @@ class NetworkSimulator(PipsimModeller):
             ProfileVariables.MASS_FLOWRATE_GAS_INSITU,
             ProfileVariables.VISCOSITY_GAS_INSITU,
             ProfileVariables.VELOCITY_GAS,
-            ProfileVariables.FLOWRATE_GAS_INSITU,
+            ProfileVariables.VOLUME_FLOWRATE_GAS_STOCKTANK,
         ]
 
         self.node_results = self.node_results[new_node_cols]
