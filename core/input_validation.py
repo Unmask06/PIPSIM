@@ -2,7 +2,6 @@
 
 import logging
 from pathlib import Path
-from typing import List
 
 from openpyxl import load_workbook
 from pydantic import BaseModel, field_validator, model_validator
@@ -18,9 +17,6 @@ class PipSimInput(BaseModel):
     EXCEL_FILE: str
     PIPSIM_INPUT_SHEET: str
     CONDITIONS_SHEET: str
-    SOURCE_NAME: str
-    PUMP_NAME: List[str]
-    STRAINER_NAME: List[str]
 
     @field_validator("FOLDER_DIRECTORY")
     @classmethod

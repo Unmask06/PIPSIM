@@ -5,6 +5,8 @@
 """
 
 import logging
+import traceback
+from pathlib import Path
 
 import pandas as pd
 from sixgill.definitions import ProfileVariables, SystemVariables
@@ -12,9 +14,6 @@ from sixgill.definitions import ProfileVariables, SystemVariables
 from .excel_handling import ExcelHandler
 from .simulation_modeller import ModelInput, PipsimModel, PipsimModeller
 from .unit_conversion import UnitConversion
-
-# import traceback
-
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +45,9 @@ class NetworkSimulator(PipsimModeller):
             SystemVariables.TYPE,
             SystemVariables.PRESSURE,
             SystemVariables.TEMPERATURE,
-            SystemVariables.VOLUME_FLOWRATE_WATER_STOCKTANK,
+            SystemVariables.VOLUME_FLOWRATE_GAS_STOCKTANK,
         ]
         self.profile_variables = [
-            ProfileVariables.VOLUME_FLOWRATE_WATER_STOCKTANK,
             ProfileVariables.PRESSURE,
             ProfileVariables.TEMPERATURE,
             ProfileVariables.PRESSURE_GRADIENT_FRICTION,
@@ -58,7 +56,11 @@ class NetworkSimulator(PipsimModeller):
             ProfileVariables.EROSIONAL_VELOCITY_RATIO,
             ProfileVariables.ELEVATION,
             ProfileVariables.TOTAL_DISTANCE,
-            ProfileVariables.VOLUME_FLOWRATE_WATER_INSITU,
+            ProfileVariables.DENSITY_GAS_INSITU,
+            ProfileVariables.MASS_FLOWRATE_GAS_INSITU,
+            ProfileVariables.VISCOSITY_GAS_INSITU,
+            ProfileVariables.VELOCITY_GAS,
+            ProfileVariables.VOLUME_FLOWRATE_GAS_STOCKTANK,
         ]
 
     def run_simulation(self):
@@ -108,20 +110,19 @@ class NetworkSimulator(PipsimModeller):
         for branch in sorted(self.results.profile.keys()):
             try:
                 res = self.results.profile
-                branch_df: pd.DataFrame = pd.DataFrame.from_dict(res[branch]).dropna(
-                    subset=["BranchEquipment"]
-                )
+                branch_df: pd.DataFrame = pd.DataFrame.from_dict(res[branch])
                 branch_df.loc[:, "BranchEquipment"] = branch_df.loc[
                     :, "BranchEquipment"
                 ].ffill()
                 df_unique = branch_df.drop_duplicates(
                     subset=["BranchEquipment"], keep="last"
                 )
+                df_unique.insert(0, "Branch", branch)
                 dfs.append(df_unique)
             except NetworkSimulationError:
                 logging.error(f"{branch}")
         combined_df = pd.concat(dfs)
-        combined_df.sort_values(by=["BranchEquipment"], inplace=True)
+        combined_df.sort_values(by=["Branch", "BranchEquipment"], inplace=True)
         combined_df.reset_index(drop=True, inplace=True)
         self.profile_results = pd.concat([units, combined_df], axis=0)
         self.profile_results.reset_index(drop=True, inplace=True)
@@ -135,12 +136,11 @@ class NetworkSimulator(PipsimModeller):
             SystemVariables.TYPE,
             SystemVariables.PRESSURE,
             SystemVariables.TEMPERATURE,
-            SystemVariables.VOLUME_FLOWRATE_WATER_STOCKTANK,
+            SystemVariables.VOLUME_FLOWRATE_GAS_STOCKTANK,
         ]
         new_profile_cols = [
+            "Branch",
             "BranchEquipment",
-            ProfileVariables.VOLUME_FLOWRATE_WATER_STOCKTANK,
-            ProfileVariables.VOLUME_FLOWRATE_WATER_INSITU,
             ProfileVariables.PRESSURE,
             ProfileVariables.TEMPERATURE,
             ProfileVariables.PRESSURE_GRADIENT_FRICTION,
@@ -149,6 +149,11 @@ class NetworkSimulator(PipsimModeller):
             ProfileVariables.EROSIONAL_VELOCITY_RATIO,
             ProfileVariables.ELEVATION,
             ProfileVariables.TOTAL_DISTANCE,
+            ProfileVariables.DENSITY_GAS_INSITU,
+            ProfileVariables.MASS_FLOWRATE_GAS_INSITU,
+            ProfileVariables.VISCOSITY_GAS_INSITU,
+            ProfileVariables.VELOCITY_GAS,
+            ProfileVariables.VOLUME_FLOWRATE_GAS_STOCKTANK,
         ]
 
         self.node_results = self.node_results[new_node_cols]
@@ -169,6 +174,8 @@ class NetworkSimulator(PipsimModeller):
                 ProfileVariables.MEAN_VELOCITY_FLUID: ("ft/s", "m/s"),
                 ProfileVariables.EROSIONAL_VELOCITY: ("ft/s", "m/s"),
                 ProfileVariables.TOTAL_DISTANCE: ("ft", "m"),
+                ProfileVariables.DENSITY_GAS_INSITU: ("lbm/ft3", "kg/m3"),
+                ProfileVariables.MASS_FLOWRATE_GAS_INSITU: ("lbm/s", "kg/s"),
             }
 
             self.node_results = UnitConversion.convert_units(
@@ -179,7 +186,9 @@ class NetworkSimulator(PipsimModeller):
             )
 
     def write_results_to_excel(self):
-        sheet_name = f"{self.model.case}_{self.model.condition}"
+        sheet_name = Path(self.model.model_filename).stem
+        if len(sheet_name) > 31:
+            sheet_name = sheet_name[:31]
         node_results_sheet_name = sheet_name
         profile_results_sheet_name = sheet_name
         ExcelHandler.write_excel(
@@ -208,7 +217,7 @@ class NetworkSimulator(PipsimModeller):
             self.run_simulation()
             self.process_node_results()
             self.process_profile_results()
-            self.save_as_new_model()
+            self.model.model.save()
             self.close_model()
             self.convert_units(unit_conversion=unit_conversion)
             self.write_results_to_excel()
@@ -217,4 +226,5 @@ class NetworkSimulator(PipsimModeller):
             # logger.error(traceback.format_exc())
             logger.error(e)
             self.model.model.close()
+            traceback.print_exc()
             raise e

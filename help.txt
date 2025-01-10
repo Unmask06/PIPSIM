@@ -1,0 +1,6 @@
+Help
+Commands
+- help - Display this help message
+- list - List all available commands
+- exit - Exit the shell
+- cd - Change the current directory
