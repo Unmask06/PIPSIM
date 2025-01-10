@@ -25,14 +25,12 @@ def dummy_function(logger):
     logger.info("Dummy function completed.")
 
 
-# Function to switch frames
 def switch_frame(new_frame):
     for frame in frames.values():
         frame.pack_forget()
     new_frame.pack(fill="both", expand=True)
 
 
-# Function to add a scrollable logger area
 def add_logger_area(parent_frame):
     logger_frame = tk.Frame(parent_frame)
     logger_frame.pack(fill="both", expand=True, pady=10)
@@ -41,10 +39,43 @@ def add_logger_area(parent_frame):
     return log_text
 
 
+def show_help():
+    try:
+        help_window = tk.Toplevel(app)
+        help_window.title("Help")
+        help_window.geometry("600x400")
+
+        help_label = tk.Label(
+            help_window, text="Help Documentation", font=("Arial", 16)
+        )
+        help_label.pack(pady=10)
+
+        # Fallback: Use ScrolledText if HtmlFrame fails
+        help_text = scrolledtext.ScrolledText(help_window, wrap=tk.WORD)
+        help_text.pack(fill="both", expand=True)
+
+        with open("help.txt", "r", encoding="utf-8") as f:
+            markdown_text = f.read()
+            # Convert markdown to plain text as a fallback
+            help_text.insert(tk.END, markdown_text)
+            help_text.configure(state="disabled")
+
+    except FileNotFoundError:
+        messagebox.showerror("Error", "The help file 'help.md' was not found.")
+    except Exception as e:
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}")
+
+
 # Tkinter GUI setup
 app = tk.Tk()
-app.title("Pipesim GUI")
+app.title("PANDORA - Pipesim Pilot")
 app.geometry("600x400")
+
+menu_bar = tk.Menu(app)
+help_menu = tk.Menu(menu_bar, tearoff=0)
+help_menu.add_command(label="Help", command=show_help)
+menu_bar.add_cascade(label="Help", menu=help_menu)
+app.config(menu=menu_bar)
 
 frames = {}
 
@@ -52,7 +83,9 @@ frames = {}
 home_frame = tk.Frame(app)
 frames["home"] = home_frame
 
-home_label = tk.Label(home_frame, text="Welcome to Pipesim GUI", font=("Arial", 16))
+home_label = tk.Label(
+    home_frame, text="Welcome to PANDORA's Pipesim Pilot", font=("Arial", 16)
+)
 home_label.pack(pady=20)
 
 create_model_button = tk.Button(
