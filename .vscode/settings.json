@@ -1,7 +1,7 @@
 {
  
   "python.defaultInterpreterPath": "c:\\Program Files\\Schlumberger\\PIPESIM_PTK_2023.1\\python.exe",
-  "explorer.excludeGitIgnore": false,
+  "explorer.excludeGitIgnore": true,
   "python.analysis.exclude": [
     "logic.py"
   ],
