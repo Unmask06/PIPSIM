@@ -54,10 +54,10 @@ def main():
 
     # Initialize frames
     home_frame = init_home_frame(app)
-    create_model_frame = init_create_model_frame(app, home_frame)
-    update_conditions_frame = init_update_conditions_frame(app, home_frame)
-    run_simulation_frame = init_run_simulation_frame(app, home_frame)
-    summary_frame = init_summarize_frame(app, home_frame)
+    init_create_model_frame(app, home_frame)
+    init_update_conditions_frame(app, home_frame)
+    init_run_simulation_frame(app, home_frame)
+    init_summarize_frame(app, home_frame)
 
     # Start with the home frame
     switch_frame(home_frame)

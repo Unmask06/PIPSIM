@@ -2,7 +2,7 @@ import logging
 import tkinter as tk
 from tkinter import filedialog
 
-from project import TextHandler, add_logger_area, frame_store, switch_frame
+from project import FRAME_STORE, TextHandler, add_logger_area, switch_frame
 
 
 def submit_create_model(logger_cm: logging.Logger):
@@ -11,7 +11,7 @@ def submit_create_model(logger_cm: logging.Logger):
 
 def init_create_model_frame(app: tk.Tk, home_frame: tk.Frame) -> tk.Frame:
     create_model_frame = tk.Frame(app)
-    frame_store["create_model"] = create_model_frame
+    FRAME_STORE["create_model"] = create_model_frame
     create_label = tk.Label(
         create_model_frame, text="Create Model Workflow", font=("Arial", 14)
     )

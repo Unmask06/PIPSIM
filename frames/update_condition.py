@@ -1,14 +1,17 @@
-from project import TextHandler, add_logger_area, frame_store, switch_frame
 import logging
 import tkinter as tk
 from tkinter import filedialog
 
+from project import FRAME_STORE, TextHandler, add_logger_area, switch_frame
+
+
 def submit_update_conditions(logger_uc: logging.Logger):
     logger_uc.info("Update Conditions Workflow submitted")
 
+
 def init_update_conditions_frame(app: tk.Tk, home_frame: tk.Frame) -> tk.Frame:
     update_conditions_frame = tk.Frame(app)
-    frame_store["update_conditions"] = update_conditions_frame
+    FRAME_STORE["update_conditions"] = update_conditions_frame
     update_label = tk.Label(
         update_conditions_frame, text="Update Conditions Workflow", font=("Arial", 14)
     )
@@ -18,11 +21,15 @@ def init_update_conditions_frame(app: tk.Tk, home_frame: tk.Frame) -> tk.Frame:
     config_file_entry_uc = tk.Entry(update_conditions_frame, width=50)
     config_file_entry_uc.pack()
     config_browse_button_uc = tk.Button(
-        update_conditions_frame, text="Browse", command=lambda: filedialog.askopenfilename()
+        update_conditions_frame,
+        text="Browse",
+        command=lambda: filedialog.askopenfilename(),
     )
     config_browse_button_uc.pack(pady=5)
     submit_button_uc = tk.Button(
-        update_conditions_frame, text="Submit", command=lambda: submit_update_conditions(logger_uc)
+        update_conditions_frame,
+        text="Submit",
+        command=lambda: submit_update_conditions(logger_uc),
     )
     submit_button_uc.pack(pady=10)
     log_text_uc = add_logger_area(update_conditions_frame)
