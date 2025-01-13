@@ -1,35 +1,131 @@
+"""
+frames/create_model.py
+Generate the create_model frame for the application.
+"""
+
 import logging
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import messagebox
 
-from project import FRAME_STORE, TextHandler, add_logger_area, switch_frame
+import pandas as pd
+
+from core.model_builder import ModelBuilder, create_component_name_df
+from project import (
+    FRAME_STORE,
+    TextHandler,
+    add_logger_area,
+    browse_folder_or_file,
+    switch_frame,
+)
 
 
-def submit_create_model(logger_cm: logging.Logger):
-    logger_cm.info("Create Model Workflow submitted")
+def submit_create_model(
+    pipesim_file_path: str,
+    excel_file_path: str,
+    sheet_name: str,
+    logger_cm: logging.Logger,
+):
+    component_name = create_component_name_df(
+        excel_file_path,
+        sheet_name,
+    )
+    mb = ModelBuilder(
+        pipsim_file_path=pipesim_file_path,
+        component_name=component_name,
+    )
+    mb.create_model()
+    logger_cm.info("Model created successfully")
+    messagebox.showinfo("Success", "Model created successfully")
 
 
-def init_create_model_frame(app: tk.Tk, home_frame: tk.Frame) -> tk.Frame:
+def get_sheet_names(file_path):
+    try:
+        sheet_names = pd.ExcelFile(file_path).sheet_names
+        return sheet_names
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to read Excel file: {e}")
+        return []
+
+
+def update_optionmenu(option_menu, variable, excel_file_path):
+    sheets = get_sheet_names(excel_file_path)
+    menu = option_menu["menu"]
+    menu.delete(0, "end")
+    for sheet in sheets:
+        menu.add_command(label=sheet, command=lambda v=sheet: variable.set(v))
+    variable.set(sheets[0] if sheets else "No sheets available")
+
+
+def browse_and_update_optionmenu(entry_widget, option_menu, variable):
+
+    file_path = browse_folder_or_file(
+        entry_widget, file_types=[("Excel Files", "*.xlsx *.xls")]
+    )
+    update_optionmenu(option_menu, variable, file_path)
+
+
+def init_create_model_frame(  # pylint: disable=R0914
+    app: tk.Tk, home_frame: tk.Frame
+) -> tk.Frame:
     create_model_frame = tk.Frame(app)
     FRAME_STORE["create_model"] = create_model_frame
     create_label = tk.Label(
         create_model_frame, text="Create Model Workflow", font=("Arial", 14)
     )
     create_label.pack(pady=10)
-    config_label_cm = tk.Label(create_model_frame, text="Configuration File")
-    config_label_cm.pack()
-    config_file_entry_cm = tk.Entry(create_model_frame, width=50)
-    config_file_entry_cm.pack()
-    config_browse_button_cm = tk.Button(
-        create_model_frame, text="Browse", command=lambda: filedialog.askopenfilename()
+
+    # Pipesim File Frame
+    pipesim_input_container = tk.Frame(create_model_frame)
+    pipesim_input_container.pack()
+    ps_file_label = tk.Label(pipesim_input_container, text="Pipesim File")
+    ps_file_label.pack()
+    ps_file_entry = tk.Entry(pipesim_input_container, width=75)
+    ps_file_entry.pack(side=tk.LEFT)
+    ps_browse_button = tk.Button(
+        pipesim_input_container,
+        text="Browse",
+        command=lambda: browse_folder_or_file(ps_file_entry),
     )
-    config_browse_button_cm.pack(pady=5)
-    submit_button_cm = tk.Button(
+    ps_browse_button.pack(padx=5, side=tk.LEFT)
+
+    # Excel File Frame
+    excel_input_container = tk.Frame(create_model_frame)
+    excel_input_container.pack()
+    excel_file_label = tk.Label(excel_input_container, text="Excel File")
+    excel_file_label.pack()
+    excel_file_entry = tk.Entry(excel_input_container, width=75)
+    excel_file_entry.pack(side=tk.LEFT)
+
+    sheet_name_var = tk.StringVar()
+    sheet_name_var.set("Select Sheet Name")
+
+    # OptionMenu for sheet names
+    sheet_name_dropdown = tk.OptionMenu(
+        create_model_frame, sheet_name_var, "Select Sheet Name"
+    )
+    sheet_name_dropdown.pack(pady=5)
+
+    excel_browse_button = tk.Button(
+        excel_input_container,
+        text="Browse",
+        command=lambda: browse_and_update_optionmenu(
+            excel_file_entry, sheet_name_dropdown, sheet_name_var
+        ),
+    )
+    excel_browse_button.pack(padx=5, side=tk.LEFT)
+
+    # Submit button
+    submit_button = tk.Button(
         create_model_frame,
         text="Submit",
-        command=lambda: submit_create_model(logger_cm),
+        command=lambda: submit_create_model(
+            ps_file_entry.get(),
+            excel_file_entry.get(),
+            sheet_name_var.get(),
+            logger_cm,
+        ),
     )
-    submit_button_cm.pack(pady=10)
+    submit_button.pack(pady=10)
     log_text_cm = add_logger_area(create_model_frame)
     back_button_cm = tk.Button(
         create_model_frame,

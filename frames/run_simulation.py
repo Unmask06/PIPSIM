@@ -56,22 +56,28 @@ def init_run_simulation_frame(app, home_frame):
         run_simulation_frame, text="Folder containing pipesim files"
     )
     input_label_rs.pack()
-    config_file_entry_rs = tk.Entry(run_simulation_frame, width=50, state="readonly")
-    config_file_entry_rs.pack()
+
+    entry_frame = tk.Frame(run_simulation_frame)
+    entry_frame.pack(pady=5)
+
+    config_file_entry_rs = tk.Entry(entry_frame, width=80, state="readonly")
+    config_file_entry_rs.pack(side=tk.LEFT)
+
     config_browse_button_rs = tk.Button(
-        run_simulation_frame,
+        entry_frame,
         text="Browse",
         command=lambda: browse_folder_or_file(
             config_file_entry_rs, title="Select a folder", select_folder=True
         ),
     )
-    config_browse_button_rs.pack(pady=5)
-    submit_button_rs = tk.Button(
+    config_browse_button_rs.pack(side=tk.LEFT, padx=5)
+
+    run_button_rs = tk.Button(
         run_simulation_frame,
-        text="Submit",
+        text="Run Simulations",
         command=lambda: run_simulation(config_file_entry_rs.get(), logger_rs),
     )
-    submit_button_rs.pack(pady=10)
+    run_button_rs.pack(pady=10)
     log_text_rs = add_logger_area(run_simulation_frame)
     back_button_rs = tk.Button(
         run_simulation_frame,

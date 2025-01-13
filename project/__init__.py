@@ -39,7 +39,7 @@ def browse_folder_or_file(
     file_types: list[tuple[str, str]] | None = None,
     title: str = "Select a file or folder",
     select_folder: bool = False,
-) -> None:
+) -> str:
     path = (
         filedialog.askdirectory(title=title)
         if select_folder
@@ -52,3 +52,4 @@ def browse_folder_or_file(
         entry_widget.delete(0, tk.END)
         entry_widget.insert(0, path)
         entry_widget.config(state="readonly")
+    return path
