@@ -44,7 +44,7 @@ def run_simulation(folder_path, logger: logging.Logger):
             logger.error(f"Error running simulation for {pips_file}: {e}")
 
 
-def init_run_simulation_frame(app, home_frame):
+def init_run_simulation_frame(app):
     run_simulation_frame = tk.Frame(app)
     FRAME_STORE["run_simulation"] = run_simulation_frame
     run_label = tk.Label(
@@ -79,12 +79,6 @@ def init_run_simulation_frame(app, home_frame):
     )
     run_button_rs.pack(pady=10)
     log_text_rs = add_logger_area(run_simulation_frame)
-    back_button_rs = tk.Button(
-        run_simulation_frame,
-        text="Back to Home",
-        command=lambda: switch_frame(home_frame),
-    )
-    back_button_rs.pack(pady=10)
     logger_rs = logging.getLogger("RunSimulationLogger")
     logger_rs.setLevel(logging.INFO)
     logger_rs.addHandler(TextHandler(log_text_rs))

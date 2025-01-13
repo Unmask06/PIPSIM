@@ -2,14 +2,14 @@ import logging
 import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext
 
-from project import FRAME_STORE, TextHandler, add_logger_area, switch_frame
+from project import FRAME_STORE, TextHandler, add_logger_area
 
 
 def summarize(logger):
     logger.info("Summarizing data")
 
 
-def init_summarize_frame(app, home_frame):
+def init_summarize_frame(app):
     summarize_frame = tk.Frame(app)
     FRAME_STORE["summarize"] = summarize_frame
     summarize_label = tk.Label(
@@ -32,12 +32,6 @@ def init_summarize_frame(app, home_frame):
     )
     submit_button_sm.pack(pady=10)
     log_text_sm = add_logger_area(summarize_frame)
-    back_button_sm = tk.Button(
-        summarize_frame,
-        text="Back to Home",
-        command=lambda: switch_frame(home_frame),
-    )
-    back_button_sm.pack(pady=10)
     logger_sm = logging.getLogger("SummarizeLogger")
     logger_sm.setLevel(logging.INFO)
     logger_sm.addHandler(TextHandler(log_text_sm))

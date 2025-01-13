@@ -14,11 +14,38 @@ import logging
 from pathlib import Path
 
 import pandas as pd
-from sixgill.definitions import Parameters, SystemVariables
+from sixgill.definitions import ModelComponents, Parameters, SystemVariables, Units
+from sixgill.pipesim import Model
 
 from .model_input import ModelInput, PipsimModel, PipsimModellingError
 
 logger = logging.getLogger(__name__)
+
+
+def copy_flowline_data(source_model_path: str, target_model_path: str) -> None:
+    """
+    Copy flowline data from the source model to the target model.
+
+    Args:
+        source_model_path (str): The path to the source model file.
+        target_model_path (str): The path to the target model file.
+    """
+
+    if not Path(source_model_path).exists():
+        raise PipsimModellingError(f"Source model file not found: {source_model_path}")
+    if not Path(target_model_path).exists():
+        raise PipsimModellingError(f"Target model file not found: {target_model_path}")
+
+    source_model = Model.open(filename=source_model_path, units=Units.METRIC)
+    source_values = source_model.get_values(component=ModelComponents.FLOWLINE)
+    source_model.close()
+    logger.info("Flowline data copied from source model.")
+    target_model = Model.open(filename=target_model_path, units=Units.METRIC)
+    target_model.set_values(dict=source_values)
+    logger.info("Flowline data copied successfully from source to target model.")
+    target_model.save()
+    target_model.close()
+    logger.info("Target model saved.")
 
 
 class PipsimModeller:
@@ -33,7 +60,7 @@ class PipsimModeller:
     category: pd.DataFrame
     well_values: pd.DataFrame
     well_lists: list
-    
+
     MINIMUM_FLOWRATE = 0.001  # Minimum flowrate for a well to be active (STBD)
 
     def __init__(self, model: PipsimModel, model_input: ModelInput) -> None:
@@ -154,7 +181,9 @@ class PipsimModeller:
         logger.info("Activated all wells")
 
     def deactivate_noflow_wells(self):  # TODO: use above method
-        condition = self.model_input.well_profile[self.model.case] < self.MINIMUM_FLOWRATE
+        condition = (
+            self.model_input.well_profile[self.model.case] < self.MINIMUM_FLOWRATE
+        )
         no_flow_wells = self.model_input.well_profile.loc[condition, "Wells"]
         self.values.loc[[Parameters.ModelComponent.ISACTIVE], no_flow_wells] = False
         _deactivated_wells = self.values.loc[

@@ -10,13 +10,7 @@ from tkinter import messagebox
 import pandas as pd
 
 from core.model_builder import ModelBuilder, create_component_name_df
-from project import (
-    FRAME_STORE,
-    TextHandler,
-    add_logger_area,
-    browse_folder_or_file,
-    switch_frame,
-)
+from project import FRAME_STORE, TextHandler, add_logger_area, browse_folder_or_file
 
 
 def submit_create_model(
@@ -83,15 +77,24 @@ def browse_and_update_optionmenu(entry_widget, option_menu, variable):
     update_optionmenu(option_menu, variable, file_path)
 
 
-def init_create_model_frame(  # pylint: disable=R0914
-    app: tk.Tk, home_frame: tk.Frame
-) -> tk.Frame:
+def init_create_model_frame(app: tk.Tk) -> tk.Frame:  # pylint: disable=R0914
     create_model_frame = tk.Frame(app)
     FRAME_STORE["create_model"] = create_model_frame
+
+    # Title
     create_label = tk.Label(
         create_model_frame, text="Create Model Workflow", font=("Arial", 14)
     )
     create_label.pack(pady=10)
+
+    help_text = """ This workflow creates a model from scratch using the Excel file or
+    populates an existing model with data from the Excel file."""
+    help_label_cm = tk.Label(
+        create_model_frame,
+        text=help_text,
+        font=("Arial", 10, "italic"),
+    )
+    help_label_cm.pack(pady=5)
 
     # Pipesim File Frame
     pipesim_input_container = tk.Frame(create_model_frame)
@@ -175,12 +178,6 @@ def init_create_model_frame(  # pylint: disable=R0914
     submit_button.pack(pady=10)
 
     log_text_cm = add_logger_area(create_model_frame)
-    back_button_cm = tk.Button(
-        create_model_frame,
-        text="Back to Home",
-        command=lambda: switch_frame(home_frame),
-    )
-    back_button_cm.pack(pady=10)
     logger_cm = logging.getLogger("CreateModelLogger")
     logger_cm.setLevel(logging.INFO)
     logger_cm.addHandler(TextHandler(log_text_cm))
