@@ -1,12 +1,25 @@
 import logging
 import tkinter as tk
+from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext
 
+from core.model_input import ModelInput, PipsimModel
+from core.network_simulation import NetworkSimulator
 from project import TextHandler, add_logger_area, frame_store, switch_frame
 
 
 def run_simulation(logger):
     logger.info("Running simulation")
+    folder_path = Path(r"C:\Users\IDM252577\Desktop\Python Projects\PIPSIM")
+
+    for pips_file in folder_path.glob("*.pips"):
+        try:
+            model = PipsimModel(str(pips_file), folder_path=str(folder_path))
+            model_input = ModelInput()
+            ns = NetworkSimulator(model, model_input)
+            ns.run_existing_model()
+        except Exception as e:
+            print(e)
 
 
 def init_run_simulation_frame(app, home_frame):

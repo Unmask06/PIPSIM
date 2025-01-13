@@ -1,3 +1,4 @@
+import sys
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
 
@@ -38,27 +39,31 @@ def show_help():
         messagebox.showerror("Error", f"An unexpected error occurred: {e}")
 
 
-# Tkinter GUI setup
-app = tk.Tk()
-app.title("PANDORA - Pipesim Pilot")
-app.geometry("600x400")
+def main():
 
-menu_bar = tk.Menu(app)
-help_menu = tk.Menu(menu_bar, tearoff=0)
-help_menu.add_command(label="Help", command=show_help)
-menu_bar.add_cascade(label="Help", menu=help_menu)
-app.config(menu=menu_bar)
+    # Tkinter GUI setup
+    app = tk.Tk()
+    app.title("PANDORA - Pipesim Pilot")
+    app.geometry("600x400")
+
+    menu_bar = tk.Menu(app)
+    help_menu = tk.Menu(menu_bar, tearoff=0)
+    help_menu.add_command(label="Help", command=show_help)
+    menu_bar.add_cascade(label="Help", menu=help_menu)
+    app.config(menu=menu_bar)
+
+    # Initialize frames
+    home_frame = init_home_frame(app)
+    create_model_frame = init_create_model_frame(app, home_frame)
+    update_conditions_frame = init_update_conditions_frame(app, home_frame)
+    run_simulation_frame = init_run_simulation_frame(app, home_frame)
+    summary_frame = init_summarize_frame(app, home_frame)
+
+    # Start with the home frame
+    switch_frame(home_frame)
+
+    app.mainloop()
 
 
-# Initialize frames
-home_frame = init_home_frame(app)
-create_model_frame = init_create_model_frame(app, home_frame)
-update_conditions_frame = init_update_conditions_frame(app, home_frame)
-run_simulation_frame = init_run_simulation_frame(app, home_frame)
-summary_frame = init_summarize_frame(app, home_frame)
-
-
-# Start with the home frame
-switch_frame(home_frame)
-
-app.mainloop()
+if __name__ == "__main__":
+    main()
