@@ -38,6 +38,25 @@ def submit_create_model(
     messagebox.showinfo("Success", "Model created successfully")
 
 
+def submit_populate_model(
+    pipesim_file_path: str,
+    excel_file_path: str,
+    sheet_name: str,
+    logger_cm: logging.Logger,
+):
+    component_name = create_component_name_df(
+        excel_file_path,
+        sheet_name,
+    )
+    mb = ModelBuilder(
+        pipsim_file_path=pipesim_file_path,
+        component_name=component_name,
+    )
+    mb.set_new_parameters()
+    logger_cm.info("Model Information populated successfully")
+    messagebox.showinfo("Success", "Model Information populated successfully")
+
+
 def get_sheet_names(file_path):
     try:
         sheet_names = pd.ExcelFile(file_path).sheet_names
@@ -114,18 +133,47 @@ def init_create_model_frame(  # pylint: disable=R0914
     )
     excel_browse_button.pack(padx=5, side=tk.LEFT)
 
+    # Radio Button Options
+    model_options = {
+        "Option 1": "Create a model from scratch using the Excel file",
+        "Option 2": "Populate an existing model with data from the Excel file",
+    }
+    model_option_var = tk.StringVar()
+    model_option_var.set("Option 1")
+
+    for option, description in model_options.items():
+        option_radio = tk.Radiobutton(
+            create_model_frame,
+            text=description,
+            variable=model_option_var,
+            value=option,
+        )
+        option_radio.pack()
+
     # Submit button
+    def on_submit():
+        if model_option_var.get() == "Option 1":
+            submit_create_model(
+                ps_file_entry.get(),
+                excel_file_entry.get(),
+                sheet_name_var.get(),
+                logger_cm,
+            )
+        else:
+            submit_populate_model(
+                ps_file_entry.get(),
+                excel_file_entry.get(),
+                sheet_name_var.get(),
+                logger_cm,
+            )
+
     submit_button = tk.Button(
         create_model_frame,
         text="Submit",
-        command=lambda: submit_create_model(
-            ps_file_entry.get(),
-            excel_file_entry.get(),
-            sheet_name_var.get(),
-            logger_cm,
-        ),
+        command=on_submit,
     )
     submit_button.pack(pady=10)
+
     log_text_cm = add_logger_area(create_model_frame)
     back_button_cm = tk.Button(
         create_model_frame,

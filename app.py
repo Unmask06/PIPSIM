@@ -12,7 +12,7 @@ from frames import (
 from project import switch_frame
 
 
-def show_help():
+def show_help(app: tk.Tk):
     try:
         help_window = tk.Toplevel(app)
         help_window.title("Help")
@@ -48,7 +48,7 @@ def main():
 
     menu_bar = tk.Menu(app)
     help_menu = tk.Menu(menu_bar, tearoff=0)
-    help_menu.add_command(label="Help", command=show_help)
+    help_menu.add_command(label="Help", command=lambda: show_help(app))
     menu_bar.add_cascade(label="Help", menu=help_menu)
     app.config(menu=menu_bar)
 
