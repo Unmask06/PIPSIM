@@ -1,6 +1,77 @@
-Help
-Commands
-- help - Display this help message
-- list - List all available commands
-- exit - Exit the shell
-- cd - Change the current directory
+Creating a Model Workflow
+-------------------
+To create a model from scratch using an Excel file or populate an existing model with data from an Excel file, follow these steps:
+- Open the application.
+- Navigate to the "Create Model Workflow" section.
+- Select the Pipesim file and the Excel file.
+- Choose the appropriate option to either create a model from scratch or populate an existing model.
+- Click "Submit" to proceed.
+
+Input Required:
+- Pipesim file
+- Excel file
+
+License Requirement:
+- Valid Pipesim license
+
+Expected Runtime:
+- Approximately 1-2 minutes per model
+
+Running Simulations Workflow
+----------------------
+To run simulations for all .pips files in a specified folder, follow these steps:
+- Open the application.
+- Navigate to the "Run Simulation Workflow" section.
+- Select the folder containing the Pipesim files.
+- Click "Run Simulations" to start the simulation process.
+
+Input Required:
+- Folder containing Pipesim files
+
+License Requirement:
+- Valid Pipesim license
+
+Expected Runtime:
+- Approximately 5-10 minutes per simulation
+
+Summarizing Results Workflow
+----------------------
+To summarize the results of the model Node and Profile Results, follow these steps:
+- Open the application.
+- Navigate to the "Summarize Data" section.
+- Select the folder containing the data files.
+- Click "Submit" to generate the summary.
+
+Input Required:
+- Folder containing data files
+
+License Requirement:
+- Valid Pipesim license
+
+Expected Runtime:
+- Approximately 2-3 minutes per summary
+
+Updating Conditions Workflow
+----------------------
+To copy the flowline data from a source model to all the models in a folder, follow these steps:
+- Open the application.
+- Navigate to the "Update Conditions Workflow" section.
+- Select the source model and the destination folder.
+- Click "Copy Data" to start the process.
+
+Input Required:
+- Source model
+- Destination folder
+
+License Requirement:
+- Python Toolkit license
+
+Expected Runtime:
+- Approximately 50 seconds per file
+
+Available Features
+==================
+- Create Model Workflow
+- Run Simulation Workflow
+- Summarize Data
+- Update Conditions Workflow
