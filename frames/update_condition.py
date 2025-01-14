@@ -6,15 +6,10 @@ from tkinter import messagebox, ttk
 from core.simulation_modeller import copy_flowline_data
 from project import FRAME_STORE, browse_folder_or_file
 
+logger_uc = logging.getLogger("UpdateConditionsLogger")
 
-def submit_copy_flowline_data(
-    source_file: str,
-    destination_folder: str,
-    logger_uc: logging.Logger,
-    progress_var: tk.DoubleVar,
-    progress_bar: ttk.Progressbar,
-    progress_label: tk.Label,
-):
+
+def submit_copy_flowline_data(source_file: str, destination_folder: str):
     """Copy the flowline information from the source file to all the files in the destination folder."""
 
     logger_uc.info("Copying flowline conditions")
@@ -85,30 +80,14 @@ def init_update_conditions_frame(app: tk.Tk) -> tk.Frame:
     )
     folder_browse_button_uc.pack(side=tk.LEFT, padx=5)
 
-    # Progress bar
-    progress_var = tk.DoubleVar()
-    progress_bar = ttk.Progressbar(
-        update_conditions_frame, variable=progress_var, maximum=100
-    )
-    progress_label = tk.Label(update_conditions_frame, text="Progress: 0%")
-
     # Submit button
     submit_button_uc = tk.Button(
         update_conditions_frame,
         text="Copy Data",
         command=lambda: submit_copy_flowline_data(
-            source_file_entry_uc.get(),
-            folder_entry_uc.get(),
-            logger_uc,
-            progress_var,
-            progress_bar,
-            progress_label,
+            source_file_entry_uc.get(), folder_entry_uc.get()
         ),
     )
     submit_button_uc.pack(pady=10)
-
-    # Logger
-    logger_uc = logging.getLogger("UpdateConditionsLogger")
-    logger_uc.setLevel(logging.INFO)
 
     return update_conditions_frame

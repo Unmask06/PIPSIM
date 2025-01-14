@@ -12,13 +12,10 @@ import pandas as pd
 from core.model_builder import ModelBuilder, create_component_name_df
 from project import FRAME_STORE, browse_folder_or_file
 
+logger_cm = logging.getLogger("CreateModelLogger")
 
-def submit_create_model(
-    pipesim_file_path: str,
-    excel_file_path: str,
-    sheet_name: str,
-    logger_cm: logging.Logger,
-):
+
+def submit_create_model(pipesim_file_path: str, excel_file_path: str, sheet_name: str):
     component_name = create_component_name_df(
         excel_file_path,
         sheet_name,
@@ -36,7 +33,6 @@ def submit_populate_model(
     pipesim_file_path: str,
     excel_file_path: str,
     sheet_name: str,
-    logger_cm: logging.Logger,
 ):
     component_name = create_component_name_df(
         excel_file_path,
@@ -77,7 +73,7 @@ def browse_and_update_optionmenu(entry_widget, option_menu, variable):
     update_optionmenu(option_menu, variable, file_path)
 
 
-def init_create_model_frame(app: tk.Tk, master_log_text: tk.Text) -> tk.Frame:  # pylint: disable=R0914
+def init_create_model_frame(app: tk.Tk) -> tk.Frame:  # pylint: disable=R0914
     create_model_frame = tk.Frame(app)
     FRAME_STORE["create_model"] = create_model_frame
 
@@ -160,14 +156,12 @@ def init_create_model_frame(app: tk.Tk, master_log_text: tk.Text) -> tk.Frame:  
                 ps_file_entry.get(),
                 excel_file_entry.get(),
                 sheet_name_var.get(),
-                logger_cm,
             )
         else:
             submit_populate_model(
                 ps_file_entry.get(),
                 excel_file_entry.get(),
                 sheet_name_var.get(),
-                logger_cm,
             )
 
     submit_button = tk.Button(
@@ -176,8 +170,5 @@ def init_create_model_frame(app: tk.Tk, master_log_text: tk.Text) -> tk.Frame:  
         command=on_submit,
     )
     submit_button.pack(pady=10)
-
-    logger_cm = logging.getLogger("CreateModelLogger")
-    logger_cm.setLevel(logging.INFO)
 
     return create_model_frame

@@ -2,9 +2,13 @@ import logging
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
+from project import FRAME_STORE
 
-def summarize(logger):
-    logger.info("Summarizing data")
+logger_sm = logging.getLogger("SummarizeLogger")
+
+
+def summarize():
+    logger_sm.info("Summarizing data")
 
 
 def init_summarize_frame(app):
@@ -26,9 +30,7 @@ def init_summarize_frame(app):
     )
     config_browse_button_sm.pack(pady=5)
     submit_button_sm = tk.Button(
-        summarize_frame, text="Submit", command=lambda: summarize(logger_sm)
+        summarize_frame, text="Submit", command=lambda: summarize()
     )
     submit_button_sm.pack(pady=10)
-    logger_sm = logging.getLogger("SummarizeLogger")
-    logger_sm.setLevel(logging.INFO)
     return summarize_frame

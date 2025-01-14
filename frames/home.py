@@ -4,8 +4,10 @@ import logging
 
 from project import FRAME_STORE, switch_frame
 
+logger = logging.getLogger("HomeLogger")
 
-def init_home_frame(app: tk.Tk, master_log_text: tk.Text) -> tk.Frame:
+
+def init_home_frame(app: tk.Tk) -> tk.Frame:
     home_frame = tk.Frame(app)
     FRAME_STORE["home"] = home_frame
     label = tk.Label(
@@ -47,8 +49,5 @@ def init_home_frame(app: tk.Tk, master_log_text: tk.Text) -> tk.Frame:
 
     exit_button = tk.Button(home_frame, text="Exit", command=app.quit, width=30)
     exit_button.pack(pady=10)
-
-    logger_home = logging.getLogger("HomeLogger")
-    logger_home.setLevel(logging.INFO)
 
     return home_frame

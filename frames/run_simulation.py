@@ -15,6 +15,7 @@ from project import (
     switch_frame,
 )
 
+logger_rs = logging.getLogger("RunSimulationLogger")
 
 def run_simulation(folder_path, logger: logging.Logger):
     """
@@ -77,6 +78,4 @@ def init_run_simulation_frame(app):
     )
     run_button_rs.pack(pady=10)
 
-    logger_rs = logging.getLogger("RunSimulationLogger")
-    logger_rs.setLevel(logging.INFO)
     return run_simulation_frame
