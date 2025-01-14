@@ -264,7 +264,7 @@ def copy_flowline_data(source_model_path: str, destination_folder_path: str) -> 
         logger.info(
             f"Copying basic flowline data from to {Path(target_model_path).name}....."
         )
-        target_model = Model.open(target_model_path)
+        target_model = Model.open(str(target_model_path))
         target_model.set_values(source_values)
         target_model.save()
 

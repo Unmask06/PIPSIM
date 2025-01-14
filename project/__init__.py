@@ -1,6 +1,9 @@
 import logging
+import logging.config
 import tkinter as tk
 from tkinter import filedialog, scrolledtext
+
+import yaml
 
 FRAME_STORE: dict[str, tk.Frame] = {}
 
@@ -53,3 +56,18 @@ def browse_folder_or_file(
         entry_widget.insert(0, path)
         entry_widget.config(state="readonly")
     return path
+
+
+def add_handler_to_all_loggers(text_widget):
+    logger_dict = logging.Logger.manager.loggerDict
+    print(logger_dict.keys())
+    for logger in logger_dict.values():
+        if isinstance(logger, logging.Logger):
+            logger.addHandler(TextHandler(text_widget))
+    logging.getLogger().setLevel(logging.INFO)
+
+
+def setup_logger():
+    with open("logging.yml", "r") as f:
+        config = yaml.safe_load(f.read())
+    logging.config.dictConfig(config)

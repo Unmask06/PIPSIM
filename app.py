@@ -9,7 +9,7 @@ from frames import (
     init_summarize_frame,
     init_update_conditions_frame,
 )
-from project import FRAME_STORE, switch_frame
+from project import FRAME_STORE, add_handler_to_all_loggers, setup_logger, switch_frame
 
 
 def show_menu(app: tk.Tk):
@@ -71,6 +71,9 @@ def main():
     # Create a master ScrolledText widget for logging
     master_log_text = scrolledtext.ScrolledText(app, height=10, state="disabled")
     master_log_text.pack(fill="both", expand=True, pady=10)
+
+    setup_logger()
+    # add_handler_to_all_loggers(master_log_text)
 
     # Initialize frames
     home_frame = init_home_frame(app, master_log_text)
