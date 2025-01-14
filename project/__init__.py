@@ -38,4 +38,5 @@ def browse_folder_or_file(
 def setup_logger():
     with open("logging.yml", "r") as f:
         config = yaml.safe_load(f.read())
+    config['handlers'] = {'console': config['handlers']['console']}
     logging.config.dictConfig(config)

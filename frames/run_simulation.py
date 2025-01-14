@@ -79,9 +79,4 @@ def init_run_simulation_frame(app):
 
     logger_rs = logging.getLogger("RunSimulationLogger")
     logger_rs.setLevel(logging.INFO)
-    file_handler = logging.FileHandler("run_simulation.log")
-    file_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    logger_rs.addHandler(file_handler)
     return run_simulation_frame
