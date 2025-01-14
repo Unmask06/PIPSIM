@@ -1,7 +1,7 @@
 import logging
 import tkinter as tk
 from pathlib import Path
-from tkinter import messagebox, ttk
+from tkinter import messagebox
 
 from core.simulation_modeller import copy_flowline_data
 from project import FRAME_STORE, browse_folder_or_file
@@ -13,18 +13,16 @@ def submit_copy_flowline_data(source_file: str, destination_folder: str):
     """Copy the flowline information from the source file to all the files in the destination folder."""
 
     logger_uc.info("Copying flowline conditions")
-    messagebox.showinfo(
-        "Info",
-        "This might take a while. How about having a cup of coffee? It will take roughly 50 seconds to copy flowline data per file.",
-    )
 
-    try:
-        copy_flowline_data(source_file, destination_folder)
-        logger_uc.info("Flowline conditions copied successfully")
-        messagebox.showinfo("Success", "Flowline conditions copied successfully")
-    except Exception as e:
-        logger_uc.error(f"Error copying flowline data: {e}")
-        messagebox.showerror("Error", f"Error copying flowline data: {e}")
+    folder = Path(destination_folder)
+    for file in folder.glob("*.pips"):
+        try:
+            copy_flowline_data(source_file, str(file))
+            logger_uc.info(f"Flowline data copied to {file}")
+        except Exception as e:
+            logger_uc.error(f"Error copying flowline data to {file}: {e}")
+    logger_uc.info("Flowline conditions copied successfully")
+    messagebox.showinfo("Success", "Flowline conditions copied successfully")
 
 
 def init_update_conditions_frame(app: tk.Tk) -> tk.Frame:

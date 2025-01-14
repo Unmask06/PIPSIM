@@ -1,6 +1,10 @@
+import logging
+import logging.config
 import sys
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
+
+import yaml
 
 from frames import (
     init_create_model_frame,
@@ -9,8 +13,19 @@ from frames import (
     init_summarize_frame,
     init_update_conditions_frame,
 )
-from project import FRAME_STORE, setup_logger, switch_frame
+from project import FRAME_STORE, switch_frame
 from project.documentation import show_md_from_file
+
+
+def load_logging_config():
+    """Load the logging configuration from the YAML file."""
+    try:
+        with open("logging.yml", "r") as f:
+            config = yaml.safe_load(f)
+            logging.config.dictConfig(config)
+    except Exception as e:
+        print(f"Failed to load logging configuration: {e}", file=sys.stderr)
+        logging.basicConfig(level=logging.DEBUG)  # Fallback to basic config
 
 
 def show_menu(app: tk.Tk):
@@ -35,14 +50,13 @@ def show_menu(app: tk.Tk):
 
 def main():
 
+    load_logging_config()
     # Tkinter GUI setup
     app = tk.Tk()
     app.title("PANDORA - Pipesim Pilot")
     app.geometry("600x400")
 
     show_menu(app)
-
-    setup_logger()
 
     # Initialize frames
     home_frame = init_home_frame(app)
