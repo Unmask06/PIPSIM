@@ -31,9 +31,4 @@ def init_summarize_frame(app):
     submit_button_sm.pack(pady=10)
     logger_sm = logging.getLogger("SummarizeLogger")
     logger_sm.setLevel(logging.INFO)
-    file_handler = logging.FileHandler("summarize.log")
-    file_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    logger_sm.addHandler(file_handler)
     return summarize_frame

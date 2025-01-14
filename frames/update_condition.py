@@ -110,10 +110,5 @@ def init_update_conditions_frame(app: tk.Tk) -> tk.Frame:
     # Logger
     logger_uc = logging.getLogger("UpdateConditionsLogger")
     logger_uc.setLevel(logging.INFO)
-    file_handler = logging.FileHandler("update_conditions.log")
-    file_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    logger_uc.addHandler(file_handler)
 
     return update_conditions_frame

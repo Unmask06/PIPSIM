@@ -50,10 +50,5 @@ def init_home_frame(app: tk.Tk, master_log_text: tk.Text) -> tk.Frame:
 
     logger_home = logging.getLogger("HomeLogger")
     logger_home.setLevel(logging.INFO)
-    file_handler = logging.FileHandler("home.log")
-    file_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    logger_home.addHandler(file_handler)
 
     return home_frame
