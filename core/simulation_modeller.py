@@ -4,6 +4,9 @@ This module contains the class for building the model for network simulation usi
   
     Classes:
     - PipsimModeller: Builds the model for network simulation using the Pipesim model.
+
+    Methods:
+    - copy_flowline_data: Copy flowline data from the source model to the target model.
     
     Raises:
     - PipsimModellingError: Raised when an error occurs in the modelling process.
@@ -14,38 +17,12 @@ import logging
 from pathlib import Path
 
 import pandas as pd
-from sixgill.definitions import ModelComponents, Parameters, SystemVariables, Units
+from sixgill.definitions import ModelComponents, Parameters, SystemVariables
 from sixgill.pipesim import Model
 
 from .model_input import ModelInput, PipsimModel, PipsimModellingError
 
 logger = logging.getLogger(__name__)
-
-
-def copy_flowline_data(source_model_path: str, target_model_path: str) -> None:
-    """
-    Copy flowline data from the source model to the target model.
-
-    Args:
-        source_model_path (str): The path to the source model file.
-        target_model_path (str): The path to the target model file.
-    """
-
-    if not Path(source_model_path).exists():
-        raise PipsimModellingError(f"Source model file not found: {source_model_path}")
-    if not Path(target_model_path).exists():
-        raise PipsimModellingError(f"Target model file not found: {target_model_path}")
-
-    source_model = Model.open(filename=source_model_path, units=Units.METRIC)
-    source_values = source_model.get_values(component=ModelComponents.FLOWLINE)
-    source_model.close()
-    logger.info("Flowline data copied from source model.")
-    target_model = Model.open(filename=target_model_path, units=Units.METRIC)
-    target_model.set_values(dict=source_values)
-    logger.info("Flowline data copied successfully from source to target model.")
-    target_model.save()
-    target_model.close()
-    logger.info("Target model saved.")
 
 
 class PipsimModeller:
@@ -241,3 +218,64 @@ class PipsimModeller:
         self.populate_flowrates_in_model_from_excel()
         self.save_as_new_model()
         self.close_model()
+
+
+# Other methods in the module------------------------------------------------------------
+def _collect_flowline_geometry(df, source_model) -> list:
+    """
+    Helper function to collect flowline geometry from the source model
+    used in the copy_flowline_data function
+    """
+    flowline_geometry = []
+    detailed_flowlines = df.loc[:, df.loc["DetailedModel"] == True].columns.to_list()
+    for flowline in detailed_flowlines:
+        try:
+            flowline_geometry.append(
+                {flowline: source_model.get_geometry(context=flowline)}
+            )
+        except Exception as e:
+            logger.error(f"Error getting geometry for {flowline}: {e}")
+            # logger.error(traceback.format_exc())
+    return flowline_geometry
+
+
+def copy_flowline_data(source_model_path: str, target_model_path: str) -> None:
+    """
+    Copy flowline data from the source model to the target model.
+
+    Args:
+        source_model_path (str): The path to the source model file.
+        target_model_path (str): The path to the target model file.
+    """
+
+    if not Path(source_model_path).exists():
+        raise PipsimModellingError(f"Source model file not found: {source_model_path}")
+    if not Path(target_model_path).exists():
+        raise PipsimModellingError(f"Target model file not found: {target_model_path}")
+
+    source_model = Model.open(source_model_path)
+    logger.info(f"Getting flowline data from {Path(source_model_path).name}.....")
+    source_values = source_model.get_values(component=ModelComponents.FLOWLINE)
+    df = pd.DataFrame(source_values)
+    flowline_geometry = _collect_flowline_geometry(df, source_model)
+    source_model.close()
+
+    logger.info(
+        f"Copying basic flowline data from to {Path(target_model_path).name}....."
+    )
+    target_model = Model.open(target_model_path)
+    target_model.set_values(source_values)
+    target_model.save()
+
+    logger.info(
+        f"Copying detailed flowline data from to {Path(target_model_path).name}....."
+    )
+
+    for i, flowline in enumerate(flowline_geometry):
+        for name, geometry in flowline.items():
+            target_model.set_geometry(context=name, value=geometry)
+        if (i + 1) % 10 == 0:
+            logger.info(f"Copied geometry for {i + 1} flowlines")
+    target_model.save()
+    target_model.close()
+    logger.info("Flowline data copied successfully")

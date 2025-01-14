@@ -1,26 +1,40 @@
 import logging
 import tkinter as tk
 from pathlib import Path
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 
 from core.simulation_modeller import copy_flowline_data
 from project import FRAME_STORE, TextHandler, add_logger_area, browse_folder_or_file
 
 
 def submit_copy_flowline_data(
-    source_file: str, destination_folder: str, logger_uc: logging.Logger
+    source_file: str,
+    destination_folder: str,
+    logger_uc: logging.Logger,
+    progress_var: tk.DoubleVar,
+    progress_bar: ttk.Progressbar,
 ):
     """Copy the flowline information from the source file to all the files in the destination folder."""
 
     logger_uc.info("Copying flowline conditions")
+    messagebox.showinfo(
+        "Info",
+        "This might take a while. How about having a cup of coffee? It will take roughly 50 seconds to copy flowline data per file.",
+    )
 
     folder = Path(destination_folder)
-    for file in folder.glob("*.pips"):
+    files = list(folder.glob("*.pips"))
+    total_files = len(files)
+
+    for idx, file in enumerate(files):
+        progress_var.set((idx + 1) / total_files * 100)
+        progress_bar.update()
         try:
             copy_flowline_data(source_file, str(file))
             logger_uc.info(f"Flowline data copied to {file}")
         except Exception as e:
             logger_uc.error(f"Error copying flowline data to {file}: {e}")
+
     logger_uc.info("Flowline conditions copied successfully")
     messagebox.showinfo("Success", "Flowline conditions copied successfully")
 
@@ -54,7 +68,11 @@ def init_update_conditions_frame(app: tk.Tk) -> tk.Frame:
     source_browse_button_uc = tk.Button(
         uc_pipesim_frame,
         text="Browse",
-        command=lambda: browse_folder_or_file(source_file_entry_uc),
+        command=lambda: browse_folder_or_file(
+            source_file_entry_uc,
+            file_types=[("Pipesim files", "*.pips")],
+            title="Select a source model",
+        ),
     )
     source_browse_button_uc.pack(side=tk.LEFT, padx=5)
 
@@ -74,12 +92,23 @@ def init_update_conditions_frame(app: tk.Tk) -> tk.Frame:
     )
     folder_browse_button_uc.pack(side=tk.LEFT, padx=5)
 
+    # Progress bar
+    progress_var = tk.DoubleVar()
+    progress_bar = ttk.Progressbar(
+        update_conditions_frame, variable=progress_var, maximum=100
+    )
+    progress_bar.pack(pady=10)
+
     # Submit button
     submit_button_uc = tk.Button(
         update_conditions_frame,
         text="Copy Data",
         command=lambda: submit_copy_flowline_data(
-            source_file_entry_uc.get(), folder_entry_uc.get(), logger_uc
+            source_file_entry_uc.get(),
+            folder_entry_uc.get(),
+            logger_uc,
+            progress_var,
+            progress_bar,
         ),
     )
     submit_button_uc.pack(pady=10)
