@@ -2,7 +2,7 @@
 import tkinter as tk
 import logging
 
-from project import FRAME_STORE, switch_frame, TextHandler
+from project import FRAME_STORE, switch_frame
 
 
 def init_home_frame(app: tk.Tk, master_log_text: tk.Text) -> tk.Frame:
@@ -50,6 +50,5 @@ def init_home_frame(app: tk.Tk, master_log_text: tk.Text) -> tk.Frame:
 
     logger_home = logging.getLogger("HomeLogger")
     logger_home.setLevel(logging.INFO)
-    logger_home.addHandler(TextHandler(master_log_text))
 
     return home_frame
