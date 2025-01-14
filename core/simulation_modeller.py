@@ -21,9 +21,10 @@ from sixgill.definitions import ModelComponents, Parameters, SystemVariables
 from sixgill.pipesim import Model
 
 from .model_input import ModelInput, PipsimModel, PipsimModellingError
+from project import TextHandler
 
 logger = logging.getLogger(__name__)
-
+logger.addHandler(TextHandler())
 
 class PipsimModeller:
     """

@@ -5,9 +5,10 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 from pydantic import BaseModel, field_validator, model_validator
+from project import TextHandler
 
 logger = logging.getLogger("Input Validation")
-
+logger.addHandler(TextHandler())
 
 class PipSimInput(BaseModel):
     """Pydantic model for the input configuration file."""

@@ -21,8 +21,10 @@ from typing import Optional
 import pandas as pd
 from sixgill.pipesim import Model, Units
 
-logger = logging.getLogger(__name__)
+from project import TextHandler
 
+logger = logging.getLogger(__name__)
+logger.addHandler(TextHandler())
 
 class PipsimModellingError(Exception):
     """Raised when an error occurs in the modelling process."""

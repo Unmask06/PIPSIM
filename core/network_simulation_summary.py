@@ -9,6 +9,7 @@ import xlwings as xw
 from sixgill.definitions import ProfileVariables
 
 from core import ExcelHandler, NetworkSimulator
+from project import TextHandler
 
 parameters = [
     ProfileVariables.MEAN_VELOCITY_FLUID,
@@ -42,6 +43,7 @@ class NetworkSimulationSummary:
         profile_result_xl: str = NetworkSimulator.PROFILE_RESULTS_FILE,
     ) -> None:
         self.logger = logging.getLogger(__name__)
+        self.logger.addHandler(TextHandler())
 
         if not Path(node_result_xl).is_file():
             raise FileNotFoundError(f"File not found: {node_result_xl}")

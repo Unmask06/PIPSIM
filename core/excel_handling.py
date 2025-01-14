@@ -14,8 +14,10 @@ import xlwings as xw
 from openpyxl.utils import column_index_from_string
 from xlwings import constants as xw_const
 
-logger = logging.getLogger("ExcelHandler")
+from project import TextHandler
 
+logger = logging.getLogger("ExcelHandler")
+logger.addHandler(TextHandler())
 
 class ExcelHandlerError(Exception):
     """Base class for exceptions in this module."""

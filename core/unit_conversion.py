@@ -5,7 +5,11 @@ unit nomenclature is based on the PIPSIM Units.
 """
 
 import pandas as pd
+import logging
+from project import TextHandler
 
+logger = logging.getLogger("UnitConversion")
+logger.addHandler(TextHandler())
 
 class UnitConversion:
     """

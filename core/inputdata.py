@@ -10,7 +10,12 @@ from itertools import product
 import pandas as pd
 
 from .excel_handling import ExcelHandler
+from project import TextHandler
 
+import logging
+
+logger = logging.getLogger("InputData")
+logger.addHandler(TextHandler())
 
 @dataclass
 class InputData:
@@ -68,7 +73,7 @@ class InputData:
             df.reset_index(inplace=True)
             return df
         except Exception as e:
-            print(f"Failed to load data from {sheet_name} due to: {e}")
+            logger.error(f"Failed to load data from {sheet_name} due to: {e}")
             return pd.DataFrame()
 
     def get_parameter_for_condition(self, condition: str, param: str) -> float:

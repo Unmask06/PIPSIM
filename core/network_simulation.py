@@ -14,9 +14,10 @@ from sixgill.definitions import ProfileVariables, SystemVariables
 from .excel_handling import ExcelHandler
 from .simulation_modeller import ModelInput, PipsimModel, PipsimModeller
 from .unit_conversion import UnitConversion
+from project import TextHandler
 
 logger = logging.getLogger(__name__)
-
+logger.addHandler(TextHandler())
 
 class NetworkSimulationError(Exception):
     """
