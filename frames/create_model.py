@@ -10,7 +10,7 @@ from tkinter import messagebox
 import pandas as pd
 
 from core.model_builder import ModelBuilder, create_component_name_df
-from project import FRAME_STORE, TextHandler, browse_folder_or_file
+from project import FRAME_STORE, browse_folder_or_file
 
 
 def submit_create_model(
@@ -179,6 +179,10 @@ def init_create_model_frame(app: tk.Tk, master_log_text: tk.Text) -> tk.Frame:  
 
     logger_cm = logging.getLogger("CreateModelLogger")
     logger_cm.setLevel(logging.INFO)
-    logger_cm.addHandler(TextHandler(master_log_text))
+    file_handler = logging.FileHandler("create_model.log")
+    file_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    logger_cm.addHandler(file_handler)
 
     return create_model_frame

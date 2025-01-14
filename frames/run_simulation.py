@@ -11,7 +11,6 @@ from core.model_input import ModelInput, PipsimModel
 from core.network_simulation import NetworkSimulator
 from project import (
     FRAME_STORE,
-    TextHandler,
     browse_folder_or_file,
     switch_frame,
 )
@@ -43,7 +42,7 @@ def run_simulation(folder_path, logger: logging.Logger):
             logger.error(f"Error running simulation for {pips_file}: {e}")
 
 
-def init_run_simulation_frame(app, master_log_text: tk.Text):
+def init_run_simulation_frame(app):
     run_simulation_frame = tk.Frame(app)
     FRAME_STORE["run_simulation"] = run_simulation_frame
     run_label = tk.Label(
@@ -80,5 +79,9 @@ def init_run_simulation_frame(app, master_log_text: tk.Text):
 
     logger_rs = logging.getLogger("RunSimulationLogger")
     logger_rs.setLevel(logging.INFO)
-    logger_rs.addHandler(TextHandler(master_log_text))
+    file_handler = logging.FileHandler("run_simulation.log")
+    file_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    logger_rs.addHandler(file_handler)
     return run_simulation_frame

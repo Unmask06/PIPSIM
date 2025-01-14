@@ -4,7 +4,7 @@ from pathlib import Path
 from tkinter import messagebox, ttk
 
 from core.simulation_modeller import copy_flowline_data
-from project import FRAME_STORE, TextHandler, browse_folder_or_file
+from project import FRAME_STORE, browse_folder_or_file
 
 
 def submit_copy_flowline_data(
@@ -32,7 +32,7 @@ def submit_copy_flowline_data(
         messagebox.showerror("Error", f"Error copying flowline data: {e}")
 
 
-def init_update_conditions_frame(app: tk.Tk, master_log_text: tk.Text) -> tk.Frame:
+def init_update_conditions_frame(app: tk.Tk) -> tk.Frame:
     update_conditions_frame = tk.Frame(app)
     FRAME_STORE["update_conditions"] = update_conditions_frame
     update_label = tk.Label(
@@ -110,6 +110,10 @@ def init_update_conditions_frame(app: tk.Tk, master_log_text: tk.Text) -> tk.Fra
     # Logger
     logger_uc = logging.getLogger("UpdateConditionsLogger")
     logger_uc.setLevel(logging.INFO)
-    logger_uc.addHandler(TextHandler(master_log_text))
+    file_handler = logging.FileHandler("update_conditions.log")
+    file_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    logger_uc.addHandler(file_handler)
 
     return update_conditions_frame

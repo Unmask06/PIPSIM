@@ -12,7 +12,14 @@ handlers:
     formatter: detailed
     stream: ext://sys.stdout
 
+  file:
+    class: logging.FileHandler
+    level: DEBUG
+    formatter: detailed
+    filename: app.log
+    mode: a
+
 root:
   level: DEBUG
-  handlers: [console]
+  handlers: [console, file]
   propagate: yes

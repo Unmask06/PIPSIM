@@ -2,14 +2,12 @@ import logging
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
-from project import FRAME_STORE, TextHandler
-
 
 def summarize(logger):
     logger.info("Summarizing data")
 
 
-def init_summarize_frame(app, master_log_text: tk.Text):
+def init_summarize_frame(app):
     summarize_frame = tk.Frame(app)
     FRAME_STORE["summarize"] = summarize_frame
     summarize_label = tk.Label(
@@ -33,5 +31,9 @@ def init_summarize_frame(app, master_log_text: tk.Text):
     submit_button_sm.pack(pady=10)
     logger_sm = logging.getLogger("SummarizeLogger")
     logger_sm.setLevel(logging.INFO)
-    logger_sm.addHandler(TextHandler(master_log_text))
+    file_handler = logging.FileHandler("summarize.log")
+    file_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    logger_sm.addHandler(file_handler)
     return summarize_frame
