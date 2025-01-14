@@ -12,7 +12,6 @@ from core.network_simulation import NetworkSimulator
 from project import (
     FRAME_STORE,
     TextHandler,
-    add_logger_area,
     browse_folder_or_file,
     switch_frame,
 )
@@ -44,7 +43,7 @@ def run_simulation(folder_path, logger: logging.Logger):
             logger.error(f"Error running simulation for {pips_file}: {e}")
 
 
-def init_run_simulation_frame(app):
+def init_run_simulation_frame(app, master_log_text: tk.Text):
     run_simulation_frame = tk.Frame(app)
     FRAME_STORE["run_simulation"] = run_simulation_frame
     run_label = tk.Label(
@@ -78,8 +77,8 @@ def init_run_simulation_frame(app):
         command=lambda: run_simulation(config_file_entry_rs.get(), logger_rs),
     )
     run_button_rs.pack(pady=10)
-    log_text_rs = add_logger_area(run_simulation_frame)
+
     logger_rs = logging.getLogger("RunSimulationLogger")
     logger_rs.setLevel(logging.INFO)
-    logger_rs.addHandler(TextHandler(log_text_rs))
+    logger_rs.addHandler(TextHandler(master_log_text))
     return run_simulation_frame

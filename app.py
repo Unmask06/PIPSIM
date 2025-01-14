@@ -68,12 +68,16 @@ def main():
 
     show_menu(app)
 
+    # Create a master ScrolledText widget for logging
+    master_log_text = scrolledtext.ScrolledText(app, height=10, state="disabled")
+    master_log_text.pack(fill="both", expand=True, pady=10)
+
     # Initialize frames
-    home_frame = init_home_frame(app)
-    init_create_model_frame(app)
-    init_update_conditions_frame(app)
-    init_run_simulation_frame(app)
-    init_summarize_frame(app)
+    home_frame = init_home_frame(app, master_log_text)
+    init_create_model_frame(app, master_log_text)
+    init_update_conditions_frame(app, master_log_text)
+    init_run_simulation_frame(app, master_log_text)
+    init_summarize_frame(app, master_log_text)
 
     # Start with the home frame
     switch_frame(home_frame)

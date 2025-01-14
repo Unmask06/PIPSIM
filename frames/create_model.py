@@ -10,7 +10,7 @@ from tkinter import messagebox
 import pandas as pd
 
 from core.model_builder import ModelBuilder, create_component_name_df
-from project import FRAME_STORE, TextHandler, add_logger_area, browse_folder_or_file
+from project import FRAME_STORE, TextHandler, browse_folder_or_file
 
 
 def submit_create_model(
@@ -77,7 +77,7 @@ def browse_and_update_optionmenu(entry_widget, option_menu, variable):
     update_optionmenu(option_menu, variable, file_path)
 
 
-def init_create_model_frame(app: tk.Tk) -> tk.Frame:  # pylint: disable=R0914
+def init_create_model_frame(app: tk.Tk, master_log_text: tk.Text) -> tk.Frame:  # pylint: disable=R0914
     create_model_frame = tk.Frame(app)
     FRAME_STORE["create_model"] = create_model_frame
 
@@ -177,9 +177,8 @@ def init_create_model_frame(app: tk.Tk) -> tk.Frame:  # pylint: disable=R0914
     )
     submit_button.pack(pady=10)
 
-    log_text_cm = add_logger_area(create_model_frame)
     logger_cm = logging.getLogger("CreateModelLogger")
     logger_cm.setLevel(logging.INFO)
-    logger_cm.addHandler(TextHandler(log_text_cm))
+    logger_cm.addHandler(TextHandler(master_log_text))
 
     return create_model_frame
