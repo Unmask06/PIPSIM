@@ -10,6 +10,7 @@ from frames import (
     init_update_conditions_frame,
 )
 from project import FRAME_STORE, setup_logger, switch_frame
+from project.documentation import show_md_from_file
 
 
 def show_menu(app: tk.Tk):
@@ -27,36 +28,9 @@ def show_menu(app: tk.Tk):
 
     # Help menu
     help_menu = tk.Menu(menu_bar, tearoff=0)
-    help_menu.add_command(label="Help", command=lambda: show_help(app))
+    help_menu.add_command(label="Help", command=lambda: show_md_from_file("help.md"))
     menu_bar.add_cascade(label="Help", menu=help_menu)
     app.config(menu=menu_bar)
-
-
-def show_help(app: tk.Tk):
-    try:
-        help_window = tk.Toplevel(app)
-        help_window.title("Help")
-        help_window.geometry("600x400")
-
-        help_label = tk.Label(
-            help_window, text="Help Documentation", font=("Arial", 16)
-        )
-        help_label.pack(pady=10)
-
-        # Fallback: Use ScrolledText if HtmlFrame fails
-        help_text = scrolledtext.ScrolledText(help_window, wrap=tk.WORD)
-        help_text.pack(fill="both", expand=True)
-
-        with open("help.txt", "r", encoding="utf-8") as f:
-            markdown_text = f.read()
-            # Convert markdown to plain text as a fallback
-            help_text.insert(tk.END, markdown_text)
-            help_text.configure(state="disabled")
-
-    except FileNotFoundError:
-        messagebox.showerror("Error", "The help file 'help.md' was not found.")
-    except Exception as e:
-        messagebox.showerror("Error", f"An unexpected error occurred: {e}")
 
 
 def main():
