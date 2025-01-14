@@ -13,6 +13,7 @@ def submit_copy_flowline_data(
     logger_uc: logging.Logger,
     progress_var: tk.DoubleVar,
     progress_bar: ttk.Progressbar,
+    progress_label: tk.Label,
 ):
     """Copy the flowline information from the source file to all the files in the destination folder."""
 
@@ -26,14 +27,21 @@ def submit_copy_flowline_data(
     files = list(folder.glob("*.pips"))
     total_files = len(files)
 
+    progress_bar.pack(pady=10)
+    progress_label.pack(pady=5)
+
     for idx, file in enumerate(files):
         progress_var.set((idx + 1) / total_files * 100)
         progress_bar.update()
+        progress_label.config(text=f"Progress: {progress_var.get():.2f}%")
         try:
             copy_flowline_data(source_file, str(file))
             logger_uc.info(f"Flowline data copied to {file}")
         except Exception as e:
             logger_uc.error(f"Error copying flowline data to {file}: {e}")
+
+    progress_bar.pack_forget()
+    progress_label.pack_forget()
 
     logger_uc.info("Flowline conditions copied successfully")
     messagebox.showinfo("Success", "Flowline conditions copied successfully")
@@ -97,7 +105,7 @@ def init_update_conditions_frame(app: tk.Tk) -> tk.Frame:
     progress_bar = ttk.Progressbar(
         update_conditions_frame, variable=progress_var, maximum=100
     )
-    progress_bar.pack(pady=10)
+    progress_label = tk.Label(update_conditions_frame, text="Progress: 0%")
 
     # Submit button
     submit_button_uc = tk.Button(
@@ -109,6 +117,7 @@ def init_update_conditions_frame(app: tk.Tk) -> tk.Frame:
             logger_uc,
             progress_var,
             progress_bar,
+            progress_label,
         ),
     )
     submit_button_uc.pack(pady=10)
