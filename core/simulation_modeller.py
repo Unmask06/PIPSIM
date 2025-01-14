@@ -239,19 +239,19 @@ def _collect_flowline_geometry(df, source_model) -> list:
     return flowline_geometry
 
 
-def copy_flowline_data(source_model_path: str, target_model_path: str) -> None:
+def copy_flowline_data(source_model_path: str, destination_folder_path: str) -> None:
     """
-    Copy flowline data from the source model to the target model.
+    Copy flowline data from the source model to all target models in the destination folder.
 
     Args:
         source_model_path (str): The path to the source model file.
-        target_model_path (str): The path to the target model file.
+        destination_folder_path (str): The path to the destination folder containing target model files.
     """
 
     if not Path(source_model_path).exists():
         raise PipsimModellingError(f"Source model file not found: {source_model_path}")
-    if not Path(target_model_path).exists():
-        raise PipsimModellingError(f"Target model file not found: {target_model_path}")
+    if not Path(destination_folder_path).exists():
+        raise PipsimModellingError(f"Destination folder not found: {destination_folder_path}")
 
     source_model = Model.open(source_model_path)
     logger.info(f"Getting flowline data from {Path(source_model_path).name}.....")
@@ -260,22 +260,23 @@ def copy_flowline_data(source_model_path: str, target_model_path: str) -> None:
     flowline_geometry = _collect_flowline_geometry(df, source_model)
     source_model.close()
 
-    logger.info(
-        f"Copying basic flowline data from to {Path(target_model_path).name}....."
-    )
-    target_model = Model.open(target_model_path)
-    target_model.set_values(source_values)
-    target_model.save()
+    for target_model_path in Path(destination_folder_path).glob("*.pips"):
+        logger.info(
+            f"Copying basic flowline data from to {Path(target_model_path).name}....."
+        )
+        target_model = Model.open(target_model_path)
+        target_model.set_values(source_values)
+        target_model.save()
 
-    logger.info(
-        f"Copying detailed flowline data from to {Path(target_model_path).name}....."
-    )
+        logger.info(
+            f"Copying detailed flowline data from to {Path(target_model_path).name}....."
+        )
 
-    for i, flowline in enumerate(flowline_geometry):
-        for name, geometry in flowline.items():
-            target_model.set_geometry(context=name, value=geometry)
-        if (i + 1) % 10 == 0:
-            logger.info(f"Copied geometry for {i + 1} flowlines")
-    target_model.save()
-    target_model.close()
-    logger.info("Flowline data copied successfully")
+        for i, flowline in enumerate(flowline_geometry):
+            for name, geometry in flowline.items():
+                target_model.set_geometry(context=name, value=geometry)
+            if (i + 1) % 10 == 0:
+                logger.info(f"Copied geometry for {i + 1} flowlines")
+        target_model.save()
+        target_model.close()
+        logger.info(f"Flowline data copied successfully to {Path(target_model_path).name}")

@@ -23,28 +23,13 @@ def submit_copy_flowline_data(
         "This might take a while. How about having a cup of coffee? It will take roughly 50 seconds to copy flowline data per file.",
     )
 
-    folder = Path(destination_folder)
-    files = list(folder.glob("*.pips"))
-    total_files = len(files)
-
-    progress_bar.pack(pady=10)
-    progress_label.pack(pady=5)
-
-    for idx, file in enumerate(files):
-        progress_var.set((idx + 1) / total_files * 100)
-        progress_bar.update()
-        progress_label.config(text=f"Progress: {progress_var.get():.2f}%")
-        try:
-            copy_flowline_data(source_file, str(file))
-            logger_uc.info(f"Flowline data copied to {file}")
-        except Exception as e:
-            logger_uc.error(f"Error copying flowline data to {file}: {e}")
-
-    progress_bar.pack_forget()
-    progress_label.pack_forget()
-
-    logger_uc.info("Flowline conditions copied successfully")
-    messagebox.showinfo("Success", "Flowline conditions copied successfully")
+    try:
+        copy_flowline_data(source_file, destination_folder)
+        logger_uc.info("Flowline conditions copied successfully")
+        messagebox.showinfo("Success", "Flowline conditions copied successfully")
+    except Exception as e:
+        logger_uc.error(f"Error copying flowline data: {e}")
+        messagebox.showerror("Error", f"Error copying flowline data: {e}")
 
 
 def init_update_conditions_frame(app: tk.Tk) -> tk.Frame:
