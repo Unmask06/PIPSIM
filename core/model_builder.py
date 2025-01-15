@@ -1,7 +1,7 @@
 """This module creates the components for the Pipsim model from an Excel file."""
 
 import logging
-from typing import List, NamedTuple, Optional
+from typing import List, Literal, NamedTuple, Optional
 
 import pandas as pd
 from sixgill.definitions import Parameters, Units
@@ -57,15 +57,35 @@ class ModelBuilder:
     def __init__(
         self,
         pipsim_file_path: str,
+        mode: Literal["Scratch", "Populate"] = "Scratch",
         component_name: Optional[pd.DataFrame] = None,
         component_data: Optional[pd.DataFrame] = None,
         units: str = Units.METRIC,
     ) -> None:
         self.model = Model.open(pipsim_file_path, units=units)
-        self.component_name = pd.DataFrame(component_name)
-        self.component_data = pd.DataFrame(component_data).dropna(
-            subset=["Name", "Component"]
+        self.component_name = (
+            pd.DataFrame(component_name) if mode == "Scratch" else None
         )
+        self.component_data = (
+            pd.DataFrame(component_data).dropna(subset=["Name", "Component"])
+            if mode == "Populate"
+            else None
+        )
+        self.mode = mode
+
+    def main(self) -> None:
+        """Main method to create the Pipsim model from the input data."""
+        if self.mode == "Scratch":
+            self.create_model()
+            self.model.save()
+            self.model.close()
+            logger.info("Pipsim model created")
+
+        elif self.mode == "Populate":
+            self.set_new_parameters()
+            self.model.save()
+            self.model.close()
+            logger.info("Pipsim model updated with new parameters")
 
     def _check_component_data(self) -> None:
         if self.component_data.empty:
@@ -73,6 +93,8 @@ class ModelBuilder:
 
     def create_model(self) -> None:
         """Main method to create the Pipsim model from the input data."""
+
+        self.create_section_components()
         for idx, section in enumerate(self.section_list):
             self.build_section(section, x=4000, y=idx * 100)
         logger.info("Pipsim model created")

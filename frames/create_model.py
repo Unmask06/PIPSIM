@@ -8,14 +8,21 @@ import tkinter as tk
 from tkinter import messagebox
 
 import pandas as pd
+from sixgill.definitions import ModelComponents, Parameters
 
 from core.model_builder import ModelBuilder, create_component_name_df
-from project import FRAME_STORE, browse_folder_or_file
+from project import FRAME_STORE, browse_folder_or_file, get_string_values_from_class
+from widgets.dual_combo_box import DualSelectableCombobox
 
 logger_cm = logging.getLogger("core.model_builder")
 
 
-def submit_create_model(pipesim_file_path: str, excel_file_path: str, sheet_name: str):
+def submit_create_model(
+    pipesim_file_path: str,
+    excel_file_path: str,
+    sheet_name: str,
+):
+    logger_cm.info("Creating model from scratch")
     component_name = create_component_name_df(
         excel_file_path,
         sheet_name,
@@ -23,9 +30,9 @@ def submit_create_model(pipesim_file_path: str, excel_file_path: str, sheet_name
     mb = ModelBuilder(
         pipsim_file_path=pipesim_file_path,
         component_name=component_name,
+        mode="Scratch",
     )
-    mb.create_model()
-    logger_cm.info("Model created successfully")
+    mb.main()
     messagebox.showinfo("Success", "Model created successfully")
 
 
@@ -41,8 +48,9 @@ def submit_populate_model(
     mb = ModelBuilder(
         pipsim_file_path=pipesim_file_path,
         component_name=component_name,
+        mode="Populate",
     )
-    mb.set_new_parameters()
+    mb.main()
     logger_cm.info("Model Information populated successfully")
     messagebox.showinfo("Success", "Model Information populated successfully")
 
@@ -73,6 +81,28 @@ def browse_and_update_optionmenu(entry_widget, option_menu, variable):
     update_optionmenu(option_menu, variable, file_path)
 
 
+def open_component_list(parent):
+    combobox = DualSelectableCombobox(
+        parent,
+        title="Refer the list of available components",
+        values=get_string_values_from_class(ModelComponents),
+        mode="single",
+    )
+    parent.wait_window(combobox)
+
+
+def open_flowline_parameters(parent):
+    combobox = DualSelectableCombobox(
+        parent,
+        title="Refer the list of available flowline parameters",
+        values=get_string_values_from_class(
+            [Parameters.Flowline, Parameters.FlowlineGeometry]
+        ),
+        mode="single",
+    )
+    parent.wait_window(combobox)
+
+
 def init_create_model_frame(app: tk.Tk) -> tk.Frame:  # pylint: disable=R0914
     create_model_frame = tk.Frame(app)
     FRAME_STORE["create_model"] = create_model_frame
@@ -82,6 +112,22 @@ def init_create_model_frame(app: tk.Tk) -> tk.Frame:  # pylint: disable=R0914
         create_model_frame, text="Create Model Workflow", font=("Arial", 14)
     )
     create_label.pack(pady=10)
+
+    # Button to open single select combo box
+    btn_open_component_list = tk.Button(
+        create_model_frame,
+        text="Refer the list of available components",
+        command=lambda: open_component_list(app),
+    )
+    btn_open_component_list.pack(pady=5, anchor="ne")
+
+    # Button to open dual select combo box
+    btn_open_flowline_parameters = tk.Button(
+        create_model_frame,
+        text="Refer the list of available flowline parameters",
+        command=lambda: open_flowline_parameters(app),
+    )
+    btn_open_flowline_parameters.pack(pady=5, anchor="ne")
 
     help_text = """ This workflow creates a model from scratch using the Excel file or
     populates an existing model with data from the Excel file."""
@@ -134,11 +180,11 @@ def init_create_model_frame(app: tk.Tk) -> tk.Frame:  # pylint: disable=R0914
 
     # Radio Button Options
     model_options = {
-        "Option 1": "Create a model from scratch using the Excel file",
-        "Option 2": "Populate an existing model with data from the Excel file",
+        "Scratch": "Create a model from scratch using the Excel file",
+        "Populate": "Populate an existing model with data from the Excel file",
     }
     model_option_var = tk.StringVar()
-    model_option_var.set("Option 1")
+    model_option_var.set("Scratch")
 
     for option, description in model_options.items():
         option_radio = tk.Radiobutton(
@@ -151,7 +197,7 @@ def init_create_model_frame(app: tk.Tk) -> tk.Frame:  # pylint: disable=R0914
 
     # Submit button
     def on_submit():
-        if model_option_var.get() == "Option 1":
+        if model_option_var.get() == "Scratch":
             submit_create_model(
                 ps_file_entry.get(),
                 excel_file_entry.get(),

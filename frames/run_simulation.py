@@ -13,7 +13,7 @@ from sixgill.definitions import ProfileVariables, SystemVariables, Units
 
 from core.network_simulation import NetworkSimulator
 from project import FRAME_STORE, browse_folder_or_file, get_string_values_from_class
-from widgets.checkable_combo_box import CheckableCombobox
+from widgets.dual_combo_box import DualSelectableCombobox
 
 logger = logging.getLogger("core.network_simulation")
 
@@ -48,7 +48,7 @@ def run_simulation(folder_path, system_vars, profile_vars, unit):
 
 
 def open_checkable_combobox(parent, title, values, listbox):
-    combobox = CheckableCombobox(parent, title, values)
+    combobox = DualSelectableCombobox(parent, title, values)
     parent.wait_window(combobox)
     selected_values = combobox.confirm_selection()
     listbox.delete(0, tk.END)

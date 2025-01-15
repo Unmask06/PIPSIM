@@ -42,9 +42,19 @@ def setup_logger():
     logging.config.dictConfig(config)
 
 
-def get_string_values_from_class(class_name: type) -> list:
-    return [
-        value
-        for key, value in class_name.__dict__.items()
-        if not key.startswith("__") and isinstance(value, str)
-    ]
+def get_string_values_from_class(*class_names: type | list[type]) -> list:
+    def extract_string_values(class_group):
+        return [
+            value
+            for key, value in class_group.__dict__.items()
+            if not key.startswith("__") and isinstance(value, str)
+        ]
+
+    combined_values = []
+    for class_group in class_names:
+        if isinstance(class_group, list):
+            for class_name in class_group:
+                combined_values.extend(extract_string_values(class_name))
+        else:
+            combined_values.extend(extract_string_values(class_group))
+    return combined_values
