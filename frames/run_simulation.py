@@ -6,7 +6,7 @@ This script contains the code for the run_simulation frame of the application.
 import logging
 import tkinter as tk
 from pathlib import Path
-from tkinter import ttk
+from tkinter import filedialog, messagebox, ttk
 
 from sixgill.definitions import ProfileVariables, SystemVariables, Units
 
@@ -59,6 +59,36 @@ def open_checkable_combobox(parent, title, values, listbox):
     listbox.delete(0, tk.END)
     for val in selected_values:
         listbox.insert(tk.END, val)
+
+
+def save_selections(system_vars, profile_vars):
+    selections = {
+        "system_vars": system_vars,
+        "profile_vars": profile_vars,
+    }
+    file_path = filedialog.asksaveasfilename(
+        defaultextension=".json", filetypes=[("JSON files", "*.json")]
+    )
+    if file_path:
+        with open(file_path, "w") as f:
+            json.dump(selections, f)
+        messagebox.showinfo("Success", "Selections saved successfully")
+
+
+def load_selections(system_vars_listbox, profile_vars_listbox):
+    file_path = filedialog.askopenfilename(
+        filetypes=[("JSON files", "*.json")], title="Select a JSON file"
+    )
+    if file_path:
+        with open(file_path, "r") as f:
+            selections = json.load(f)
+        system_vars_listbox.delete(0, tk.END)
+        for var in selections.get("system_vars", []):
+            system_vars_listbox.insert(tk.END, var)
+        profile_vars_listbox.delete(0, tk.END)
+        for var in selections.get("profile_vars", []):
+            profile_vars_listbox.insert(tk.END, var)
+        messagebox.showinfo("Success", "Selections loaded successfully")
 
 
 def init_run_simulation_frame(app):
@@ -146,6 +176,24 @@ def init_run_simulation_frame(app):
         ),
     )
     profile_vars_add_button.pack(pady=5)
+
+    # Save and Load buttons
+    save_button = tk.Button(
+        run_simulation_frame,
+        text="Save Selections",
+        command=lambda: save_selections(
+            list(system_vars_listbox.get(0, tk.END)),
+            list(profile_vars_listbox.get(0, tk.END)),
+        ),
+    )
+    save_button.pack(pady=5)
+
+    load_button = tk.Button(
+        run_simulation_frame,
+        text="Load Selections",
+        command=lambda: load_selections(system_vars_listbox, profile_vars_listbox),
+    )
+    load_button.pack(pady=5)
 
     run_button_rs = tk.Button(
         run_simulation_frame,
