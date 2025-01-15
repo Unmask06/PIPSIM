@@ -44,5 +44,5 @@ loggers:
 
 root:
   level: DEBUG
-  handlers: [console_default]
+  handlers: [console_default, console_simulation]
 

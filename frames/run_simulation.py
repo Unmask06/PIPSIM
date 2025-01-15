@@ -12,13 +12,13 @@ from sixgill.definitions import ProfileVariables, SystemVariables, Units
 
 from core.model_input import ModelInput, PipsimModel
 from core.network_simulation import NetworkSimulator
-from frames.checkable_combo_box import CheckableCombobox
 from project import (
     FRAME_STORE,
     browse_folder_or_file,
     get_string_values_from_class,
     switch_frame,
 )
+from widgets.checkable_combo_box import CheckableCombobox
 
 logger = logging.getLogger("core.network_simulation")
 
@@ -40,6 +40,9 @@ def run_simulation(folder_path, system_vars, profile_vars, unit):
 
     logger.info("Running simulation")
     folder_path = Path(folder_path)
+    logger.debug(
+        f"System Variables: {system_vars}, Profile Variables: {profile_vars}, Unit: {unit}"
+    )
 
     for pips_file in folder_path.glob("*.pips"):
         try:
