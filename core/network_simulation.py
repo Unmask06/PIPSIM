@@ -97,9 +97,17 @@ class NetworkSimulator:
         )
         self.node_results.dropna(subset=[SystemVariables.TYPE], inplace=True)
         self.node_results = pd.concat([node_results_unit, self.node_results], axis=0)
+
+        logger.debug("Reordering columns")
+        cols = self.node_results.columns.tolist()
+        cols = cols[-1:] + cols[:-1]
+        self.node_results = self.node_results[cols]
+
         self.node_results.reset_index(drop=True, inplace=True)
 
-    def process_profile_results(self):
+        logger.info("Node results processed successfully")
+
+    def process_profile_results(self) -> None:
         if self.results is None:
             raise NetworkSimulationError("Simulation run Unsuccessful")
         units = pd.DataFrame(self.results.profile_units, index=["Units"])
@@ -122,22 +130,13 @@ class NetworkSimulator:
         combined_df.sort_values(by=["Branch", "BranchEquipment"], inplace=True)
         combined_df.reset_index(drop=True, inplace=True)
         self.profile_results = pd.concat([units, combined_df], axis=0)
+
+        logger.debug("Reordering columns")
+        cols = self.profile_results.columns.tolist()
+        cols = cols[-2:] + cols[:-2]
+        self.profile_results = self.profile_results[cols]
         self.profile_results.reset_index(drop=True, inplace=True)
         logger.info("Simulation run Successful")
-
-        self._reorder_columns()
-
-    def _reorder_columns(self):
-        new_node_cols = [
-            "Node",
-        ].extend(self.system_variables)
-        new_profile_cols = [
-            "Branch",
-            "BranchEquipment",
-        ].extend(self.profile_variables)
-
-        self.node_results = self.node_results[new_node_cols]
-        self.profile_results = self.profile_results[new_profile_cols]
 
     # def convert_units(self, unit_conversion=True):
     #     logger.info("Converting units.....")

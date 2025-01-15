@@ -270,7 +270,9 @@ def copy_flowline_data(source_model_path: str, destination_folder_path: str) -> 
     flowline_geometry = _collect_flowline_geometry(df, source_model)
     source_model.close()
 
-    for target_model_path in Path(destination_folder_path).glob("*.pips"):
+    target_files = list(Path(destination_folder_path).glob("*.pips"))
+
+    for idx, target_model_path in enumerate(target_files, start=1):
         logger.info(
             f"Copying basic flowline data from to {Path(target_model_path).name}....."
         )
@@ -292,5 +294,6 @@ def copy_flowline_data(source_model_path: str, destination_folder_path: str) -> 
         target_model.save()
         target_model.close()
         logger.info(
-            f"Flowline data copied successfully to {Path(target_model_path).name}"
+            f"Flowline data copied successfully to {Path(target_model_path).name}",
+            f"(Completed {idx} of {len(target_files)} models)"
         )
