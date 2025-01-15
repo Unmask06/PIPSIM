@@ -12,7 +12,6 @@ import pandas as pd
 from sixgill.definitions import ProfileVariables, SystemVariables
 
 from .excel_handling import ExcelHandler
-from .simulation_modeller import ModelInput, PipsimModel, PipsimModeller
 from .unit_conversion import UnitConversion
 
 logger = logging.getLogger(__name__)
@@ -24,7 +23,7 @@ class NetworkSimulationError(Exception):
     """
 
 
-class NetworkSimulator(PipsimModeller):
+class NetworkSimulator:
     """
     Performs network simulation using the Pipesim model.
 
@@ -37,17 +36,16 @@ class NetworkSimulator(PipsimModeller):
     NODE_RESULTS_FILE: str = "Node Results.xlsx"
     PROFILE_RESULTS_FILE: str = "Profile Results.xlsx"
 
-    def __init__(self, model: PipsimModel, model_input: ModelInput) -> None:
-        super().__init__(model=model, model_input=model_input)
-
-    def _specify_system_profiles_variables(self):
-        self.system_variables = [
+    def __init__(self, model: PipsimModel, model_input: ModelInput, system_variables=None, profile_variables=None, unit=None) -> None:
+        self.model = model
+        self.model_input = model_input
+        self.system_variables = system_variables or [
             SystemVariables.TYPE,
             SystemVariables.PRESSURE,
             SystemVariables.TEMPERATURE,
             SystemVariables.VOLUME_FLOWRATE_GAS_STOCKTANK,
         ]
-        self.profile_variables = [
+        self.profile_variables = profile_variables or [
             ProfileVariables.PRESSURE,
             ProfileVariables.TEMPERATURE,
             ProfileVariables.PRESSURE_GRADIENT_FRICTION,
@@ -62,12 +60,12 @@ class NetworkSimulator(PipsimModeller):
             ProfileVariables.VELOCITY_GAS,
             ProfileVariables.VOLUME_FLOWRATE_GAS_STOCKTANK,
         ]
+        self.unit = unit
 
     def run_simulation(self):
         if len(self.model.networksimulation.validate()) > 0:
             raise NetworkSimulationError("Model Validation Unsuccessful")
 
-        self._specify_system_profiles_variables()
         self.results = self.model.networksimulation.run(
             system_variables=self.system_variables,
             profile_variables=self.profile_variables,
@@ -228,3 +226,18 @@ class NetworkSimulator(PipsimModeller):
             self.model.model.close()
             traceback.print_exc()
             raise e
+
+    def get_boundary_conditions(self) -> None:
+        """
+        Retrieves all boundary conditions from the model and stores them in a DataFrame.
+
+        Stores the boundary conditions in the attribute 'boundary_conditions'.
+        """
+        logger.info("Getting boundary conditions.....")
+        self.boundary_conditions: pd.DataFrame = pd.DataFrame.from_dict(
+            self.model.networksimulation.get_conditions()
+        )
+
+    def close_model(self):
+        self.model.model.close()
+        logger.info("------------Network Simulation Object Closed----------------\n")
