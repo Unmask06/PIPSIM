@@ -147,8 +147,7 @@ class CheckableCombobox(tk.Toplevel):
             highlight_index
         )  # Ensure the highlighted item is visible
 
-    def confirm_selection(self) -> None:
-        """Confirm the selected items."""
-        final_selection: List[str] = self.selected_values
-        print(f"Final Selected Variables: {final_selection}")
+    def confirm_selection(self) -> List[str]:
+        """Return the selected values and destroy the window"""
         self.destroy()
+        return self.selected_values

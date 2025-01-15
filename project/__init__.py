@@ -38,5 +38,13 @@ def browse_folder_or_file(
 def setup_logger():
     with open("logging.yml", "r") as f:
         config = yaml.safe_load(f.read())
-    config['handlers'] = {'console': config['handlers']['console']}
+    config["handlers"] = {"console": config["handlers"]["console"]}
     logging.config.dictConfig(config)
+
+
+def get_string_values_from_class(class_name: type) -> list:
+    return [
+        value
+        for key, value in class_name.__dict__.items()
+        if not key.startswith("__") and isinstance(value, str)
+    ]
