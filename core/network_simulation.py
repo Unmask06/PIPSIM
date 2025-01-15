@@ -7,12 +7,15 @@
 import logging
 import traceback
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 from sixgill.definitions import ProfileVariables, SystemVariables
+from sixgill.pipesim import Model, Units
 
 from .excel_handling import ExcelHandler
-from .unit_conversion import UnitConversion
+
+# from .unit_conversion import UnitConversion
 
 logger = logging.getLogger(__name__)
 
@@ -36,37 +39,33 @@ class NetworkSimulator:
     NODE_RESULTS_FILE: str = "Node Results.xlsx"
     PROFILE_RESULTS_FILE: str = "Profile Results.xlsx"
 
-    def __init__(self, model: PipsimModel, model_input: ModelInput, system_variables=None, profile_variables=None, unit=None) -> None:
-        self.model = model
-        self.model_input = model_input
+    def __init__(
+        self,
+        model_path: str,
+        system_variables: Optional[list] = None,
+        profile_variables: Optional[list] = None,
+        unit: str = Units.METRIC,
+    ) -> None:
+        self.model_path = model_path
+        self.model = Model.open(model_path, units=unit)
         self.system_variables = system_variables or [
             SystemVariables.TYPE,
             SystemVariables.PRESSURE,
             SystemVariables.TEMPERATURE,
-            SystemVariables.VOLUME_FLOWRATE_GAS_STOCKTANK,
         ]
         self.profile_variables = profile_variables or [
             ProfileVariables.PRESSURE,
             ProfileVariables.TEMPERATURE,
-            ProfileVariables.PRESSURE_GRADIENT_FRICTION,
             ProfileVariables.MEAN_VELOCITY_FLUID,
             ProfileVariables.EROSIONAL_VELOCITY,
-            ProfileVariables.EROSIONAL_VELOCITY_RATIO,
-            ProfileVariables.ELEVATION,
-            ProfileVariables.TOTAL_DISTANCE,
-            ProfileVariables.DENSITY_GAS_INSITU,
-            ProfileVariables.MASS_FLOWRATE_GAS_INSITU,
-            ProfileVariables.VISCOSITY_GAS_INSITU,
-            ProfileVariables.VELOCITY_GAS,
-            ProfileVariables.VOLUME_FLOWRATE_GAS_STOCKTANK,
         ]
         self.unit = unit
 
     def run_simulation(self):
-        if len(self.model.networksimulation.validate()) > 0:
+        if len(self.model.tasks.networksimulation.validate()) > 0:
             raise NetworkSimulationError("Model Validation Unsuccessful")
 
-        self.results = self.model.networksimulation.run(
+        self.results = self.model.tasks.networksimulation.run(
             system_variables=self.system_variables,
             profile_variables=self.profile_variables,
         )
@@ -131,60 +130,43 @@ class NetworkSimulator:
     def _reorder_columns(self):
         new_node_cols = [
             "Node",
-            SystemVariables.TYPE,
-            SystemVariables.PRESSURE,
-            SystemVariables.TEMPERATURE,
-            SystemVariables.VOLUME_FLOWRATE_GAS_STOCKTANK,
-        ]
+        ].extend(self.system_variables)
         new_profile_cols = [
             "Branch",
             "BranchEquipment",
-            ProfileVariables.PRESSURE,
-            ProfileVariables.TEMPERATURE,
-            ProfileVariables.PRESSURE_GRADIENT_FRICTION,
-            ProfileVariables.MEAN_VELOCITY_FLUID,
-            ProfileVariables.EROSIONAL_VELOCITY,
-            ProfileVariables.EROSIONAL_VELOCITY_RATIO,
-            ProfileVariables.ELEVATION,
-            ProfileVariables.TOTAL_DISTANCE,
-            ProfileVariables.DENSITY_GAS_INSITU,
-            ProfileVariables.MASS_FLOWRATE_GAS_INSITU,
-            ProfileVariables.VISCOSITY_GAS_INSITU,
-            ProfileVariables.VELOCITY_GAS,
-            ProfileVariables.VOLUME_FLOWRATE_GAS_STOCKTANK,
-        ]
+        ].extend(self.profile_variables)
 
         self.node_results = self.node_results[new_node_cols]
         self.profile_results = self.profile_results[new_profile_cols]
 
-    def convert_units(self, unit_conversion=True):
-        logger.info("Converting units.....")
-        if unit_conversion:
-            node_conversions = {
-                SystemVariables.PRESSURE: ("psia", "barg"),
-                SystemVariables.TEMPERATURE: ("degF", "degC"),
-            }
-            profile_conversions = {
-                ProfileVariables.PRESSURE: ("psia", "barg"),
-                ProfileVariables.TEMPERATURE: ("degF", "degC"),
-                ProfileVariables.PRESSURE_GRADIENT_FRICTION: ("psi/ft", "bar/100m"),
-                ProfileVariables.ELEVATION: ("ft", "m"),
-                ProfileVariables.MEAN_VELOCITY_FLUID: ("ft/s", "m/s"),
-                ProfileVariables.EROSIONAL_VELOCITY: ("ft/s", "m/s"),
-                ProfileVariables.TOTAL_DISTANCE: ("ft", "m"),
-                ProfileVariables.DENSITY_GAS_INSITU: ("lbm/ft3", "kg/m3"),
-                ProfileVariables.MASS_FLOWRATE_GAS_INSITU: ("lbm/s", "kg/s"),
-            }
+    # def convert_units(self, unit_conversion=True):
+    #     logger.info("Converting units.....")
+    #     if unit_conversion:
+    #         node_conversions = {
+    #             SystemVariables.PRESSURE: ("psia", "barg"),
+    #             SystemVariables.TEMPERATURE: ("degF", "degC"),
+    #         }
+    #         profile_conversions = {
+    #             ProfileVariables.PRESSURE: ("psia", "barg"),
+    #             ProfileVariables.TEMPERATURE: ("degF", "degC"),
+    #             ProfileVariables.PRESSURE_GRADIENT_FRICTION: ("psi/ft", "bar/100m"),
+    #             ProfileVariables.ELEVATION: ("ft", "m"),
+    #             ProfileVariables.MEAN_VELOCITY_FLUID: ("ft/s", "m/s"),
+    #             ProfileVariables.EROSIONAL_VELOCITY: ("ft/s", "m/s"),
+    #             ProfileVariables.TOTAL_DISTANCE: ("ft", "m"),
+    #             ProfileVariables.DENSITY_GAS_INSITU: ("lbm/ft3", "kg/m3"),
+    #             ProfileVariables.MASS_FLOWRATE_GAS_INSITU: ("lbm/s", "kg/s"),
+    #         }
 
-            self.node_results = UnitConversion.convert_units(
-                dataframe=self.node_results, conversions=node_conversions
-            )
-            self.profile_results = UnitConversion.convert_units(
-                dataframe=self.profile_results, conversions=profile_conversions
-            )
+    #         self.node_results = UnitConversion.convert_units(
+    #             dataframe=self.node_results, conversions=node_conversions
+    #         )
+    #         self.profile_results = UnitConversion.convert_units(
+    #             dataframe=self.profile_results, conversions=profile_conversions
+    #         )
 
     def write_results_to_excel(self):
-        sheet_name = Path(self.model.model_filename).stem
+        sheet_name = Path(self.model_path).stem
         if len(sheet_name) > 31:
             sheet_name = sheet_name[:31]
         node_results_sheet_name = sheet_name
@@ -215,15 +197,15 @@ class NetworkSimulator:
             self.run_simulation()
             self.process_node_results()
             self.process_profile_results()
-            self.model.model.save()
-            self.close_model()
-            self.convert_units(unit_conversion=unit_conversion)
+            self.model.save()
+            self.model.close()
+            # self.convert_units(unit_conversion=unit_conversion)
             self.write_results_to_excel()
 
         except Exception as e:
             # logger.error(traceback.format_exc())
             logger.error(e)
-            self.model.model.close()
+            self.model.close()
             traceback.print_exc()
             raise e
 
@@ -235,9 +217,9 @@ class NetworkSimulator:
         """
         logger.info("Getting boundary conditions.....")
         self.boundary_conditions: pd.DataFrame = pd.DataFrame.from_dict(
-            self.model.networksimulation.get_conditions()
+            self.model.tasks.networksimulation.get_conditions()
         )
 
     def close_model(self):
-        self.model.model.close()
+        self.model.close()
         logger.info("------------Network Simulation Object Closed----------------\n")
