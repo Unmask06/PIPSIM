@@ -52,8 +52,9 @@ def run_simulation(folder_path, system_vars, profile_vars, unit):
 def open_checkable_combobox(parent, title, values, listbox):
     combobox = CheckableCombobox(parent, title, values)
     parent.wait_window(combobox)
+    selected_values = combobox.confirm_selection()
     listbox.delete(0, tk.END)
-    for val in combobox.selected_values:
+    for val in selected_values:
         listbox.insert(tk.END, val)
 
 
