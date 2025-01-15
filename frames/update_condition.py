@@ -1,9 +1,7 @@
 import logging
-import tkinter as tk
-from pathlib import Path
-from tkinter import messagebox
-from tkinter import ttk
 import threading
+import tkinter as tk
+from tkinter import messagebox, ttk
 
 from core.simulation_modeller import copy_flowline_data
 from project import FRAME_STORE, browse_folder_or_file
@@ -11,18 +9,23 @@ from project import FRAME_STORE, browse_folder_or_file
 logger_uc = logging.getLogger("core.simulation_modeller")
 
 
-def submit_copy_flowline_data(source_file: str, destination_folder: str, progress_bar: ttk.Progressbar):
+def submit_copy_flowline_data(
+    source_file: str, destination_folder: str, progress_bar: ttk.Progressbar
+):
     """Copy the flowline information from the source file to all the files in the destination folder."""
+
     def task():
+        progress_bar.pack(pady=10)
         logger_uc.info("Copying flowline conditions")
         progress_bar.start()
-        
+
         copy_flowline_data(source_file, destination_folder)
-        
+
         progress_bar.stop()
+        progress_bar.pack_forget()
         logger_uc.info("Flowline conditions copied successfully")
         messagebox.showinfo("Success", "Flowline conditions copied successfully")
-    
+
     threading.Thread(target=task).start()
 
 
@@ -80,8 +83,7 @@ def init_update_conditions_frame(app: tk.Tk) -> tk.Frame:
     folder_browse_button_uc.pack(side=tk.LEFT, padx=5)
 
     # Progress bar
-    progress_bar = ttk.Progressbar(update_conditions_frame, mode='indeterminate')
-    progress_bar.pack(pady=10)
+    progress_bar = ttk.Progressbar(update_conditions_frame, mode="indeterminate")
 
     # Submit button
     submit_button_uc = tk.Button(

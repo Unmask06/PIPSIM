@@ -17,6 +17,7 @@ from frames import (
 from project import FRAME_STORE, switch_frame
 from project.documentation import show_md_from_file
 
+
 def load_logging_config():
     """Load the logging configuration from the YAML file."""
     try:
