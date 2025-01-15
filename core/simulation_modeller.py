@@ -251,7 +251,17 @@ def copy_flowline_data(source_model_path: str, destination_folder_path: str) -> 
     if not Path(source_model_path).exists():
         raise PipsimModellingError(f"Source model file not found: {source_model_path}")
     if not Path(destination_folder_path).exists():
-        raise PipsimModellingError(f"Destination folder not found: {destination_folder_path}")
+        raise PipsimModellingError(
+            f"Destination folder not found: {destination_folder_path}"
+        )
+
+    logger.info(
+        f"Copying flowline data from {Path(source_model_path).name} "
+        f"to all models in {destination_folder_path}....."
+    )
+    logger.info(
+        f"Total number of models in the destination folder: {len(list(Path(destination_folder_path).glob('*.pips')))}"
+    )
 
     source_model = Model.open(source_model_path)
     logger.info(f"Getting flowline data from {Path(source_model_path).name}.....")
@@ -264,19 +274,23 @@ def copy_flowline_data(source_model_path: str, destination_folder_path: str) -> 
         logger.info(
             f"Copying basic flowline data from to {Path(target_model_path).name}....."
         )
+        logger.warning(
+            """This step may take a while depending on the number of flowlines in the model.
+            Please wait for the process to complete."""
+        )
         target_model = Model.open(str(target_model_path))
         target_model.set_values(source_values)
         target_model.save()
 
         logger.info(
-            f"Copying detailed flowline data from to {Path(target_model_path).name}....."
+            f"Copying detailed flowline data to {Path(target_model_path).name}....."
         )
 
-        for i, flowline in enumerate(flowline_geometry):
+        for flowline in flowline_geometry:
             for name, geometry in flowline.items():
                 target_model.set_geometry(context=name, value=geometry)
-            if (i + 1) % 10 == 0:
-                logger.info(f"Copied geometry for {i + 1} flowlines")
         target_model.save()
         target_model.close()
-        logger.info(f"Flowline data copied successfully to {Path(target_model_path).name}")
+        logger.info(
+            f"Flowline data copied successfully to {Path(target_model_path).name}"
+        )

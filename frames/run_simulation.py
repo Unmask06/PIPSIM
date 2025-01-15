@@ -9,13 +9,10 @@ from pathlib import Path
 
 from core.model_input import ModelInput, PipsimModel
 from core.network_simulation import NetworkSimulator
-from project import (
-    FRAME_STORE,
-    browse_folder_or_file,
-    switch_frame,
-)
+from project import FRAME_STORE, browse_folder_or_file, switch_frame
 
-logger_rs = logging.getLogger("RunSimulationLogger")
+logger = logging.getLogger("core.network_simulation")
+
 
 def run_simulation(folder_path, logger: logging.Logger):
     """
@@ -74,7 +71,7 @@ def init_run_simulation_frame(app):
     run_button_rs = tk.Button(
         run_simulation_frame,
         text="Run Simulations",
-        command=lambda: run_simulation(config_file_entry_rs.get(), logger_rs),
+        command=lambda: run_simulation(config_file_entry_rs.get(), logger),
     )
     run_button_rs.pack(pady=10)
 

@@ -6,7 +6,7 @@ from tkinter import messagebox
 from core.simulation_modeller import copy_flowline_data
 from project import FRAME_STORE, browse_folder_or_file
 
-logger_uc = logging.getLogger("UpdateConditionsLogger")
+logger_uc = logging.getLogger("core.simulation_modeller")
 
 
 def submit_copy_flowline_data(source_file: str, destination_folder: str):
@@ -14,13 +14,8 @@ def submit_copy_flowline_data(source_file: str, destination_folder: str):
 
     logger_uc.info("Copying flowline conditions")
 
-    folder = Path(destination_folder)
-    for file in folder.glob("*.pips"):
-        try:
-            copy_flowline_data(source_file, str(file))
-            logger_uc.info(f"Flowline data copied to {file}")
-        except Exception as e:
-            logger_uc.error(f"Error copying flowline data to {file}: {e}")
+    copy_flowline_data(source_file, destination_folder)
+
     logger_uc.info("Flowline conditions copied successfully")
     messagebox.showinfo("Success", "Flowline conditions copied successfully")
 

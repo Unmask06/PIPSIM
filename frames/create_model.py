@@ -12,7 +12,7 @@ import pandas as pd
 from core.model_builder import ModelBuilder, create_component_name_df
 from project import FRAME_STORE, browse_folder_or_file
 
-logger_cm = logging.getLogger("CreateModelLogger")
+logger_cm = logging.getLogger("core.model_builder")
 
 
 def submit_create_model(pipesim_file_path: str, excel_file_path: str, sheet_name: str):

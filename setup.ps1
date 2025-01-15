@@ -1,1 +1,1 @@
-pip install pydantic openpyxl pathlib2 typing_extensions
+pip install pydantic openpyxl pathlib2 typing_extensions colorlog pyyaml 

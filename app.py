@@ -2,7 +2,7 @@ import logging
 import logging.config
 import sys
 import tkinter as tk
-from tkinter import messagebox, scrolledtext
+from tkinter import messagebox
 
 import yaml
 
@@ -17,11 +17,10 @@ from frames import (
 from project import FRAME_STORE, switch_frame
 from project.documentation import show_md_from_file
 
-
 def load_logging_config():
     """Load the logging configuration from the YAML file."""
     try:
-        with open("logging.yml", "r") as f:
+        with open("logging.yml", "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
             logging.config.dictConfig(config)
     except Exception as e:
@@ -49,7 +48,7 @@ def show_menu(app: tk.Tk):
     app.config(menu=menu_bar)
 
 
-def check_access(app: tk.Tk, trail=False):
+def check_access(app: tk.Tk, trail=True):  #! trail=False in production
     """Check access and display the appropriate frame with flexibility for trail mode."""
     response = fetch_response(trail)
 

@@ -1,10 +1,10 @@
 # Home Frame
-import tkinter as tk
 import logging
+import tkinter as tk
 
 from project import FRAME_STORE, switch_frame
 
-logger = logging.getLogger("HomeLogger")
+logger = logging.getLogger(__name__)
 
 
 def init_home_frame(app: tk.Tk) -> tk.Frame:
