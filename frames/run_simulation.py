@@ -3,21 +3,16 @@ frames/run_simulation.py
 This script contains the code for the run_simulation frame of the application.
 """
 
+import json
 import logging
 import tkinter as tk
 from pathlib import Path
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox
 
 from sixgill.definitions import ProfileVariables, SystemVariables, Units
 
-from core.model_input import ModelInput, PipsimModel
 from core.network_simulation import NetworkSimulator
-from project import (
-    FRAME_STORE,
-    browse_folder_or_file,
-    get_string_values_from_class,
-    switch_frame,
-)
+from project import FRAME_STORE, browse_folder_or_file, get_string_values_from_class
 from widgets.checkable_combo_box import CheckableCombobox
 
 logger = logging.getLogger("core.network_simulation")
@@ -121,7 +116,7 @@ def init_run_simulation_frame(app):
 
     # Variables Frame
     variables_frame = tk.Frame(run_simulation_frame)
-    variables_frame.pack(pady=10)
+    variables_frame.pack(pady=5)
 
     # System Variables Listbox
     system_vars_frame = tk.Frame(variables_frame)
@@ -145,16 +140,47 @@ def init_run_simulation_frame(app):
     system_vars_add_button.pack(pady=5)
 
     # Unit OptionMenu
-    unit_frame = tk.Frame(variables_frame)
-    unit_frame.grid(row=0, column=1, padx=10, pady=10, sticky="n")
-    unit_label = tk.Label(unit_frame, text="Select Unit")
+    center_frame = tk.Frame(variables_frame)
+    center_frame.grid(row=0, column=1, padx=10, pady=10, sticky="n")
+    unit_label = tk.Label(center_frame, text="Select Unit")
     unit_label.pack(pady=5)
     unit_var = tk.StringVar(run_simulation_frame)
     unit_var.set(Units.METRIC)
     unit_optionmenu = tk.OptionMenu(
-        unit_frame, unit_var, *get_string_values_from_class(Units)
+        center_frame, unit_var, *get_string_values_from_class(Units)
     )
     unit_optionmenu.pack(pady=5)
+
+    ## Buttons
+    save_button = tk.Button(
+        center_frame,
+        text="Save Selections",
+        command=lambda: save_selections(
+            list(system_vars_listbox.get(0, tk.END)),
+            list(profile_vars_listbox.get(0, tk.END)),
+        ),
+    )
+    save_button.pack(pady=5)
+
+    load_button = tk.Button(
+        center_frame,
+        text="Load Selections",
+        command=lambda: load_selections(system_vars_listbox, profile_vars_listbox),
+    )
+    load_button.pack(pady=5)
+
+    run_button_rs = tk.Button(
+        center_frame,
+        text="Run Simulations",
+        command=lambda: run_simulation(
+            folder_entry_rs.get(),
+            list(system_vars_listbox.get(0, tk.END)),
+            list(profile_vars_listbox.get(0, tk.END)),
+            unit_var.get(),
+        ),
+    )
+    run_button_rs.config(font=("Arial", 12, "bold"), height=1, width=20)
+    run_button_rs.pack(pady=40)
 
     # Profile Variables Listbox
     profile_vars_frame = tk.Frame(variables_frame)
@@ -177,26 +203,29 @@ def init_run_simulation_frame(app):
     )
     profile_vars_add_button.pack(pady=5)
 
-    # Save and Load buttons
+    # Save, Load, and Run buttons frame
+    buttons_frame = tk.Frame(run_simulation_frame)
+    buttons_frame.pack(pady=10)
+
     save_button = tk.Button(
-        run_simulation_frame,
+        buttons_frame,
         text="Save Selections",
         command=lambda: save_selections(
             list(system_vars_listbox.get(0, tk.END)),
             list(profile_vars_listbox.get(0, tk.END)),
         ),
     )
-    save_button.pack(pady=5)
+    save_button.grid(row=0, column=0, padx=5)
 
     load_button = tk.Button(
-        run_simulation_frame,
+        buttons_frame,
         text="Load Selections",
         command=lambda: load_selections(system_vars_listbox, profile_vars_listbox),
     )
-    load_button.pack(pady=5)
+    load_button.grid(row=0, column=1, padx=5)
 
     run_button_rs = tk.Button(
-        run_simulation_frame,
+        buttons_frame,
         text="Run Simulations",
         command=lambda: run_simulation(
             folder_entry_rs.get(),
@@ -205,6 +234,6 @@ def init_run_simulation_frame(app):
             unit_var.get(),
         ),
     )
-    run_button_rs.pack(pady=10)
+    run_button_rs.grid(row=0, column=2, padx=5)
 
     return run_simulation_frame

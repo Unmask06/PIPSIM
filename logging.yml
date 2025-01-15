@@ -33,7 +33,7 @@ handlers:
     stream: ext://sys.stdout
   console_simulation:
     class: logging.StreamHandler
-    level: DEBUG
+    level: INFO
     formatter: simulation_formatter
     stream: ext://sys.stdout
 loggers:
@@ -41,8 +41,12 @@ loggers:
     level: DEBUG
     handlers: [console_simulation]
     propagate: false
+  core.network_simulation:
+    level: DEBUG
+    handlers: [console_simulation]
+    propagate: false
 
 root:
   level: DEBUG
-  handlers: [console_default, console_simulation]
+  handlers: [console_default]
 
