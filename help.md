@@ -41,13 +41,13 @@ To create a model from scratch using an Excel file or populate an existing model
 
 - The Excel sheet should contain the component name in the first column and the corresponding data in the subsequent columns.
 
-   **Example:**
-   | Component Name | Length | Diameter | Roughness | Elevation |
-   | -------------- | ------ | -------- | --------- | --------- |
-   | 6-BFW-001      | 1000   | 0.5      | 0.0001    | 100       |
-   | 6-BFW-002      | 2000   | 0.6      | 0.0002    | 200       |
-   | P-101          | 1000   | 0.5      | 0.0001    | 100       |
-   | FV-101         | 2000   | 0.6      | 0.0002    | 200       |
+  **Example:**
+  | Name      | Component | Length | Diameter | Roughness | Elevation |
+  | --------- | --------- | ------ | -------- | --------- | --------- |
+  | 6-BFW-001 | Flowline  | 1000   | 0.5      | 0.0001    | 100       |
+  | 6-BFW-002 | Flowline  | 2000   | 0.6      | 0.0002    | 200       |
+  | P-101     | Flowline  | 1000   | 0.5      | 0.0001    | 100       |
+  | FV-101    | Flowline  | 2000   | 0.6      | 0.0002    | 200       |
 
  - *Note* : Flowline parameters should be selected
 5. Click **"Submit"** to proceed.
