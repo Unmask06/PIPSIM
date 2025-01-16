@@ -35,7 +35,7 @@ class DualCascadeListBox(tk.Toplevel):
         self.grid_columnconfigure(1, weight=1)
 
         self.build_ui()
-        self.protocol("WM_DELETE_WINDOW", self.close_window)
+        self.protocol("WM_DELETE_WINDOW", self.destroy)
         self.grab_set()
 
     def build_ui(self):
@@ -144,21 +144,3 @@ class DualCascadeListBox(tk.Toplevel):
 
     def close_window(self):
         self.destroy()
-
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("Main Application")
-    root.geometry("300x200")
-
-    def open_dual_cascade_listbox():
-        DualCascadeListBox(
-            root, "Dual Cascade Listbox", generate_dict_from_class(Parameters)
-        )
-
-    open_button = ttk.Button(
-        root, text="Open Dual Cascade ListBox", command=open_dual_cascade_listbox
-    )
-    open_button.pack(pady=20)
-
-    root.mainloop()

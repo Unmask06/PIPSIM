@@ -206,9 +206,11 @@ def open_flowline_parameters(parent: tk.Tk) -> None:
         mode="dual",
     )
     parent.wait_window(combobox)
-    selected_parameters = combobox.confirm_selection()
-    create_excel_with_selected_parameters("output.xlsx", selected_parameters)
-    messagebox.showinfo("Success", "Excel file created with selected parameters")
+    if combobox.confirm_selection():
+        create_excel_with_selected_parameters(
+            "Pandora Pilot Params.xlsx", combobox.confirm_selection()
+        )
+        messagebox.showinfo("Success", "Excel file created with selected parameters")
 
 
 def create_excel_with_selected_parameters(
