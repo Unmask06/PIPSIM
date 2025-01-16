@@ -1,13 +1,13 @@
 # network_simulation.py
 """
-    This module contains the NetworkSimulator class for performing network simulation 
-    using the Pipesim model.
+This module contains the NetworkSimulator class for performing network simulation 
+using the Pipesim model.
 """
 
 import logging
 import traceback
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import pandas as pd
 from sixgill.definitions import ProfileVariables, SystemVariables
@@ -15,35 +15,33 @@ from sixgill.pipesim import Model, Units
 
 from .excel_handling import ExcelHandler
 
-# from .unit_conversion import UnitConversion
-
 logger = logging.getLogger(__name__)
 
 
 class NetworkSimulationError(Exception):
-    """
-    Exception raised for errors in the NetworkSimulation class.
-    """
+    """Custom exception for network simulation errors."""
 
 
 class NetworkSimulator:
     """
     Performs network simulation using the Pipesim model.
 
+    Attributes:
+        model_path (str): Path to the Pipesim model file.
+        system_variables (list): List of system variables to retrieve.
+        profile_variables (list): List of profile variables to retrieve.
+        node_results (Optional[pd.DataFrame]): DataFrame containing node simulation results.
+        profile_results (Optional[pd.DataFrame]): DataFrame containing profile simulation results.
     """
 
-    node_results: pd.DataFrame
-    profile_results: pd.DataFrame
-    system_variables: list
-    profile_variables: list
     NODE_RESULTS_FILE: str = "Node Results.xlsx"
     PROFILE_RESULTS_FILE: str = "Profile Results.xlsx"
 
     def __init__(
         self,
         model_path: str,
-        system_variables: Optional[list] = None,
-        profile_variables: Optional[list] = None,
+        system_variables: Optional[List[str]] = None,
+        profile_variables: Optional[List[str]] = None,
         unit: str = Units.METRIC,
     ) -> None:
         self.model_path = model_path
@@ -60,122 +58,100 @@ class NetworkSimulator:
             ProfileVariables.EROSIONAL_VELOCITY,
         ]
         self.unit = unit
+        self.node_results: Optional[pd.DataFrame] = None
+        self.profile_results: Optional[pd.DataFrame] = None
 
-    def run_simulation(self):
-        if len(self.model.tasks.networksimulation.validate()) > 0:
-            raise NetworkSimulationError("Model Validation Unsuccessful")
+    def run_simulation(self) -> None:
+        """Runs the network simulation using Pipesim."""
+        if not self.model.tasks.networksimulation.validate():
+            raise NetworkSimulationError("Model validation unsuccessful.")
 
         self.results = self.model.tasks.networksimulation.run(
             system_variables=self.system_variables,
             profile_variables=self.profile_variables,
         )
+        logger.info("Simulation completed successfully.")
 
-    def process_node_results(self):
-        if self.results is not None:
-            self.node_results = pd.DataFrame.from_dict(self.results.node)
+    def process_node_results(self) -> None:
+        """Processes the node results from the simulation."""
+        if not hasattr(self, "results") or self.results is None:
+            raise NetworkSimulationError("Simulation results not available.")
+
+        self.node_results = pd.DataFrame.from_dict(self.results.node)
 
         if self.node_results.empty:
-            raise NetworkSimulationError(
-                "Simulation run Unsuccessful."
-                "No results found. Check License availablity or model validity."
-            )
+            raise NetworkSimulationError("Simulation produced no node results.")
 
         self.node_results.reset_index(inplace=True)
         self.node_results.rename(columns={"index": "Node"}, inplace=True)
-        self.node_results[SystemVariables.TYPE] = [
-            (
+
+        self.node_results[SystemVariables.TYPE] = self.node_results["Node"].apply(
+            lambda well: (
                 self.boundary_conditions.loc["BoundaryNodeType", well]
                 if well in self.boundary_conditions.columns
                 else None
             )
-            for well in self.node_results["Node"]
-        ]
-        node_results_unit = self.node_results.iloc[0:1]
+        )
+
+        unit_row = self.node_results.iloc[:1]
         self.node_results = self.node_results.iloc[1:]
         self.node_results.sort_values(
             by=[SystemVariables.TYPE, "Node"], ascending=[False, True], inplace=True
         )
         self.node_results.dropna(subset=[SystemVariables.TYPE], inplace=True)
-        self.node_results = pd.concat([node_results_unit, self.node_results], axis=0)
+        self.node_results = pd.concat([unit_row, self.node_results], ignore_index=True)
 
-        logger.debug("Reordering columns")
-        cols = self.node_results.columns.tolist()
-        cols = cols[-1:] + cols[:-1]
-        self.node_results = self.node_results[cols]
+        cols = ["Node"] + [
+            col
+            for col in self.node_results.columns
+            if col not in ["Node", SystemVariables.TYPE]
+        ]
+        self.node_results = self.node_results[[cols[-1]] + cols[:-1]]
 
-        self.node_results.reset_index(drop=True, inplace=True)
-
-        logger.info("Node results processed successfully")
+        logger.info("Node results processed successfully.")
 
     def process_profile_results(self) -> None:
-        if self.results is None:
-            raise NetworkSimulationError("Simulation run Unsuccessful")
+        """Processes the profile results from the simulation."""
+        if not hasattr(self, "results") or self.results is None:
+            raise NetworkSimulationError("Simulation results not available.")
+
         units = pd.DataFrame(self.results.profile_units, index=["Units"])
         dfs = []
-        for branch in sorted(self.results.profile.keys()):
+
+        for branch, branch_data in sorted(self.results.profile.items()):
             try:
-                res = self.results.profile
-                branch_df: pd.DataFrame = pd.DataFrame.from_dict(res[branch])
-                branch_df.loc[:, "BranchEquipment"] = branch_df.loc[
-                    :, "BranchEquipment"
-                ].ffill()
-                df_unique = branch_df.drop_duplicates(
+                branch_df = pd.DataFrame.from_dict(branch_data)
+                branch_df["BranchEquipment"] = branch_df["BranchEquipment"].ffill()
+                unique_rows = branch_df.drop_duplicates(
                     subset=["BranchEquipment"], keep="last"
                 )
-                df_unique.insert(0, "Branch", branch)
-                dfs.append(df_unique)
-            except NetworkSimulationError:
-                logging.error(f"{branch}")
-        combined_df = pd.concat(dfs)
-        combined_df.sort_values(by=["Branch", "BranchEquipment"], inplace=True)
-        combined_df.reset_index(drop=True, inplace=True)
-        self.profile_results = pd.concat([units, combined_df], axis=0)
+                unique_rows.insert(0, "Branch", branch)
+                dfs.append(unique_rows)
+            except Exception as e:
+                logger.error(f"Error processing branch {branch}: {e}")
 
-        logger.debug("Reordering columns")
+        combined_df = pd.concat(dfs, ignore_index=True)
+        combined_df.sort_values(by=["Branch", "BranchEquipment"], inplace=True)
+        self.profile_results = pd.concat([units, combined_df], ignore_index=True)
+
         cols = ["Branch", "BranchEquipment"] + [
             col
             for col in self.profile_results.columns
             if col not in ["Branch", "BranchEquipment"]
         ]
         self.profile_results = self.profile_results[cols]
-        self.profile_results.reset_index(drop=True, inplace=True)
-        logger.info("Profile results processed successfully")
+        logger.info("Profile results processed successfully.")
 
-    # def convert_units(self, unit_conversion=True):
-    #     logger.info("Converting units.....")
-    #     if unit_conversion:
-    #         node_conversions = {
-    #             SystemVariables.PRESSURE: ("psia", "barg"),
-    #             SystemVariables.TEMPERATURE: ("degF", "degC"),
-    #         }
-    #         profile_conversions = {
-    #             ProfileVariables.PRESSURE: ("psia", "barg"),
-    #             ProfileVariables.TEMPERATURE: ("degF", "degC"),
-    #             ProfileVariables.PRESSURE_GRADIENT_FRICTION: ("psi/ft", "bar/100m"),
-    #             ProfileVariables.ELEVATION: ("ft", "m"),
-    #             ProfileVariables.MEAN_VELOCITY_FLUID: ("ft/s", "m/s"),
-    #             ProfileVariables.EROSIONAL_VELOCITY: ("ft/s", "m/s"),
-    #             ProfileVariables.TOTAL_DISTANCE: ("ft", "m"),
-    #             ProfileVariables.DENSITY_GAS_INSITU: ("lbm/ft3", "kg/m3"),
-    #             ProfileVariables.MASS_FLOWRATE_GAS_INSITU: ("lbm/s", "kg/s"),
-    #         }
+    def write_results_to_excel(self) -> None:
+        """Writes simulation results to Excel files."""
+        if self.node_results is None or self.profile_results is None:
+            raise NetworkSimulationError("Results are not available to write to Excel.")
 
-    #         self.node_results = UnitConversion.convert_units(
-    #             dataframe=self.node_results, conversions=node_conversions
-    #         )
-    #         self.profile_results = UnitConversion.convert_units(
-    #             dataframe=self.profile_results, conversions=profile_conversions
-    #         )
+        sheet_name = Path(self.model_path).stem[:31]
 
-    def write_results_to_excel(self):
-        sheet_name = Path(self.model_path).stem
-        if len(sheet_name) > 31:
-            sheet_name = sheet_name[:31]
-        node_results_sheet_name = sheet_name
-        profile_results_sheet_name = sheet_name
         ExcelHandler.write_excel(
             df=self.node_results,
-            sheet_name=node_results_sheet_name,
+            sheet_name=sheet_name,
             clear_sheet=True,
             sht_range="A2",
             workbook=self.NODE_RESULTS_FILE,
@@ -183,45 +159,36 @@ class NetworkSimulator:
 
         ExcelHandler.write_excel(
             df=self.profile_results,
-            sheet_name=profile_results_sheet_name,
+            sheet_name=sheet_name,
             clear_sheet=True,
             workbook=self.PROFILE_RESULTS_FILE,
         )
 
-        logger.info("Results written to excel")
+        logger.info("Results written to Excel successfully.")
 
-    def run_existing_model(
-        self,
-        unit_conversion=True,
-    ):
+    def run_existing_model(self) -> None:
+        """Runs an existing Pipesim model and processes results."""
         try:
             self.get_boundary_conditions()
             self.run_simulation()
             self.process_node_results()
             self.process_profile_results()
-            self.model.save()
-            self.model.close()
-            # self.convert_units(unit_conversion=unit_conversion)
             self.write_results_to_excel()
-
+            self.model.save()
         except Exception as e:
-            # logger.error(traceback.format_exc())
-            logger.error(e)
-            self.model.close()
+            logger.error(f"An error occurred: {e}")
             traceback.print_exc()
-            raise e
+        finally:
+            self.close_model()
 
     def get_boundary_conditions(self) -> None:
-        """
-        Retrieves all boundary conditions from the model and stores them in a DataFrame.
-
-        Stores the boundary conditions in the attribute 'boundary_conditions'.
-        """
-        logger.info("Getting boundary conditions.....")
-        self.boundary_conditions: pd.DataFrame = pd.DataFrame.from_dict(
+        """Retrieves boundary conditions from the Pipesim model."""
+        self.boundary_conditions = pd.DataFrame.from_dict(
             self.model.tasks.networksimulation.get_conditions()
         )
+        logger.info("Boundary conditions retrieved successfully.")
 
-    def close_model(self):
+    def close_model(self) -> None:
+        """Closes the Pipesim model to release resources."""
         self.model.close()
-        logger.info("------------Network Simulation Object Closed----------------\n")
+        logger.info("Network Simulation Object Closed.")

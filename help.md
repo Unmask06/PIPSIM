@@ -30,32 +30,30 @@ To create a model from scratch using an Excel file or populate an existing model
 
 - The Excel sheet should contain the component name in the first column and its type in the second column.
 
-   **Example:**
-```
-| Component Name | Type           |
-| ---------------| -------------- |
-| Src-101        | Source         |
-| 6-BFW-001      | Flowline       |
-| 6-BFW-002      | Flowline       |
-| P-101          | Pump           |
-| FV-101         | GenericEquipment |
-| J1             | Junction       |
-| Sk             | Sink           |
-```
+   | Name           | Component        | Name   | Component        |
+   | ---------------| ---------------- |--------|----------------- |
+   | Src-101        | Source           | Src-102| Source           |
+   | 6-BFW-001      | Flowline         | 6-BFW-002 | Flowline       |
+   | 6-BFW-002      | Flowline         | 6-BFW-003 | Flowline       |
+   | P-101          | Pump             | P-102  | Pump             |
+   | FV-101         | GenericEquipment | FV-102 | GenericEquipment |
+   | J1             | Junction         | J2     | Junction         |
+   | Sk             | Sink             | Sk2    | Sink             |
+
 
 ### **Populate Existing Model:**
 
 - The Excel sheet should contain the component name in the first column and the corresponding data in the subsequent columns.
 
    **Example:**
-   ```plaintext
-   Component Name   Length   Diameter   Roughness   Elevation
-   6-BFW-001        1000     0.5        0.0001      100
-   6-BFW-002        2000     0.6        0.0002      200
-   P-101            1000     0.5        0.0001      100
-   FV-101           2000     0.6        0.0002      200
-   ```
+   | Component Name | Length | Diameter | Roughness | Elevation |
+   | -------------- | ------ | -------- | --------- | --------- |
+   | 6-BFW-001      | 1000   | 0.5      | 0.0001    | 100       |
+   | 6-BFW-002      | 2000   | 0.6      | 0.0002    | 200       |
+   | P-101          | 1000   | 0.5      | 0.0001    | 100       |
+   | FV-101         | 2000   | 0.6      | 0.0002    | 200       |
 
+ - *Note* : Flowline parameters should be selected
 5. Click **"Submit"** to proceed.
 
 ---
