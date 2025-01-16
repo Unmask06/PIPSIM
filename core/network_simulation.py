@@ -132,11 +132,14 @@ class NetworkSimulator:
         self.profile_results = pd.concat([units, combined_df], axis=0)
 
         logger.debug("Reordering columns")
-        cols = self.profile_results.columns.tolist()
-        cols = cols[-2:] + cols[:-2]
+        cols = ["Branch", "BranchEquipment"] + [
+            col
+            for col in self.profile_results.columns
+            if col not in ["Branch", "BranchEquipment"]
+        ]
         self.profile_results = self.profile_results[cols]
         self.profile_results.reset_index(drop=True, inplace=True)
-        logger.info("Simulation run Successful")
+        logger.info("Profile results processed successfully")
 
     # def convert_units(self, unit_conversion=True):
     #     logger.info("Converting units.....")

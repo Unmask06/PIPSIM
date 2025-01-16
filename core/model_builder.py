@@ -52,7 +52,7 @@ class ModelBuilder:
     set_new_parameters: Set the new parameters for the components in the Pipsim model.
     """
 
-    section_list: List[List[PipsimComponents]]
+    section_list: List[List[PipsimComponents]] = []
 
     def __init__(
         self,
@@ -63,15 +63,16 @@ class ModelBuilder:
         units: str = Units.METRIC,
     ) -> None:
         self.model = Model.open(pipsim_file_path, units=units)
-        self.component_name = (
-            pd.DataFrame(component_name) if mode == "Scratch" else None
-        )
+        self.component_name = component_name if mode == "Scratch" else None
         self.component_data = (
-            pd.DataFrame(component_data).dropna(subset=["Name", "Component"])
-            if mode == "Populate"
+            component_data.dropna(subset=["Name", "Component"])
+            if mode == "Populate" and component_data is not None
             else None
         )
         self.mode = mode
+
+        if mode == "Populate" and self.component_data is None:
+            logger.warning("Component data is None, but mode is 'Populate'.")
 
     def main(self) -> None:
         """Main method to create the Pipsim model from the input data."""
@@ -88,8 +89,12 @@ class ModelBuilder:
             logger.info("Pipsim model updated with new parameters")
 
     def _check_component_data(self) -> None:
+        if self.component_data is None:
+            raise ValueError(
+                "component_data is not set. Ensure mode is 'Populate' and data is provided."
+            )
         if self.component_data.empty:
-            raise ValueError("Component data is empty")
+            raise ValueError("Component data is empty.")
 
     def create_model(self) -> None:
         """Main method to create the Pipsim model from the input data."""
@@ -100,13 +105,26 @@ class ModelBuilder:
         logger.info("Pipsim model created")
 
     def set_new_parameters(self) -> None:
-        """Main method to set the new parameters for the components in the Pipsim model."""
+        """Set new parameters for components in the Pipsim model."""
+        if self.component_data is None:
+            raise ValueError("component_data is None. Cannot set new parameters.")
+
         for component in self.component_data["Component"].unique():
-            self.model.set_values(dict=self._get_new_parameters(component))
+            new_parameters = self._get_new_parameters(component)
+            if not new_parameters:
+                logger.warning(
+                    f"No new parameters found for component {component}. Skipping."
+                )
+                continue
+
+            self.model.set_values(dict=new_parameters)
             logger.info(f"New parameters set for component - {component}")
 
     def set_flowline_elevations(self) -> None:
         """Main method to set the elevations for the flowlines in the Pipsim model."""
+        if self.component_data is None:
+            raise ValueError("component_data is None. Cannot set flowline elevations.")
+
         flowlines_xl = self.component_data[
             self.component_data["Component"] == ModelComponents.FLOWLINE
         ]["Name"]
@@ -123,19 +141,28 @@ class ModelBuilder:
         self, df: pd.DataFrame, section_number: int, loop_column: str, type_column: str
     ) -> pd.DataFrame:
         """
-        Inserts junctions between consecutive flowlines in a DataFrame,
-        and at the beginning/end if needed.
-        """
-        new_rows = []
-        previous_row = None
-        j_counter = 1
+        Insert junctions between flowlines for a specific section.
 
+        Args:
+            df (pd.DataFrame): Input data for the section.
+            section_number (int): Section identifier.
+            loop_column (str): Column for loop names.
+            type_column (str): Column for component types.
+
+        Returns:
+            pd.DataFrame: Updated DataFrame with junctions added.
+        """
         if df.empty:
+            logger.warning("Input DataFrame is empty; no junctions added.")
             return df
 
+        new_rows = []
+        j_counter = 1
+
         for index, row in df.iterrows():
+            row_data = row.to_dict()
             if index == 0 and row[type_column] == "Flowline":
-                # Check and add a junction at the beginning if the first row is a Flowline
+                # Junction at the beginning
                 new_rows.append(
                     {
                         loop_column: f"LJ({section_number}_{j_counter})",
@@ -143,13 +170,15 @@ class ModelBuilder:
                     }
                 )
                 j_counter += 1
+
+            new_rows.append(row_data)
 
             if (
-                previous_row is not None
-                and previous_row[type_column] == "Flowline"  # pylint: disable=E1136
+                int(index) > 0
+                and df.iloc[index - 1][type_column] == "Flowline"
                 and row[type_column] == "Flowline"
             ):
-                # Insert Junction immediately after the first Flowline row
+                # Junction between consecutive flowlines
                 new_rows.append(
                     {
                         loop_column: f"LJ({section_number}_{j_counter})",
@@ -158,11 +187,8 @@ class ModelBuilder:
                 )
                 j_counter += 1
 
-            new_rows.append(row.to_dict())
-            previous_row = row.to_dict()  # Update the previous row
-
+        # Junction at the end
         if df.iloc[-1][type_column] == "Flowline":
-            # Check and add a junction at the end if the last row is a Flowline
             new_rows.append(
                 {
                     loop_column: f"LJ({section_number}_{j_counter})",
@@ -174,6 +200,11 @@ class ModelBuilder:
 
     def _set_flowline_elevation(self, flowline: str):
         try:
+            if self.component_data is None:
+                raise ValueError(
+                    "component_data is None. Cannot set flowline elevation."
+                )
+
             dff = self.component_data.loc[
                 self.component_data["Name"] == flowline,
                 ["Start Elevation", "End Elevation", "Measured Distance"],
@@ -194,32 +225,41 @@ class ModelBuilder:
         except KeyError as ke:
             logger.error(f"KeyError: {ke}")
 
-    def _get_new_parameters(self, component: str) -> dict:
-        """Get the new parameters for a component from the isometric data."""
+    def _get_new_parameters(self, component: str) -> Optional[dict]:
+        """Get new parameters for a component from isometric data."""
+        if self.component_data is None:
+            logger.error("component_data is None. Cannot retrieve parameters.")
+            return None
+
         component_names = list(self.model.get_values(component=component).keys())
         filtered_isometric_data = self.component_data[
             (self.component_data["Component"] == component)
             & self.component_data["Name"].isin(component_names)
         ]
+
+        if filtered_isometric_data.empty:
+            logger.warning(
+                f"No matching isometric data found for component {component}."
+            )
+            return None
+
         extra_names = set(filtered_isometric_data["Name"]) - set(component_names)
         if extra_names:
             logger.error(
                 f"Extra names in isometric data for component {component}: {extra_names}"
-            )
-        extra_names = set(component_names) - set(
-            self.component_data[self.component_data["Component"] == component]["Name"]
-        )
-        if extra_names:
-            logger.error(
-                f"Missing names in isometric data for component {component}: {extra_names}"
             )
 
         available_parameters = set(
             pd.DataFrame(self.model.get_values(component=component)).index
         )
         required_parameters = available_parameters.intersection(
-            set(filtered_isometric_data.columns)
+            filtered_isometric_data.columns
         )
+
+        if not required_parameters:
+            logger.warning(f"No matching parameters found for component {component}.")
+            return None
+
         return (
             filtered_isometric_data[list(required_parameters)]
             .set_index("Name")
@@ -231,7 +271,11 @@ class ModelBuilder:
         Generates a List[List[PipsimComponents]]
         - where each inner list contains adjacent components in the data
         """
-        self.section_list: List[List[PipsimComponents]] = []
+        self.section_list = []
+        if self.component_name is None:
+            logger.error("component_name is None. Cannot create section components.")
+            return
+
         columns = self.component_name.columns
         for i in range(0, len(columns), 2):
             adjacent_columns = columns[i : i + 2]

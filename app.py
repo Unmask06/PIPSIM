@@ -6,7 +6,7 @@ import logging
 import logging.config
 import sys
 import tkinter as tk
-import traceback
+# import traceback
 from tkinter import messagebox
 
 import yaml
@@ -70,7 +70,7 @@ def check_access(app: tk.Tk, trail=True):  #! trail=False in production
         try:
             response_json = response.json()
             status = response_json.get("status")
-        except Exception:
+        except ValueError:
             status = "error"
 
     if status == "OK":
