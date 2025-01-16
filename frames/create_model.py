@@ -6,13 +6,12 @@ Generate the create_model frame for the application.
 import logging
 import tkinter as tk
 from tkinter import messagebox
-
 import pandas as pd
 from sixgill.definitions import ModelComponents, Parameters
-
 from core.model_builder import ModelBuilder, create_component_name_df
 from project import FRAME_STORE, browse_folder_or_file, get_string_values_from_class
 from widgets.dual_combo_box import DualSelectableCombobox
+from core.excel_handling import ExcelHandler
 
 logger_cm = logging.getLogger("core.model_builder")
 
@@ -21,6 +20,7 @@ def submit_create_model(
     pipesim_file_path: str,
     excel_file_path: str,
     sheet_name: str,
+    selected_parameters: list,
 ):
     logger_cm.info("Creating model from scratch")
     component_name = create_component_name_df(
@@ -33,6 +33,7 @@ def submit_create_model(
         mode="Scratch",
     )
     mb.main()
+    create_excel_with_selected_parameters(excel_file_path, selected_parameters)
     messagebox.showinfo("Success", "Model created successfully")
 
 
@@ -40,6 +41,7 @@ def submit_populate_model(
     pipesim_file_path: str,
     excel_file_path: str,
     sheet_name: str,
+    selected_parameters: list,
 ):
     component_name = create_component_name_df(
         excel_file_path,
@@ -51,6 +53,7 @@ def submit_populate_model(
         mode="Populate",
     )
     mb.main()
+    create_excel_with_selected_parameters(excel_file_path, selected_parameters)
     logger_cm.info("Model Information populated successfully")
     messagebox.showinfo("Success", "Model Information populated successfully")
 
@@ -98,9 +101,17 @@ def open_flowline_parameters(parent):
         values=get_string_values_from_class(
             [Parameters.Flowline, Parameters.FlowlineGeometry]
         ),
-        mode="single",
+        mode="dual",
     )
     parent.wait_window(combobox)
+    selected_parameters = combobox.confirm_selection()
+    create_excel_with_selected_parameters("output.xlsx", selected_parameters)
+
+
+def create_excel_with_selected_parameters(file_path, selected_parameters):
+    columns = ["Name", "Component"] + selected_parameters
+    df = pd.DataFrame(columns=columns)
+    ExcelHandler.write_excel(df, file_path, "Selected Parameters")
 
 
 def init_create_model_frame(app: tk.Tk) -> tk.Frame:  # pylint: disable=R0914
@@ -197,17 +208,20 @@ def init_create_model_frame(app: tk.Tk) -> tk.Frame:  # pylint: disable=R0914
 
     # Submit button
     def on_submit():
+        selected_parameters = open_flowline_parameters(app)
         if model_option_var.get() == "Scratch":
             submit_create_model(
                 ps_file_entry.get(),
                 excel_file_entry.get(),
                 sheet_name_var.get(),
+                selected_parameters,
             )
         else:
             submit_populate_model(
                 ps_file_entry.get(),
                 excel_file_entry.get(),
                 sheet_name_var.get(),
+                selected_parameters,
             )
 
     submit_button = tk.Button(
