@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Dict, List
 
+from sixgill.definitions import Parameters
+
 
 class DualCascadeListBox(tk.Toplevel):
     """
@@ -12,16 +14,16 @@ class DualCascadeListBox(tk.Toplevel):
     def __init__(
         self,
         parent: tk.Tk,
-        parent_list: List[str],
+        title: str,
         child_mapping: Dict[str, List[str]],
     ):
         super().__init__(parent)
-        self.title("Dual Cascade ListBox")
+        self.title(title)
         self.geometry("400x300")
-        self.parent_list = parent_list
+        self.parent_list = child_mapping.keys()
         self.child_mapping = child_mapping
 
-        self.filtered_parents = parent_list[:]
+        self.filtered_parents = self.parent_list
         self.filtered_children: List[str] = []
 
         self.parent_search_var = tk.StringVar()
@@ -34,7 +36,6 @@ class DualCascadeListBox(tk.Toplevel):
 
         self.build_ui()
         self.protocol("WM_DELETE_WINDOW", self.close_window)
-        self.transient(parent)
         self.grab_set()
 
     def build_ui(self):
@@ -58,7 +59,6 @@ class DualCascadeListBox(tk.Toplevel):
         self.parent_listbox.configure(yscrollcommand=parent_scrollbar.set)
         parent_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Remove parent_copy_button
         # Child List UI
         child_frame = ttk.Frame(self)
         child_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -76,9 +76,12 @@ class DualCascadeListBox(tk.Toplevel):
         self.child_listbox.configure(yscrollcommand=child_scrollbar.set)
         child_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Remove child_copy_button
-        self.create_context_menu_for_listbox(self.parent_listbox, self.copy_parent_selection)
-        self.create_context_menu_for_listbox(self.child_listbox, self.copy_child_selection)
+        self.create_context_menu_for_listbox(
+            self.parent_listbox, self.copy_parent_selection
+        )
+        self.create_context_menu_for_listbox(
+            self.child_listbox, self.copy_child_selection
+        )
         self.parent_listbox.bind("<Control-c>", lambda e: self.copy_parent_selection())
         self.child_listbox.bind("<Control-c>", lambda e: self.copy_child_selection())
 
@@ -90,6 +93,7 @@ class DualCascadeListBox(tk.Toplevel):
 
         def show_menu(event):
             menu.tk_popup(event.x_root, event.y_root)
+
         listbox.bind("<Button-3>", show_menu)
 
     def populate_parent_list(self):
@@ -144,10 +148,17 @@ class DualCascadeListBox(tk.Toplevel):
 
 if __name__ == "__main__":
     root = tk.Tk()
-    parent_list = ["Flowline", "Pump"]
-    child_mapping = {
-        "Flowline": ["Length", "Diameter", "Material"],
-        "Pump": ["Flow Rate", "Head", "Efficiency"],
-    }
-    dual_cascade_listbox = DualCascadeListBox(root, parent_list, child_mapping)
+    root.title("Main Application")
+    root.geometry("300x200")
+
+    def open_dual_cascade_listbox():
+        DualCascadeListBox(
+            root, "Dual Cascade Listbox", generate_dict_from_class(Parameters)
+        )
+
+    open_button = ttk.Button(
+        root, text="Open Dual Cascade ListBox", command=open_dual_cascade_listbox
+    )
+    open_button.pack(pady=20)
+
     root.mainloop()

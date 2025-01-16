@@ -12,8 +12,13 @@ from sixgill.definitions import ModelComponents, Parameters
 
 from core.excel_handling import ExcelHandler
 from core.model_builder import ModelBuilder, create_component_name_df
-from project import FRAME_STORE, browse_folder_or_file, get_string_values_from_class
-from widgets.dual_combo_box import DualSelectableCombobox
+from project import (
+    FRAME_STORE,
+    browse_folder_or_file,
+    generate_dict_from_class,
+    get_string_values_from_class,
+)
+from widgets import DualCascadeListBox, DualSelectableCombobox
 
 logger = logging.getLogger("core.model_builder")
 
@@ -175,13 +180,20 @@ def browse_and_update_optionmenu(
 
 
 def open_component_list(parent: tk.Tk) -> None:
-    combobox = DualSelectableCombobox(
+    # combobox = DualSelectableCombobox(
+    #     parent,
+    #     title="Refer the list of available components",
+    #     values=get_string_values_from_class(ModelComponents),
+    #     mode="single",
+    # )
+    # parent.wait_window(combobox)
+
+    cascade_box = DualCascadeListBox(
         parent,
-        title="Refer the list of available components",
-        values=get_string_values_from_class(ModelComponents),
-        mode="single",
+        title="Refer the list of available parameters",
+        child_mapping=generate_dict_from_class(Parameters),
     )
-    parent.wait_window(combobox)
+    parent.wait_window(cascade_box)
 
 
 def open_flowline_parameters(parent: tk.Tk) -> None:

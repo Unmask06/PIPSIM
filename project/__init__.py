@@ -2,6 +2,7 @@ import logging
 import logging.config
 import tkinter as tk
 from tkinter import filedialog
+from typing import Dict, List
 
 import yaml
 
@@ -44,11 +45,13 @@ def setup_logger():
 
 def get_string_values_from_class(*class_names: type | list[type]) -> list:
     def extract_string_values(class_group):
-        return [
-            value
-            for key, value in class_group.__dict__.items()
-            if not key.startswith("__") and isinstance(value, str)
-        ]
+        return sorted(
+            [
+                value
+                for key, value in class_group.__dict__.items()
+                if not key.startswith("__") and isinstance(value, str)
+            ]
+        )
 
     combined_values = []
     for class_group in class_names:
@@ -58,3 +61,32 @@ def get_string_values_from_class(*class_names: type | list[type]) -> list:
         else:
             combined_values.extend(extract_string_values(class_group))
     return combined_values
+
+
+def get_class_by_name(abstract_class: type, class_name: str) -> type:
+    """
+    Dynamically retrieves a class from the Parameters module by its name.
+    """
+    try:
+        # Dynamically get the class from Parameters
+        class_object = getattr(abstract_class, class_name)
+        return class_object
+    except AttributeError:
+        raise ValueError(f"Class '{class_name}' not found in Parameters.")
+
+
+def generate_dict_from_class(class_name: type) -> Dict[str, List[str]]:
+    """
+    Generates a dictionary from a class with string attributes.
+    """
+
+    def is_valid_component(component):
+        return not component.startswith("__")
+
+    components = sorted(filter(is_valid_component, class_name.__dict__.keys()))
+    return {
+        component: get_string_values_from_class(
+            get_class_by_name(class_name, component)
+        )
+        for component in components
+    }
