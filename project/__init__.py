@@ -90,3 +90,17 @@ def generate_dict_from_class(class_name: type) -> Dict[str, List[str]]:
         )
         for component in components
     }
+
+
+def update_optionmenu(option_menu: tk.OptionMenu, variable: tk.StringVar, excel_file_path: str) -> None:
+    try:
+        sheets = pd.ExcelFile(excel_file_path).sheet_names
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to read Excel file: {e}")
+        return
+
+    menu = option_menu["menu"]
+    menu.delete(0, "end")
+    for sheet in sheets:
+        menu.add_command(label=sheet, command=lambda v=sheet: variable.set(v))
+    variable.set(sheets[0] if sheets else "No sheets available")
