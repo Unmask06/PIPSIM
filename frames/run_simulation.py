@@ -139,7 +139,7 @@ def init_run_simulation_frame(app):
     )
     system_vars_add_button.pack(pady=5)
 
-    # Unit OptionMenu
+    # Center Frame
     center_frame = tk.Frame(variables_frame)
     center_frame.grid(row=0, column=1, padx=10, pady=10, sticky="n")
     unit_label = tk.Label(center_frame, text="Select Unit")
@@ -202,38 +202,5 @@ def init_run_simulation_frame(app):
         ),
     )
     profile_vars_add_button.pack(pady=5)
-
-    # Save, Load, and Run buttons frame
-    buttons_frame = tk.Frame(run_simulation_frame)
-    buttons_frame.pack(pady=10)
-
-    save_button = tk.Button(
-        buttons_frame,
-        text="Save Selections",
-        command=lambda: save_selections(
-            list(system_vars_listbox.get(0, tk.END)),
-            list(profile_vars_listbox.get(0, tk.END)),
-        ),
-    )
-    save_button.grid(row=0, column=0, padx=5)
-
-    load_button = tk.Button(
-        buttons_frame,
-        text="Load Selections",
-        command=lambda: load_selections(system_vars_listbox, profile_vars_listbox),
-    )
-    load_button.grid(row=0, column=1, padx=5)
-
-    run_button_rs = tk.Button(
-        buttons_frame,
-        text="Run Simulations",
-        command=lambda: run_simulation(
-            folder_entry_rs.get(),
-            list(system_vars_listbox.get(0, tk.END)),
-            list(profile_vars_listbox.get(0, tk.END)),
-            unit_var.get(),
-        ),
-    )
-    run_button_rs.grid(row=0, column=2, padx=5)
 
     return run_simulation_frame
