@@ -2,8 +2,6 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Dict, List
 
-from sixgill.definitions import Parameters
-
 
 class DualCascadeListBox(tk.Toplevel):
     """

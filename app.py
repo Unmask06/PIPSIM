@@ -6,6 +6,7 @@ import logging
 import logging.config
 import sys
 import tkinter as tk
+
 # import traceback
 from tkinter import messagebox
 
@@ -15,6 +16,7 @@ from config import fetch_response
 from frames import (
     init_create_model_frame,
     init_home_frame,
+    init_multi_case_frame,
     init_run_simulation_frame,
     init_summarize_frame,
     init_update_conditions_frame,
@@ -125,6 +127,7 @@ def main():
     init_update_conditions_frame(app)
     init_run_simulation_frame(app)
     init_summarize_frame(app)
+    init_multi_case_frame(app)
 
     # Check access
     check_access(app)

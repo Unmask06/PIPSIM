@@ -17,6 +17,7 @@ from project import (
     browse_folder_or_file,
     generate_dict_from_class,
     get_string_values_from_class,
+    update_optionmenu_with_excelsheets,
 )
 from widgets import DualCascadeListBox, DualSelectableCombobox
 
@@ -151,43 +152,16 @@ def submit_populate_model(
     messagebox.showinfo("Success", "Model Information populated successfully")
 
 
-def get_sheet_names(file_path: str) -> list[str]:
-    try:
-        return pd.ExcelFile(file_path).sheet_names
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to read Excel file: {e}")
-        return []
-
-
-def update_optionmenu(
-    option_menu: tk.OptionMenu, variable: tk.StringVar, excel_file_path: str
-) -> None:
-    sheets = get_sheet_names(excel_file_path)
-    menu = option_menu["menu"]
-    menu.delete(0, "end")
-    for sheet in sheets:
-        menu.add_command(label=sheet, command=lambda v=sheet: variable.set(v))
-    variable.set(sheets[0] if sheets else "No sheets available")
-
-
 def browse_and_update_optionmenu(
     entry_widget: tk.Entry, option_menu: tk.OptionMenu, variable: tk.StringVar
 ) -> None:
     file_path = browse_folder_or_file(
         entry_widget, file_types=[("Excel Files", "*.xlsx *.xls")]
     )
-    update_optionmenu(option_menu, variable, file_path)
+    update_optionmenu_with_excelsheets(option_menu, variable, file_path)
 
 
 def open_component_list(parent: tk.Tk) -> None:
-    # combobox = DualSelectableCombobox(
-    #     parent,
-    #     title="Refer the list of available components",
-    #     values=get_string_values_from_class(ModelComponents),
-    #     mode="single",
-    # )
-    # parent.wait_window(combobox)
-
     cascade_box = DualCascadeListBox(
         parent,
         title="Refer the list of available parameters",

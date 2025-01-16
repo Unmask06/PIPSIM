@@ -1,11 +1,17 @@
 import logging
 import tkinter as tk
+import webbrowser
 from tkinter import messagebox
+from typing import Callable
 
 import pandas as pd
 
 from core.excel_handling import ExcelHandler
-from project import FRAME_STORE, browse_folder_or_file, update_optionmenu
+from project import (
+    FRAME_STORE,
+    browse_folder_or_file,
+    update_optionmenu_with_excelsheets,
+)
 
 logger = logging.getLogger("multi_case")
 
@@ -21,13 +27,26 @@ def create_title_frame(parent) -> tk.Frame:
 def create_help_frame(parent) -> tk.Frame:
     frame = tk.Frame(parent)
     frame.pack(pady=5)
-    help_text = """ This workflow handles multiple cases using an Excel file, sheet names for well profile data and different conditions, and a base pip file."""
+    help_text = """ 
+    Read the documentation to understand how to use the multi-case workflow.
+    """
+
+    def open_documentation():
+        webbrowser.open("https://sv03919.res1.rlaone.net/")
+
+    help_button = tk.Button(
+        frame, text="Open Documentation", command=open_documentation
+    )
+
     help_label = tk.Label(frame, text=help_text, font=("Arial", 10, "italic"))
-    help_label.pack()
+    help_label.pack(side=tk.LEFT)
+    help_button.pack(side=tk.LEFT, padx=10)
     return frame
 
 
-def create_file_input_frame(parent, label_text: str, browse_command) -> tuple[tk.Frame, tk.Entry]:
+def create_file_input_frame(
+    parent, label_text: str, browse_command: Callable
+) -> tuple[tk.Frame, tk.Entry]:
     frame = tk.Frame(parent)
     frame.pack(pady=5)
     label = tk.Label(frame, text=label_text)
@@ -39,9 +58,13 @@ def create_file_input_frame(parent, label_text: str, browse_command) -> tuple[tk
     return frame, entry
 
 
-def create_option_menu_frame(parent, variable: tk.StringVar) -> tuple[tk.Frame, tk.OptionMenu]:
+def create_option_menu_frame(
+    parent, variable: tk.StringVar, label_text: str = "Label"
+) -> tuple[tk.Frame, tk.OptionMenu]:
     frame = tk.Frame(parent)
     frame.pack(pady=5)
+    label = tk.Label(frame, text=label_text)
+    label.pack()
     option_menu = tk.OptionMenu(frame, variable, "Select Sheet Name")
     option_menu.pack()
     return frame, option_menu
@@ -55,7 +78,22 @@ def create_submit_button_frame(parent, command) -> tk.Frame:
     return frame
 
 
-def submit_multi_case_workflow(excel_file_path: str, well_profile_sheet: str, conditions_sheet: str, base_pip_file: str) -> None:
+def browse_and_update_optionmenu(entry_widget, option_menus: list, variables: list):
+    path = browse_folder_or_file(entry_widget)
+    if path:
+        # update_optionmenu_with_excelsheets(option_menu, variable, excel_file_path=path)
+        for option_menu, variable in zip(option_menus, variables):
+            update_optionmenu_with_excelsheets(
+                option_menu, variable, excel_file_path=path
+            )
+
+
+def submit_multi_case_workflow(
+    excel_file_path: str,
+    well_profile_sheet: str,
+    conditions_sheet: str,
+    base_pip_file: str,
+) -> None:
     logger.info("Handling multi-case workflow")
     # Implement the logic for handling the multi-case workflow here
     messagebox.showinfo("Success", "Multi-case workflow handled successfully")
@@ -73,24 +111,35 @@ def init_multi_case_frame(app: tk.Tk) -> tk.Frame:
         multi_case_frame,
         "Excel File",
         lambda: browse_and_update_optionmenu(
-            excel_file_entry, well_profile_sheet_dropdown, well_profile_sheet_var
+            excel_file_entry,
+            [well_profile_sheet_dropdown, conditions_sheet_dropdown],
+            [well_profile_sheet_var, conditions_sheet_var],
         ),
     )
 
     well_profile_sheet_var = tk.StringVar()
     well_profile_sheet_var.set("Select Sheet Name")
+    sheet_frames = tk.Frame(multi_case_frame)
+    sheet_frames.pack(pady=5)
+
+    well_profile_sheet_var = tk.StringVar()
+    well_profile_sheet_var.set("Select Sheet Name")
     well_profile_sheet_frame, well_profile_sheet_dropdown = create_option_menu_frame(
-        multi_case_frame, well_profile_sheet_var
+        sheet_frames, well_profile_sheet_var, "Well Profile Sheet Name"
     )
+    well_profile_sheet_frame.pack(side=tk.LEFT, padx=10)
 
     conditions_sheet_var = tk.StringVar()
     conditions_sheet_var.set("Select Sheet Name")
     conditions_sheet_frame, conditions_sheet_dropdown = create_option_menu_frame(
-        multi_case_frame, conditions_sheet_var
+        sheet_frames, conditions_sheet_var, "Conditions Sheet Name"
     )
+    conditions_sheet_frame.pack(side=tk.LEFT, padx=10)
 
     base_pip_frame, base_pip_file_entry = create_file_input_frame(
-        multi_case_frame, "Base Pip File", lambda: browse_folder_or_file(base_pip_file_entry)
+        multi_case_frame,
+        "Base Pip File",
+        lambda: browse_folder_or_file(base_pip_file_entry),
     )
 
     def on_submit() -> None:

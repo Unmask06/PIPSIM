@@ -1,17 +1,11 @@
-# Creating a Model Workflow
+# PANDORA - Pipesim Automation Tool Documentation
 
 ## **Table of Contents**
 1. [Creating a Model Workflow](#creating-a-model-workflow)
-   - [Steps](#steps)
-   - [Build Model from Scratch](#build-model-from-scratch)
-   - [Populate Existing Model](#populate-existing-model)
 2. [Running Simulations Workflow](#running-simulations-workflow)
-   - [Steps](#steps-1)
-3. [Summarizing Results Workflow](#summarizing-results-workflow)
-   - [Steps](#steps-2)
-4. [Updating Conditions Workflow](#updating-conditions-workflow)
-   - [Steps](#steps-3)
-5. [Available Features](#available-features)
+3. [Multi-Case Simulation Workflow](#multi-case-simulation-workflow)
+4. [Summarizing Results Workflow](#summarizing-results-workflow)
+5. [Updating Conditions Workflow](#updating-conditions-workflow)
 
 ---
 
@@ -92,6 +86,42 @@ To run simulations for all `.pips` files in a specified folder, follow these ste
 
 ---
 
+# Multi-Case Simulation Workflow
+
+To run multiple simulation cases and compare their results, follow these steps:
+
+## **Steps:**
+
+1. **Open the application.**
+2. Navigate to the **"Multi-Case Simulation Workflow"** section.
+3. Select the **Excel file** containing the well profiles and conditions.
+4. Select the **appropriate sheets** for well profiles and conditions from the dropdown menus.
+5. Select the **base Pipesim file**.
+6. Click **"Submit"** to start the process.
+
+## **Input Required:**
+- **Excel file** with well profiles and conditions
+- **Well Profile Sheet Name**
+- **Conditions Sheet Name**
+- **Base Pipesim file**
+
+## **Naming Convention:**
+- Keep the base Pipesim file name short, e.g., `base.pips`.
+- Column names for well profiles and conditions in the Excel file **should not contain underscores (_)**.
+  - Example Well Profile columns: `Overall-max`, `MinFlowRate`, `MaxFlowRate`
+  - Example Conditions columns: `S-HP` (abbrevation for Summer High Pressure), `S-HP-EO` (for Summer High Pressure Early Operations)
+- Ensure well profile and conditions column names are unique and short to avoid long output file names.
+- Output file naming convention: `<base_pip_file_name>_<well_profile_name>_<conditions_name>.pips`
+  - Example output file name: `Overall-max_S-HP_base.pips`
+
+## **License Requirement:**
+- Only Python Toolkit licenses required
+
+## **Expected Runtime:**
+- Approximately 5-10 minutes per case, depending on the model size
+
+---
+
 # Summarizing Results Workflow
 
 To summarize the results of the model Node and Profile Results, follow these steps:
@@ -135,15 +165,6 @@ To copy the flowline data from a source model to all the models in a folder, fol
 ## **Expected Runtime:**
 - Heavily time-consuming process.
 - Approximately 50 seconds to copy data for one flowline.
-
----
-
-# Available Features
-
-- **Create Model Workflow**
-- **Run Simulation Workflow**
-- **Summarize Data**
-- **Update Conditions Workflow**
 
 ---
 

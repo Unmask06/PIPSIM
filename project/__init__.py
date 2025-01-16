@@ -1,9 +1,10 @@
 import logging
 import logging.config
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from typing import Dict, List
 
+import pandas as pd
 import yaml
 
 FRAME_STORE: dict[str, tk.Frame] = {}
@@ -92,7 +93,23 @@ def generate_dict_from_class(class_name: type) -> Dict[str, List[str]]:
     }
 
 
-def update_optionmenu(option_menu: tk.OptionMenu, variable: tk.StringVar, excel_file_path: str) -> None:
+def update_optionmenu_with_excelsheets(
+    option_menu: tk.OptionMenu, variable: tk.StringVar, excel_file_path: str
+) -> None:
+    """
+    Updates the given Tkinter OptionMenu with the sheet names from the specified Excel file.
+
+    Args:
+        option_menu (tk.OptionMenu): The OptionMenu widget to update.
+        variable (tk.StringVar): The Tkinter StringVar associated with the OptionMenu.
+        excel_file_path (str): The file path to the Excel file.
+
+    Returns:
+        None
+
+    Raises:
+        None. Displays an error message using messagebox.showerror if the Excel file cannot be read.
+    """
     try:
         sheets = pd.ExcelFile(excel_file_path).sheet_names
     except Exception as e:
@@ -103,4 +120,4 @@ def update_optionmenu(option_menu: tk.OptionMenu, variable: tk.StringVar, excel_
     menu.delete(0, "end")
     for sheet in sheets:
         menu.add_command(label=sheet, command=lambda v=sheet: variable.set(v))
-    variable.set(sheets[0] if sheets else "No sheets available")
+    variable.set(str(sheets[0]) if sheets else "No sheets available")
