@@ -37,11 +37,7 @@ handlers:
     formatter: simulation_formatter
     stream: ext://sys.stdout
 loggers:
-  core.simulation_modeller:
-    level: DEBUG
-    handlers: [console_simulation]
-    propagate: false
-  core.network_simulation:
+  core:
     level: DEBUG
     handlers: [console_simulation]
     propagate: false

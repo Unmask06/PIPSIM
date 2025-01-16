@@ -18,16 +18,111 @@ from widgets.dual_combo_box import DualSelectableCombobox
 logger = logging.getLogger("core.model_builder")
 
 
+############################################
+# LAYOUT FUNCTIONS
+############################################
+
+
+def create_title_frame(parent) -> tk.Frame:
+    frame = tk.Frame(parent)
+    frame.pack(pady=10)
+    create_label = tk.Label(frame, text="Create Model Workflow", font=("Arial", 14))
+    create_label.pack()
+    return frame
+
+
+def create_help_frame(parent) -> tk.Frame:
+    frame = tk.Frame(parent)
+    frame.pack(pady=5)
+    help_text = """ This workflow creates a model from scratch using the Excel file or
+    populates an existing model with data from the Excel file."""
+    help_label = tk.Label(frame, text=help_text, font=("Arial", 10, "italic"))
+    help_label.pack()
+    return frame
+
+
+def create_file_input_frame(
+    parent, label_text: str, browse_command
+) -> tuple[tk.Frame, tk.Entry]:
+    frame = tk.Frame(parent)
+    frame.pack(pady=5)
+    label = tk.Label(frame, text=label_text)
+    label.pack()
+    entry = tk.Entry(frame, width=75)
+    entry.pack(side=tk.LEFT)
+    browse_button = tk.Button(frame, text="Browse", command=browse_command)
+    browse_button.pack(padx=5, side=tk.LEFT)
+    return frame, entry
+
+
+def create_option_menu_frame(
+    parent, variable: tk.StringVar
+) -> tuple[tk.Frame, tk.OptionMenu]:
+    frame = tk.Frame(parent)
+    frame.pack(pady=5)
+    option_menu = tk.OptionMenu(frame, variable, "Select Sheet Name")
+    option_menu.pack()
+    return frame, option_menu
+
+
+def create_radio_buttons_frame(
+    parent, options: dict, variable: tk.StringVar, app: tk.Tk
+) -> tk.Frame:
+    frame = tk.Frame(parent)
+    frame.pack(pady=5)
+
+    for option, description in options.items():
+
+        if option == "Scratch":
+            scratch_frame = tk.Frame(frame)
+            scratch_frame.pack(pady=10)
+            radio_button = tk.Radiobutton(
+                scratch_frame, text=description, variable=variable, value=option
+            )
+            radio_button.grid(row=0, column=0, padx=5, pady=5)
+
+            btn_open_component_list = tk.Button(
+                scratch_frame,
+                text="Refer the list of available components",
+                command=lambda: open_component_list(app),
+            )
+            btn_open_component_list.grid(row=0, column=1, padx=5, pady=5)
+
+        elif option == "Populate":
+            populate_frame = tk.Frame(frame)
+            populate_frame.pack(pady=10)
+            radio_button = tk.Radiobutton(
+                populate_frame, text=description, variable=variable, value=option
+            )
+            radio_button.grid(row=1, column=0, padx=5, pady=5)
+
+            btn_open_flowline_parameters = tk.Button(
+                populate_frame,
+                text="Create Excel with flowline parameters",
+                command=lambda: open_flowline_parameters(app),
+            )
+            btn_open_flowline_parameters.grid(row=1, column=1, padx=5, pady=5)
+    return frame
+
+
+def create_submit_button_frame(parent, command) -> tk.Frame:
+    frame = tk.Frame(parent)
+    frame.pack(pady=10)
+    submit_button = tk.Button(frame, text="Submit", command=command)
+    submit_button.pack()
+    return frame
+
+
+############################################
+# CALLBACK FUNCTIONS
+############################################
+
+
 def submit_create_model(
-    pipesim_file_path: str,
-    excel_file_path: str,
-    sheet_name: str,
-):
+    pipesim_file_path: str, excel_file_path: str, sheet_name: str
+) -> None:
     logger.info("Creating model from scratch")
-    component_name = create_component_name_df(
-        excel_file_path,
-        sheet_name,
-    )
+    component_name = create_component_name_df(excel_file_path, sheet_name)
     mb = ModelBuilder(
         pipsim_file_path=pipesim_file_path,
         component_name=component_name,
@@ -38,14 +133,9 @@ def submit_create_model(
 
 
 def submit_populate_model(
-    pipesim_file_path: str,
-    excel_file_path: str,
-    sheet_name: str,
-):
-    component_name = create_component_name_df(
-        excel_file_path,
-        sheet_name,
-    )
+    pipesim_file_path: str, excel_file_path: str, sheet_name: str
+) -> None:
+    component_name = create_component_name_df(excel_file_path, sheet_name)
     mb = ModelBuilder(
         pipsim_file_path=pipesim_file_path,
         component_name=component_name,
@@ -56,16 +146,17 @@ def submit_populate_model(
     messagebox.showinfo("Success", "Model Information populated successfully")
 
 
-def get_sheet_names(file_path):
+def get_sheet_names(file_path: str) -> list[str]:
     try:
-        sheet_names = pd.ExcelFile(file_path).sheet_names
-        return sheet_names
+        return pd.ExcelFile(file_path).sheet_names
     except Exception as e:
         messagebox.showerror("Error", f"Failed to read Excel file: {e}")
         return []
 
 
-def update_optionmenu(option_menu, variable, excel_file_path):
+def update_optionmenu(
+    option_menu: tk.OptionMenu, variable: tk.StringVar, excel_file_path: str
+) -> None:
     sheets = get_sheet_names(excel_file_path)
     menu = option_menu["menu"]
     menu.delete(0, "end")
@@ -74,15 +165,16 @@ def update_optionmenu(option_menu, variable, excel_file_path):
     variable.set(sheets[0] if sheets else "No sheets available")
 
 
-def browse_and_update_optionmenu(entry_widget, option_menu, variable):
-
+def browse_and_update_optionmenu(
+    entry_widget: tk.Entry, option_menu: tk.OptionMenu, variable: tk.StringVar
+) -> None:
     file_path = browse_folder_or_file(
         entry_widget, file_types=[("Excel Files", "*.xlsx *.xls")]
     )
     update_optionmenu(option_menu, variable, file_path)
 
 
-def open_component_list(parent):
+def open_component_list(parent: tk.Tk) -> None:
     combobox = DualSelectableCombobox(
         parent,
         title="Refer the list of available components",
@@ -92,7 +184,7 @@ def open_component_list(parent):
     parent.wait_window(combobox)
 
 
-def open_flowline_parameters(parent):
+def open_flowline_parameters(parent: tk.Tk) -> None:
     combobox = DualSelectableCombobox(
         parent,
         title="Refer the list of available flowline parameters",
@@ -107,125 +199,63 @@ def open_flowline_parameters(parent):
     messagebox.showinfo("Success", "Excel file created with selected parameters")
 
 
-def create_excel_with_selected_parameters(file_path, selected_parameters):
+def create_excel_with_selected_parameters(
+    file_path: str, selected_parameters: list[str]
+) -> None:
     columns = ["Name", "Component"] + selected_parameters
     df = pd.DataFrame(columns=columns)
     ExcelHandler.write_excel(df, file_path, "Selected Parameters")
     logger.info("Excel file created with selected parameters")
 
 
-def init_create_model_frame(app: tk.Tk) -> tk.Frame:  # pylint: disable=R0914
+############################################
+# MAIN FUNCTION
+############################################
+
+
+def init_create_model_frame(app: tk.Tk) -> tk.Frame:
     create_model_frame = tk.Frame(app)
     FRAME_STORE["create_model"] = create_model_frame
 
-    # Title
-    create_label = tk.Label(
-        create_model_frame, text="Create Model Workflow", font=("Arial", 14)
-    )
-    create_label.pack(pady=10)
+    create_title_frame(create_model_frame)
 
-    # Button to open single select combo box
-    btn_open_component_list = tk.Button(
+    create_help_frame(create_model_frame)
+
+    pipesim_frame, ps_file_entry = create_file_input_frame(
+        create_model_frame, "Pipesim File", lambda: browse_folder_or_file(ps_file_entry)
+    )
+    excel_frame, excel_file_entry = create_file_input_frame(
         create_model_frame,
-        text="Refer the list of available components",
-        command=lambda: open_component_list(app),
-    )
-    btn_open_component_list.pack(pady=5, anchor="ne")
-
-    # Button to open dual select combo box
-    btn_open_flowline_parameters = tk.Button(
-        create_model_frame,
-        text="Create Excel with flowline parameters",
-        command=lambda: open_flowline_parameters(app),
-    )
-    btn_open_flowline_parameters.pack(pady=5, anchor="ne")
-
-    help_text = """ This workflow creates a model from scratch using the Excel file or
-    populates an existing model with data from the Excel file."""
-    help_label_cm = tk.Label(
-        create_model_frame,
-        text=help_text,
-        font=("Arial", 10, "italic"),
-    )
-    help_label_cm.pack(pady=5)
-
-    # Pipesim File Frame
-    pipesim_input_container = tk.Frame(create_model_frame)
-    pipesim_input_container.pack()
-    ps_file_label = tk.Label(pipesim_input_container, text="Pipesim File")
-    ps_file_label.pack()
-    ps_file_entry = tk.Entry(pipesim_input_container, width=75)
-    ps_file_entry.pack(side=tk.LEFT)
-    ps_browse_button = tk.Button(
-        pipesim_input_container,
-        text="Browse",
-        command=lambda: browse_folder_or_file(ps_file_entry),
-    )
-    ps_browse_button.pack(padx=5, side=tk.LEFT)
-
-    # Excel File Frame
-    excel_input_container = tk.Frame(create_model_frame)
-    excel_input_container.pack()
-    excel_file_label = tk.Label(excel_input_container, text="Excel File")
-    excel_file_label.pack()
-    excel_file_entry = tk.Entry(excel_input_container, width=75)
-    excel_file_entry.pack(side=tk.LEFT)
-
-    sheet_name_var = tk.StringVar()
-    sheet_name_var.set("Select Sheet Name")
-
-    # OptionMenu for sheet names
-    sheet_name_dropdown = tk.OptionMenu(
-        create_model_frame, sheet_name_var, "Select Sheet Name"
-    )
-    sheet_name_dropdown.pack(pady=5)
-
-    excel_browse_button = tk.Button(
-        excel_input_container,
-        text="Browse",
-        command=lambda: browse_and_update_optionmenu(
+        "Excel File",
+        lambda: browse_and_update_optionmenu(
             excel_file_entry, sheet_name_dropdown, sheet_name_var
         ),
     )
-    excel_browse_button.pack(padx=5, side=tk.LEFT)
 
-    # Radio Button Options
+    sheet_name_var = tk.StringVar()
+    sheet_name_var.set("Select Sheet Name")
+    sheet_name_frame, sheet_name_dropdown = create_option_menu_frame(
+        create_model_frame, sheet_name_var
+    )
+
     model_options = {
         "Scratch": "Create a model from scratch using the Excel file",
         "Populate": "Populate an existing model with data from the Excel file",
     }
     model_option_var = tk.StringVar()
     model_option_var.set("Scratch")
+    create_radio_buttons_frame(create_model_frame, model_options, model_option_var, app)
 
-    for option, description in model_options.items():
-        option_radio = tk.Radiobutton(
-            create_model_frame,
-            text=description,
-            variable=model_option_var,
-            value=option,
-        )
-        option_radio.pack()
-
-    # Submit button
-    def on_submit():
+    def on_submit() -> None:
         if model_option_var.get() == "Scratch":
             submit_create_model(
-                ps_file_entry.get(),
-                excel_file_entry.get(),
-                sheet_name_var.get(),
+                ps_file_entry.get(), excel_file_entry.get(), sheet_name_var.get()
             )
         else:
             submit_populate_model(
-                ps_file_entry.get(),
-                excel_file_entry.get(),
-                sheet_name_var.get(),
+                ps_file_entry.get(), excel_file_entry.get(), sheet_name_var.get()
             )
 
-    submit_button = tk.Button(
-        create_model_frame,
-        text="Submit",
-        command=on_submit,
-    )
-    submit_button.pack(pady=10)
+    create_submit_button_frame(create_model_frame, on_submit)
 
     return create_model_frame

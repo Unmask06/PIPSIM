@@ -1,7 +1,12 @@
+"""
+Main application file for the PANDORA Pipesim Pilot.
+"""
+
 import logging
 import logging.config
 import sys
 import tkinter as tk
+import traceback
 from tkinter import messagebox
 
 import yaml
@@ -17,6 +22,8 @@ from frames import (
 from project import FRAME_STORE, switch_frame
 from project.documentation import show_md_from_file
 
+logger = logging.getLogger(__name__)
+
 
 def load_logging_config():
     """Load the logging configuration from the YAML file."""
@@ -24,8 +31,10 @@ def load_logging_config():
         with open("logging.yml", "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
             logging.config.dictConfig(config)
-    except Exception as e:
-        print(f"Failed to load logging configuration: {e}", file=sys.stderr)
+    except ValueError as e:
+        logger.warning(
+            f"Failed to load logging configuration: {e} --- Using basic config."
+        )
         logging.basicConfig(level=logging.DEBUG)  # Fallback to basic config
 
 
@@ -106,7 +115,7 @@ def main():
     # Tkinter GUI setup
     app = tk.Tk()
     app.title("PANDORA - Pipesim Pilot")
-    app.geometry("600x400")
+    app.geometry("700x500")
 
     show_menu(app)
 
