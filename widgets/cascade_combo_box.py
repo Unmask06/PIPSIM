@@ -1,41 +1,145 @@
 import tkinter as tk
 from tkinter import ttk
-from typing import List, Dict
+from typing import Dict, List
 
 
-class DualCascadeComboBox(tk.Frame):
-    def __init__(self, parent, parent_list: List[str], child_mapping: Dict[str, List[str]], *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
+class DualCascadeListBox(tk.Toplevel):
+    """
+    Displays two listboxes with respective search bars.
+    Selecting an item in the parent list updates the child list.
+    """
+
+    def __init__(
+        self,
+        parent: tk.Tk,
+        parent_list: List[str],
+        child_mapping: Dict[str, List[str]],
+    ):
+        super().__init__(parent)
+        self.title("Dual Cascade ListBox")
+        self.geometry("400x300")
         self.parent_list = parent_list
         self.child_mapping = child_mapping
 
-        self.parent_var = tk.StringVar()
-        self.child_var = tk.StringVar()
+        self.filtered_parents = parent_list[:]
+        self.filtered_children: List[str] = []
 
-        self.create_widgets()
+        self.parent_search_var = tk.StringVar()
+        self.child_search_var = tk.StringVar()
 
-    def create_widgets(self):
-        parent_label = ttk.Label(self, text="Parent List")
-        parent_label.grid(row=0, column=0, padx=5, pady=5)
+        # Make the frame's grid cells expandable
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
 
-        self.parent_combo = ttk.Combobox(self, textvariable=self.parent_var, values=self.parent_list)
-        self.parent_combo.grid(row=1, column=0, padx=5, pady=5)
-        self.parent_combo.bind("<<ComboboxSelected>>", self.update_child_list)
+        self.build_ui()
+        self.protocol("WM_DELETE_WINDOW", self.close_window)
+        self.transient(parent)
+        self.grab_set()
 
-        child_label = ttk.Label(self, text="Child List")
-        child_label.grid(row=0, column=1, padx=5, pady=5)
+    def build_ui(self):
+        # Parent List UI
+        parent_frame = ttk.Frame(self)
+        parent_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        self.child_combo = ttk.Combobox(self, textvariable=self.child_var)
-        self.child_combo.grid(row=1, column=1, padx=5, pady=5)
+        parent_search_entry = ttk.Entry(
+            parent_frame, textvariable=self.parent_search_var
+        )
+        parent_search_entry.pack(fill=tk.X)
+        parent_search_entry.bind("<KeyRelease>", self.filter_parent_list)
 
-    def update_child_list(self, event):
-        selected_parent = self.parent_var.get()
-        child_values = self.child_mapping.get(selected_parent, [])
-        self.child_combo['values'] = child_values
-        if child_values:
-            self.child_var.set(child_values[0])
-        else:
-            self.child_var.set("")
+        self.parent_listbox = tk.Listbox(parent_frame)
+        self.parent_listbox.pack(fill=tk.BOTH, expand=True)
+        self.parent_listbox.bind("<<ListboxSelect>>", self.update_child_list)
+
+        parent_scrollbar = ttk.Scrollbar(
+            self.parent_listbox, command=self.parent_listbox.yview
+        )
+        self.parent_listbox.configure(yscrollcommand=parent_scrollbar.set)
+        parent_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Remove parent_copy_button
+        # Child List UI
+        child_frame = ttk.Frame(self)
+        child_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        child_search_entry = ttk.Entry(child_frame, textvariable=self.child_search_var)
+        child_search_entry.pack(fill=tk.X)
+        child_search_entry.bind("<KeyRelease>", self.filter_child_list)
+
+        self.child_listbox = tk.Listbox(child_frame)
+        self.child_listbox.pack(fill=tk.BOTH, expand=True)
+
+        child_scrollbar = ttk.Scrollbar(
+            self.child_listbox, command=self.child_listbox.yview
+        )
+        self.child_listbox.configure(yscrollcommand=child_scrollbar.set)
+        child_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Remove child_copy_button
+        self.create_context_menu_for_listbox(self.parent_listbox, self.copy_parent_selection)
+        self.create_context_menu_for_listbox(self.child_listbox, self.copy_child_selection)
+        self.parent_listbox.bind("<Control-c>", lambda e: self.copy_parent_selection())
+        self.child_listbox.bind("<Control-c>", lambda e: self.copy_child_selection())
+
+        self.populate_parent_list()
+
+    def create_context_menu_for_listbox(self, listbox, copy_method):
+        menu = tk.Menu(listbox, tearoff=0)
+        menu.add_command(label="Copy", command=copy_method)
+
+        def show_menu(event):
+            menu.tk_popup(event.x_root, event.y_root)
+        listbox.bind("<Button-3>", show_menu)
+
+    def populate_parent_list(self):
+        self.parent_listbox.delete(0, tk.END)
+        for item in self.filtered_parents:
+            self.parent_listbox.insert(tk.END, item)
+
+    def populate_child_list(self):
+        self.child_listbox.delete(0, tk.END)
+        for item in self.filtered_children:
+            self.child_listbox.insert(tk.END, item)
+
+    def filter_parent_list(self, event=None):
+        search_term = self.parent_search_var.get().lower()
+        self.filtered_parents = [
+            p for p in self.parent_list if search_term in p.lower()
+        ]
+        self.populate_parent_list()
+
+    def filter_child_list(self, event=None):
+        search_term = self.child_search_var.get().lower()
+        displayed_children = [
+            c for c in self.filtered_children if search_term in c.lower()
+        ]
+        self.child_listbox.delete(0, tk.END)
+        for item in displayed_children:
+            self.child_listbox.insert(tk.END, item)
+
+    def update_child_list(self, event=None):
+        selection = self.parent_listbox.curselection()
+        if selection:
+            parent_choice = self.parent_listbox.get(selection[0])
+            self.filtered_children = self.child_mapping.get(parent_choice, [])
+            self.child_search_var.set("")
+            self.populate_child_list()
+
+    def copy_parent_selection(self):
+        selection = self.parent_listbox.curselection()
+        if selection:
+            self.clipboard_clear()
+            self.clipboard_append(self.parent_listbox.get(selection[0]))
+
+    def copy_child_selection(self):
+        selection = self.child_listbox.curselection()
+        if selection:
+            self.clipboard_clear()
+            self.clipboard_append(self.child_listbox.get(selection[0]))
+
+    def close_window(self):
+        self.destroy()
 
 
 if __name__ == "__main__":
@@ -43,8 +147,7 @@ if __name__ == "__main__":
     parent_list = ["Flowline", "Pump"]
     child_mapping = {
         "Flowline": ["Length", "Diameter", "Material"],
-        "Pump": ["Flow Rate", "Head", "Efficiency"]
+        "Pump": ["Flow Rate", "Head", "Efficiency"],
     }
-    dual_cascade_combo = DualCascadeComboBox(root, parent_list, child_mapping)
-    dual_cascade_combo.pack(padx=10, pady=10)
+    dual_cascade_listbox = DualCascadeListBox(root, parent_list, child_mapping)
     root.mainloop()
