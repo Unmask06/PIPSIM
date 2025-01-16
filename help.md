@@ -1,20 +1,13 @@
-# Creating a Model Workflow
+# Help Documentation
 
 ## **Table of Contents**
 1. [Creating a Model Workflow](#creating-a-model-workflow)
-   - [Steps](#steps)
-   - [Build Model from Scratch](#build-model-from-scratch)
-   - [Populate Existing Model](#populate-existing-model)
 2. [Running Simulations Workflow](#running-simulations-workflow)
-   - [Steps](#steps-1)
 3. [Summarizing Results Workflow](#summarizing-results-workflow)
-   - [Steps](#steps-2)
 4. [Updating Conditions Workflow](#updating-conditions-workflow)
-   - [Steps](#steps-3)
 5. [Available Features](#available-features)
 6. [Functionality of Each Frame](#functionality-of-each-frame)
-7. [Structure of Excel Sheets](#structure-of-excel-sheets)
-8. [Expected Runtime and License Requirements](#expected-runtime-and-license-requirements)
+7. [Expected Runtime and License Requirements](#expected-runtime-and-license-requirements)
 
 ---
 
@@ -169,6 +162,8 @@ To copy the flowline data from a source model to all the models in a folder, fol
   - **Sheet Name:** Allows users to select the sheet name from the Excel file.
   - **Model Options:** Provides options to create a model from scratch or populate an existing model.
   - **Submit:** Submits the selected options and creates or populates the model.
+  - **Refer the list of available components:** Provides a list of available components for reference.
+  - **Create Excel with flowline parameters:** Creates an Excel file with selected flowline parameters.
 
 ## **Update Conditions Frame:**
 - **Description:** This frame allows users to copy flowline data from a source model to all models in a specified folder.
@@ -185,42 +180,13 @@ To copy the flowline data from a source model to all the models in a folder, fol
   - **Profile Variables:** Allows users to select the profile variables for the simulation.
   - **Unit:** Allows users to select the unit for the simulation.
   - **Run Simulations:** Runs the simulation for all `.pips` files in the selected folder.
+  - **Load and Save Selection:** Allows users to load and save their variable selections.
 
 ## **Summarize Results Frame:**
 - **Description:** This frame allows users to summarize the results of the model Node and Profile Results.
 - **Functionality:**
   - **Folder Containing Data Files:** Allows users to select the folder containing the data files.
   - **Submit:** Generates the summary of the results.
-
----
-
-# Structure of Excel Sheets
-
-## **Create Model Workflow:**
-
-### **Build Model from Scratch:**
-- The Excel sheet should contain the component name in the first column and its type in the second column.
-
-   | Name           | Component        | Name   | Component        |
-   | ---------------| ---------------- |--------|----------------- |
-   | Src-101        | Source           | Src-102| Source           |
-   | 6-BFW-001      | Flowline         | 6-BFW-002 | Flowline       |
-   | 6-BFW-002      | Flowline         | 6-BFW-003 | Flowline       |
-   | P-101          | Pump             | P-102  | Pump             |
-   | FV-101         | GenericEquipment | FV-102 | GenericEquipment |
-   | J1             | Junction         | J2     | Junction         |
-   | Sk             | Sink             | Sk2    | Sink             |
-
-### **Populate Existing Model:**
-- The Excel sheet should contain the component name in the first column and the corresponding data in the subsequent columns.
-
-   **Example:**
-   | Component Name | Length | Diameter | Roughness | Elevation |
-   | -------------- | ------ | -------- | --------- | --------- |
-   | 6-BFW-001      | 1000   | 0.5      | 0.0001    | 100       |
-   | 6-BFW-002      | 2000   | 0.6      | 0.0002    | 200       |
-   | P-101          | 1000   | 0.5      | 0.0001    | 100       |
-   | FV-101         | 2000   | 0.6      | 0.0002    | 200       |
 
 ---
 
