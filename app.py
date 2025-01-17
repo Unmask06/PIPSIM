@@ -8,6 +8,8 @@ import sys
 import tkinter as tk
 # import traceback
 from tkinter import messagebox
+import os
+from pathlib import Path
 
 import yaml
 
@@ -110,8 +112,12 @@ def access_denied(app: tk.Tk):
 
 
 def main():
-
     load_logging_config()
+    
+    # Check and create the folder in %APPDATA%
+    appdata_path = Path(os.getenv('APPDATA')) / 'Pandora' / 'Pipesim Pilot'
+    appdata_path.mkdir(parents=True, exist_ok=True)
+
     # Tkinter GUI setup
     app = tk.Tk()
     app.title("PANDORA - Pipesim Pilot")

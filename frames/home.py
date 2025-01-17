@@ -3,6 +3,7 @@ import logging
 import tkinter as tk
 
 from project import FRAME_STORE, switch_frame
+from project.documentation import show_md_from_file
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,14 @@ def init_home_frame(app: tk.Tk) -> tk.Frame:
         width=30,
     )
     summarize_results_button.pack(pady=5)
+
+    help_button = tk.Button(
+        home_frame,
+        text="Help",
+        command=lambda: show_md_from_file("help.md"),
+        width=30,
+    )
+    help_button.pack(pady=5)
 
     exit_button = tk.Button(home_frame, text="Exit", command=app.quit, width=30)
     exit_button.pack(pady=10)
