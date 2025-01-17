@@ -141,13 +141,14 @@ def submit_create_model(
 def submit_populate_model(
     pipesim_file_path: str, excel_file_path: str, sheet_name: str
 ) -> None:
-    component_name = create_component_name_df(excel_file_path, sheet_name)
-    mb = ModelBuilder(
-        pipsim_file_path=pipesim_file_path,
-        component_name=component_name,
-        mode="Populate",
-    )
-    mb.main()
+    component_data = pd.read_excel(excel_file_path, sheet_name=sheet_name)
+    try:
+        mb = ModelBuilder(
+            pipsim_file_path=pipesim_file_path,
+            component_data=component_data,
+            mode="Populate",
+        )
+        mb.main()
     logger.info("Model Information populated successfully")
     messagebox.showinfo("Success", "Model Information populated successfully")
 
@@ -192,7 +193,9 @@ def create_excel_with_selected_parameters(
 ) -> None:
     columns = ["Name", "Component"] + selected_parameters
     df = pd.DataFrame(columns=columns)
-    ExcelHandler.write_excel(df, file_path, "Selected Parameters")
+    ExcelHandler.write_excel(
+        df, file_path, "Selected Parameters", clear_sheet=True, save=False
+    )
     logger.info("Excel file created with selected parameters")
 
 

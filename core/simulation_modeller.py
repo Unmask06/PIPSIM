@@ -12,26 +12,38 @@ This module contains the class for building the model for network simulation usi
     - PipsimModellingError: Raised when an error occurs in the modelling process.
 """
 import logging
+from itertools import product
 
 # import traceback
 from pathlib import Path
 
 import pandas as pd
-from sixgill.definitions import ModelComponents, Parameters, SystemVariables
+from sixgill.definitions import ModelComponents, Parameters
 from sixgill.pipesim import Model
 
-from .model_input import ModelInput, PipsimModel, PipsimModellingError
+from core import PipsimModellingError
 
 logger = logging.getLogger(__name__)
 
 
-class PipsimModeller:
+class ConditionColumns:
     """
-    Builds the model for network simulation using the Pipesim model.
+    Class containing the column names for the conditions DataFrame.
     """
 
-    model: PipsimModel
-    model_input: ModelInput
+    CONDITIONS = "Conditions"
+    COMPONENT_NAME = "Component Name"
+    COMPONENT_TYPE = "Component Type"
+    PARAMETER = "Parameter"
+    VALUE = "Value"
+
+
+class MultiCaseModeller:
+    """
+    Builds the model for network simulation using the Pipesim model for multiple cases.
+    """
+
+    model: Model
     boundary_conditions: pd.DataFrame
     values: pd.DataFrame
     category: pd.DataFrame
@@ -40,183 +52,165 @@ class PipsimModeller:
 
     MINIMUM_FLOWRATE = 0.001  # Minimum flowrate for a well to be active (STBD)
 
-    def __init__(self, model: PipsimModel, model_input: ModelInput) -> None:
-        self.model = model
-        self.model_input = model_input
+    def __init__(
+        self,
+        base_model_path: str,
+        excel_path: str,
+        sink_profile_sheet: str,
+        condition_sheet: str,
+    ) -> None:
+        self.model = Model.open(base_model_path)
+        self.excel_path = excel_path
+        self.sink_profile = self._fetch_excel_data(sink_profile_sheet, "Sinks")
+        self.conditions = self._fetch_excel_data(condition_sheet, "Conditions")
 
-    def set_global_conditions(self) -> None:
-
-        self.model_input.none_check()
-        if self.model.model.sim_settings is not None:
-            self.model.model.sim_settings.ambient_temperature = (
-                self.model_input.ambient_temperature
-            )
-
-        self.model.model.set_values(
-            {
-                self.model_input.source_name: {
-                    SystemVariables.PRESSURE: self.model_input.source_pressure,
-                    SystemVariables.TEMPERATURE: self.model_input.source_temperature,
-                },
-                **{
-                    pump: {
-                        Parameters.SharedPumpParameters.PRESSUREDIFFERENTIAL: self.model_input.differential_pressure
-                    }
-                    for pump in self.model_input.pump_name
-                },
-            }
-        )
-        self.model.networksimulation.reset_conditions()
-        logger.info("Set Global Conditions")
-
-    def get_boundary_conditions(self) -> None:
+    def _fetch_excel_data(self, sheet_name: str, key_column: str) -> pd.DataFrame:
         """
-        Retrieves all boundary conditions from the model and stores them in a DataFrame.
+        Fetches data from the specified excel sheet.
 
-        Stores the boundary conditions in the attribute 'boundary_conditions'.
-        """
-        logger.info("Getting boundary conditions.....")
-        self.boundary_conditions: pd.DataFrame = pd.DataFrame.from_dict(
-            self.model.networksimulation.get_conditions()
-        )
-
-    def get_all_values(self) -> None:
-        """
-        Retrieves all values from the model and stores them in a DataFrame.
-
-        Stores the values in the attribute 'values'.
-        """
-        logger.info("Getting all values.....")
-        values_dict = self.model.model.get_values(
-            parameters=[
-                Parameters.ModelComponent.ISACTIVE,
-                SystemVariables.PRESSURE,
-                Parameters.Junction.TREATASSOURCE,
-                Parameters.Flowline.INNERDIAMETER,
-            ],
-            show_units=True,
-        )
-        self.values = pd.DataFrame.from_dict(values_dict)
-        self._catergorize_components(values_dict)
-
-    def _catergorize_components(self, values_dict):  # TODO: improve this method
-        """
-        Categories the components in the model into their respective types.
-        """
-        keyword_to_component_type = {
-            "InnerDiameter": "FlowLine",
-            "Pressure": "Well",
-            "TreatAsSource": "Junction",
-        }
-
-        data_list = []
-        for key, value in values_dict.items():
-            component_type = None
-
-            for keyword, type_name in keyword_to_component_type.items():
-                if value is not None and keyword in value:
-                    component_type = type_name
-                    break
-
-            data_list.append({"component": key, "type": component_type})
-
-        self.category = pd.DataFrame(data_list)
-
-    def get_well_values(self) -> None:
-        """
-        Retrieves all values from the model and stores them in a DataFrame.
+        Args:
+            sheet_name (str): The name of the sheet to fetch data from.
+            key_column (str): The key column to set as index and to look for header row.
 
         Returns:
-            self.well_values:DataFrame: DataFrame containing all wells.
+            pd.DataFrame: The fetched data as a DataFrame.
         """
-        logger.info("Getting well values.....")
-        self.well_lists = self.category.loc[
-            self.category["type"] == "Well", "component"
-        ].to_list()
-        required_cols = ["Unit"] + self.well_lists
-        self.well_values = self.values[required_cols].dropna(
-            how="all", axis=0, subset=required_cols[1:]
-        )
+        data = pd.read_excel(self.excel_path, sheet_name=sheet_name)
 
-    def _set_well_activity(self, wells, active=True):  # TODO: use this method
-        activity_values = {
-            well: active for well in wells if well in self.values.columns
-        }
-        if activity_values:
-            self.model.model.set_values(dict=activity_values)
-            logger.info(
-                f"{'Activated' if active else 'Deactivated'} wells: {list(activity_values.keys())}"
+        if not key_column in data.iloc[:, 0].to_list():
+            msg = f"Key column '{key_column}' not found in the first column of sheet '{sheet_name}'"
+            logger.error(msg)
+            raise PipsimModellingError(msg)
+
+        header_row = data.loc[data.iloc[:, 0] == key_column].index[0]
+        data.columns = data.iloc[header_row]
+        data = data.iloc[header_row + 1 :]
+        data = data.dropna(subset=[key_column]).reset_index(drop=True)
+        data = data.set_index(key_column) if key_column == "Sinks" else data
+
+        if any("_" in str(col) for col in data.columns):
+            logger.warning(
+                "Don't use underscores in column names.Replacing underscores with hyphens "
             )
-        else:
-            logger.info("No wells to update.")
+            data.columns = data.columns.str.replace("_", "-")
 
-    def activate_all_wells(self) -> None:  # TODO: use above method
-        self.well_values.loc[Parameters.ModelComponent.ISACTIVE] = True
-        self.model.model.set_values(dict=self.well_values[self.well_lists].to_dict())
-        self.model.networksimulation.reset_conditions()
-        self.get_boundary_conditions()
-        logger.info("Activated all wells")
+        if key_column == "Conditions":
+            mandatory_cols = [
+                ConditionColumns.COMPONENT_NAME,
+                ConditionColumns.COMPONENT_TYPE,
+                ConditionColumns.PARAMETER,
+                ConditionColumns.VALUE,
+            ]
+            if not all(col in data.columns for col in mandatory_cols):
+                msg = f"Missing mandatory columns in sheet '{sheet_name}': {mandatory_cols}"
+                logger.error(msg)
+                raise PipsimModellingError(msg)
 
-    def deactivate_noflow_wells(self):  # TODO: use above method
-        condition = (
-            self.model_input.well_profile[self.model.case] < self.MINIMUM_FLOWRATE
+        return data
+
+    @property
+    def cases(self) -> list:
+        """Generates all possible cases from the sink profile and conditions."""
+
+        return list(
+            product(
+                self.sink_profile.columns,
+                self.conditions[ConditionColumns.CONDITIONS].unique(),
+            )
         )
-        no_flow_wells = self.model_input.well_profile.loc[condition, "Wells"]
-        self.values.loc[[Parameters.ModelComponent.ISACTIVE], no_flow_wells] = False
-        _deactivated_wells = self.values.loc[
-            [Parameters.ModelComponent.ISACTIVE], no_flow_wells
-        ].to_dict()
-        self.model.model.set_values(dict=_deactivated_wells)
-        self.model.networksimulation.reset_conditions()
-        self.get_boundary_conditions()
-        logger.info("Deactivated no flow wells")
 
-    def populate_flowrates_in_model_from_excel(self):
-        if self.well_lists is None:
-            raise PipsimModellingError("Well lists not available")
-        for well in self.well_lists:
+    def set_simulation_settings(self, condition: str) -> None:
+        df = self.conditions.loc[
+            self.conditions[ConditionColumns.CONDITIONS] == condition
+        ]
+        if df.empty:
+            logger.warning(f"No Simulation settings found for condition: {condition}")
+            return
+
+        for _, row in df.iterrows():
             if (
-                well in self.boundary_conditions.columns
-                and well in self.model_input.well_profile["Wells"].to_list()
+                row[ConditionColumns.COMPONENT_TYPE]
+                == Parameters.SimulationSetting.__name__
             ):
-                _flowrate = self.model_input.well_profile.loc[
-                    self.model_input.well_profile["Wells"] == well, self.model.case
-                ]
-                self.boundary_conditions.at[Parameters.Boundary.LIQUIDFLOWRATE, well] = _flowrate.values[0]  # type: ignore
+                attr = self.model.sim_settings.__dict__.get("_settings").get(
+                    row[ConditionColumns.PARAMETER]
+                )
+                setattr(self.model.sim_settings, attr, row["Value"])
 
-        _bc_dict = self.boundary_conditions.loc[["LiquidFlowRate"]].to_dict()
-        self.model.networksimulation.set_conditions(boundaries=_bc_dict)
-        self.get_boundary_conditions()
-        logger.info("Populated flowrates in model from excel")
+        logger.info(f"Set simulation settings for condition: {condition}")
 
-    def save_as_new_model(self):
-        if self.model.folder_path is None:
-            self.model.folder_path = str(Path.cwd())
-        new_file = (
-            Path(self.model.folder_path)
-            / f"{self.model.case}_{self.model.condition}_{self.model.base_model_filename}"
+    def set_parameters_dict(self, condition: str) -> None:
+
+        data = self.conditions.loc[
+            self.conditions[ConditionColumns.CONDITIONS] == condition
+        ]
+
+        if data.empty:
+            logger.warning(f"No parameters found for condition: {condition}")
+            return
+
+        result = {}
+        for component_name, parameter, value in zip(
+            data[ConditionColumns.COMPONENT_NAME],
+            data[ConditionColumns.PARAMETER],
+            data[ConditionColumns.VALUE],
+        ):
+            if not pd.isnull(component_name) and not pd.isnull(parameter):
+                component_name = str(component_name).strip()
+                if component_name not in result:
+                    result[component_name] = {}
+                result[component_name][parameter] = value
+
+        self.model.set_values(dict=result)
+
+        logger.info(f"Set parameters for condition: {condition}")
+
+    def set_sink_data(self, case: str, parameter: str = Parameters.Sink.LIQUIDFLOWRATE):
+
+        # Get the missing sinks
+        sinks_in_model = set(
+            self.model.get_values(component=ModelComponents.SINK).keys()
         )
-        self.model.model.save(str(new_file))
+        sinks_in_excel = set(self.sink_profile.index)
+
+        if (sinks_in_excel - sinks_in_model) or (sinks_in_model - sinks_in_excel):
+            raise PipsimModellingError("Sinks in model and excel do not match.")
+
+        # Transform sink profile to dictionary
+        sink_data = self.sink_profile.loc[:, [case]]
+        sink_data.columns = [parameter]
+
+        # DeActivate sinks with minimum flowrate
+        sink_data[Parameters.ModelComponent.ISACTIVE] = (
+            sink_data[parameter] > self.MINIMUM_FLOWRATE
+        )
+        sink_data[Parameters.Sink.FLOWRATETYPE] = parameter
+
+        sink_data_dict = sink_data.to_dict("index")
+
+        self.model.set_values(dict=sink_data_dict)
+
+        logger.info(f"Set sink data for case: {case}")
+
+    def save_as_new_model(self, case: str, condition: str) -> None:
+        folder_path = Path(self.excel_path).parent / "Models"
+        folder_path.mkdir(exist_ok=True)
+        new_file = Path(folder_path) / f"{case}_{condition}_{self.model.filename}"
+        self.model.save(str(new_file))
         logger.info(f"Model saved as {new_file}")
 
     def close_model(self):
-        self.model.model.close()
+        self.model.close()
         logger.info("------------Network Simulation Object Closed----------------\n")
 
-    def build_model_global_conditions(self):
-        self.set_global_conditions()
-        self.save_as_new_model()
-        self.close_model()
-
-    def build_model(self):
-        self.set_global_conditions()
-        self.get_boundary_conditions()
-        self.get_all_values()
-        self.get_well_values()
-        self.activate_all_wells()
-        self.deactivate_noflow_wells()
-        self.populate_flowrates_in_model_from_excel()
-        self.save_as_new_model()
+    def build_model(
+        self, case, condition, sink_parameter=Parameters.Sink.LIQUIDFLOWRATE
+    ):
+        logger.info(f"Building model for case: {case}, condition: {condition}\n")
+        self.set_simulation_settings(condition)
+        self.set_parameters_dict(condition)
+        self.set_sink_data(case, sink_parameter)
+        self.save_as_new_model(case, condition)
         self.close_model()
 
 
@@ -295,5 +289,5 @@ def copy_flowline_data(source_model_path: str, destination_folder_path: str) -> 
         target_model.close()
         logger.info(
             f"Flowline data copied successfully to {Path(target_model_path).name}",
-            f"(Completed {idx} of {len(target_files)} models)"
+            f"(Completed {idx} of {len(target_files)} models)",
         )
