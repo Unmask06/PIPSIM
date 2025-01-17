@@ -4,8 +4,10 @@ Main application file for the PANDORA Pipesim Pilot.
 
 import logging
 import logging.config
+import os
 import sys
 import tkinter as tk
+from pathlib import Path
 
 # import traceback
 from tkinter import messagebox
@@ -108,6 +110,19 @@ def access_denied(app: tk.Tk):
     reason_label.pack(pady=5)
     exit_button = tk.Button(access_frame, text="Exit", command=app.destroy)
     exit_button.pack(pady=5)
+
+
+def create_app_data() -> Path:
+    """Create the application data directory if it doesn't exist."""
+
+    appdata_dir = os.getenv("APPDATA")
+    if appdata_dir is None:
+        logger.error("APPDATA environment variable is not set.")
+        return Path(".")
+
+    appdata = Path(appdata_dir) / "Pandora" / "Pipesim Pilot"
+    appdata.mkdir(parents=True, exist_ok=True)
+    return appdata
 
 
 def main():
