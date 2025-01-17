@@ -1,9 +1,8 @@
 import requests
 
 VERSION = "1.0"
-URL = "http://127.0.0.1:5000/pipesim/post"
-
-# fetch response from http://127.0.0.1:5000/pipesim/post this POST request
+BASE_URL = "http://127.0.0.1:80"
+URL = f"{BASE_URL}/streamline/pipesim-pilot/getAccess"
 
 
 def fetch_response(trail=False):

@@ -47,6 +47,14 @@ def init_home_frame(app: tk.Tk) -> tk.Frame:
     )
     summarize_results_button.pack(pady=5)
 
+    multi_case_button = tk.Button(
+        home_frame,
+        text="Multi-Case Workflow",
+        command=lambda: switch_frame(FRAME_STORE["multi_case"]),
+        width=30,
+    )
+    multi_case_button.pack(pady=5)
+
     exit_button = tk.Button(home_frame, text="Exit", command=app.quit, width=30)
     exit_button.pack(pady=10)
 

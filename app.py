@@ -4,8 +4,11 @@ Main application file for the PANDORA Pipesim Pilot.
 
 import logging
 import logging.config
+import os
 import sys
 import tkinter as tk
+from pathlib import Path
+
 # import traceback
 from tkinter import messagebox
 
@@ -15,12 +18,12 @@ from config import fetch_response
 from frames import (
     init_create_model_frame,
     init_home_frame,
+    init_multi_case_frame,
     init_run_simulation_frame,
     init_summarize_frame,
     init_update_conditions_frame,
 )
-from project import FRAME_STORE, switch_frame
-from project.documentation import show_md_from_file
+from project import FRAME_STORE, open_documentation, switch_frame
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +56,7 @@ def show_menu(app: tk.Tk):
 
     # Help menu
     help_menu = tk.Menu(menu_bar, tearoff=0)
-    help_menu.add_command(label="Help", command=lambda: show_md_from_file("help.md"))
+    help_menu.add_command(label="Help", command=lambda: open_documentation())
     menu_bar.add_cascade(label="Help", menu=help_menu)
     app.config(menu=menu_bar)
 
@@ -109,6 +112,19 @@ def access_denied(app: tk.Tk):
     exit_button.pack(pady=5)
 
 
+def create_app_data() -> Path:
+    """Create the application data directory if it doesn't exist."""
+
+    appdata_dir = os.getenv("APPDATA")
+    if appdata_dir is None:
+        logger.error("APPDATA environment variable is not set.")
+        return Path(".")
+
+    appdata = Path(appdata_dir) / "Pandora" / "Pipesim Pilot"
+    appdata.mkdir(parents=True, exist_ok=True)
+    return appdata
+
+
 def main():
 
     load_logging_config()
@@ -125,6 +141,7 @@ def main():
     init_update_conditions_frame(app)
     init_run_simulation_frame(app)
     init_summarize_frame(app)
+    init_multi_case_frame(app)
 
     # Check access
     check_access(app)
