@@ -1,11 +1,14 @@
 import logging
 import logging.config
 import tkinter as tk
+import webbrowser
 from tkinter import filedialog, messagebox
 from typing import Dict, List
 
 import pandas as pd
 import yaml
+
+from config import BASE_URL
 
 FRAME_STORE: dict[str, tk.Frame] = {}
 
@@ -121,3 +124,7 @@ def update_optionmenu_with_excelsheets(
     for sheet in sheets:
         menu.add_command(label=sheet, command=lambda v=sheet: variable.set(v))
     variable.set(str(sheets[0]) if sheets else "No sheets available")
+
+
+def open_documentation():
+    webbrowser.open(f"{BASE_URL}/docs/static/user-guide/pipesim-pilot/index.html#")

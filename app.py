@@ -21,8 +21,7 @@ from frames import (
     init_summarize_frame,
     init_update_conditions_frame,
 )
-from project import FRAME_STORE, switch_frame
-from project.documentation import show_md_from_file
+from project import FRAME_STORE, open_documentation, switch_frame
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +54,7 @@ def show_menu(app: tk.Tk):
 
     # Help menu
     help_menu = tk.Menu(menu_bar, tearoff=0)
-    help_menu.add_command(label="Help", command=lambda: show_md_from_file("help.md"))
+    help_menu.add_command(label="Help", command=lambda: open_documentation())
     menu_bar.add_cascade(label="Help", menu=help_menu)
     app.config(menu=menu_bar)
 

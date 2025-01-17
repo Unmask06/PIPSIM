@@ -1,4 +1,4 @@
-# PANDORA - Pipesim Automation Tool Documentation
+# PANDORA - Pipesim Pilot User Guide
 
 ## **Table of Contents**
 1. [Creating a Model Workflow](#creating-a-model-workflow)
@@ -113,6 +113,41 @@ To run multiple simulation cases and compare their results, follow these steps:
 - Ensure well profile and conditions column names are unique and short to avoid long output file names.
 - Output file naming convention: `<base_pip_file_name>_<well_profile_name>_<conditions_name>.pips`
   - Example output file name: `Overall-max_S-HP_base.pips`
+
+## **Excel File Format:**
+- The Excel file should contain two sheets: one for well profiles and the other for conditions.
+- Well Profile sheet:
+    - The first column should contain the well name.
+    - Subsequent columns should contain the well profile data.
+    - Column should not contain underscores (_).
+    - Sample table:
+
+   | Wells        | Overall-max | MinFlowRate | MaxFlowRate |
+   | ------------ | ----------- | ----------- | ----------- |
+   | BB-1023         | 1000        | 500         | 1500        |
+   | Well-102      | 1200        | 600         | 1800        |
+   | well         | 800         | 400         | 1200        |
+
+- Conditions sheet:
+    - The first column should contain the condition abbreviation.
+    - A condition can have multiple components, just repeat the condition abbreviation for each component in first column.
+    - Second column should contain the component name.
+    - Third column should contain the component type.
+    - Fourth column should contain the Parameter corresponding to the component.
+    - Fifth column should contain the value of the parameter.
+    - Column should not contain underscores (_).
+    - Sample table:
+
+    | Conditions | Component Name | Component Type      | Parameter            | Value |
+    | ---------- | -------------- | ------------------- | -------------------- | ----- |
+    | S-HP       | P-101          | Pump                | PressureDifferential | 100   |
+    | S-HP       |                | SimulationSettings  | Ambient Temperature  | 72    |
+    | S-LP       | P-101          | Pump                | PressureDifferential | 50    |
+    | S-LP       |                | SimulationSettings  | Ambient Temperature  | 72    |
+    | W-HP       | P-101          | Pump                | PressureDifferential | 100   |
+    | W-LP       | P-101          | Pump                | PressureDifferential | 50    |
+
+
 
 ## **License Requirement:**
 - Only Python Toolkit licenses required

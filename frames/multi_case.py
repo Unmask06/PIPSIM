@@ -6,6 +6,7 @@ from typing import Callable
 
 import pandas as pd
 
+from config import BASE_URL
 from core.excel_handling import ExcelHandler
 from project import (
     FRAME_STORE,
@@ -32,7 +33,9 @@ def create_help_frame(parent) -> tk.Frame:
     """
 
     def open_documentation():
-        webbrowser.open("https://sv03919.res1.rlaone.net/")
+        webbrowser.open(
+            f"{BASE_URL}/docs/static/user-guide/pipesim-userguide/pipesim-pilot-user-guide.html#multi-case-simulation-workflow"
+        )
 
     help_button = tk.Button(
         frame, text="Open Documentation", command=open_documentation
