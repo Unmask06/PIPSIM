@@ -158,11 +158,11 @@ class ModelBuilder:
 
         new_rows = []
         j_counter = 1
+        previous_row = None
 
         for index, row in df.iterrows():
-            row_data = row.to_dict()
             if index == 0 and row[type_column] == "Flowline":
-                # Junction at the beginning
+                # Check and add a junction at the beginning if the first row is a Flowline
                 new_rows.append(
                     {
                         loop_column: f"LJ({section_number}_{j_counter})",
@@ -170,15 +170,13 @@ class ModelBuilder:
                     }
                 )
                 j_counter += 1
-
-            new_rows.append(row_data)
 
             if (
-                int(index) > 0
-                and df.iloc[index - 1][type_column] == "Flowline"
+                previous_row is not None
+                and previous_row[type_column] == "Flowline"  # pylint: disable=E1136
                 and row[type_column] == "Flowline"
             ):
-                # Junction between consecutive flowlines
+                # Insert Junction immediately after the first Flowline row
                 new_rows.append(
                     {
                         loop_column: f"LJ({section_number}_{j_counter})",
@@ -187,8 +185,11 @@ class ModelBuilder:
                 )
                 j_counter += 1
 
-        # Junction at the end
+            new_rows.append(row.to_dict())
+            previous_row = row.to_dict()  # Update the previous row
+
         if df.iloc[-1][type_column] == "Flowline":
+            # Check and add a junction at the end if the last row is a Flowline
             new_rows.append(
                 {
                     loop_column: f"LJ({section_number}_{j_counter})",

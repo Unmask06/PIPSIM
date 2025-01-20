@@ -13,13 +13,11 @@ import pandas as pd
 from sixgill.definitions import ProfileVariables, SystemVariables
 from sixgill.pipesim import Model, Units
 
+from core import NetworkSimulationError
+
 from .excel_handling import ExcelHandler
 
 logger = logging.getLogger(__name__)
-
-
-class NetworkSimulationError(Exception):
-    """Custom exception for network simulation errors."""
 
 
 class NetworkSimulator:

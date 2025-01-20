@@ -71,27 +71,27 @@ class ExcelHandler:
         only_values: bool = False,
     ):
         try:
-
-            with xw.App(visible=False):
-                if os.path.isfile(workbook):
-                    wb = xw.Book(workbook)
-                else:
-                    wb = xw.Book()
-                    wb.save(workbook)
-                if len(sheet_name) > 30:
-                    sheet_name = sheet_name[:30]
-                    logger.warning(f"Sheet name too long. Truncated to {sheet_name}")
-                if sheet_name not in [sheet.name for sheet in wb.sheets]:
-                    wb.sheets.add(sheet_name)
-                ws = wb.sheets(sheet_name)
-                if clear_sheet:
-                    ws.clear_contents()
-                if only_values:
-                    ws.range(sht_range).value = df.values
-                else:
-                    ws.range(sht_range).value = df
-                if save:
-                    wb.save()
+            app = xw.App(visible=not save)
+            if os.path.isfile(workbook):
+                wb = xw.Book(workbook)
+            else:
+                wb = xw.Book()
+                wb.save(workbook)
+            if len(sheet_name) > 30:
+                sheet_name = sheet_name[:30]
+                logger.warning(f"Sheet name too long. Truncated to {sheet_name}")
+            if sheet_name not in [sheet.name for sheet in wb.sheets]:
+                wb.sheets.add(sheet_name)
+            ws = wb.sheets(sheet_name)
+            if clear_sheet:
+                ws.clear_contents()
+            if only_values:
+                ws.range(sht_range).value = df.values
+            else:
+                ws.range(sht_range).value = df
+            if save:
+                wb.save()
+                app.quit()
         except ExcelHandlerError as e:
             logging.error(f"Error writing to Excel: {str(e)}")
 

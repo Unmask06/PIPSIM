@@ -3,7 +3,7 @@ import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from core.simulation_modeller import copy_flowline_data
+from core.multi_case_modeller import copy_flowline_data
 from project import FRAME_STORE, browse_folder_or_file
 
 logger_uc = logging.getLogger("core.simulation_modeller")
