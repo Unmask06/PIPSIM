@@ -33,7 +33,7 @@ def init_update_conditions_frame(app: tk.Tk) -> tk.Frame:
     update_conditions_frame = tk.Frame(app)
     FRAME_STORE["update_conditions"] = update_conditions_frame
     update_label = tk.Label(
-        update_conditions_frame, text="Update Conditions Workflow", font=("Arial", 14)
+        update_conditions_frame, text="Copy Flowline Data Workflow", font=("Arial", 14)
     )
     update_label.pack(pady=10)
 

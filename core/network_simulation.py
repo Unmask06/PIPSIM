@@ -61,7 +61,7 @@ class NetworkSimulator:
 
     def run_simulation(self) -> None:
         """Runs the network simulation using Pipesim."""
-        if not self.model.tasks.networksimulation.validate():
+        if self.model.tasks.networksimulation.validate():
             raise NetworkSimulationError(
                 "Model validation unsuccessful.", self.model_path
             )
@@ -111,7 +111,7 @@ class NetworkSimulator:
             for col in self.node_results.columns
             if col not in ["Node", SystemVariables.TYPE]
         ]
-        self.node_results = self.node_results[[cols[-1]] + cols[:-1]]
+        self.node_results = self.node_results[cols]
 
         logger.info("Node results processed successfully.")
 

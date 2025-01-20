@@ -5,6 +5,7 @@ This script contains the code for the run_simulation frame of the application.
 
 import json
 import logging
+import os
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox
@@ -19,7 +20,7 @@ from widgets.dual_combo_box import DualSelectableCombobox
 logger = logging.getLogger("core.network_simulation")
 
 
-def run_simulation(folder_path, system_vars, profile_vars, unit):
+def run_simulation(folder_path, system_vars, profile_vars, unit, parent):
     """
     Excutes the run_existing_model method of the NetworkSimulator class for all .pips files in the specified folder.
     i.e., Run the simulation for each .pips file in the folder.
@@ -46,6 +47,8 @@ def run_simulation(folder_path, system_vars, profile_vars, unit):
             ns.run_existing_model()
         except NetworkSimulationError as e:
             logger.error(e)
+    create_results_button_frame(parent, ns.NODE_RESULTS_FILE, ns.PROFILE_RESULTS_FILE)
+    messagebox.showinfo("Success", "Simulation completed successfully")
 
 
 def open_checkable_combobox(parent, title, values, listbox):
@@ -85,6 +88,24 @@ def load_selections(system_vars_listbox, profile_vars_listbox):
         for var in selections.get("profile_vars", []):
             profile_vars_listbox.insert(tk.END, var)
         messagebox.showinfo("Success", "Selections loaded successfully")
+
+
+def create_results_button_frame(run_simulation_frame, node_results, profile_results):
+    results_button_frame = tk.Frame(run_simulation_frame)
+    results_button_frame.pack(pady=10)
+    node_results_button = tk.Button(
+        results_button_frame,
+        text="Node Results",
+        command=lambda: os.startfile(node_results),
+    )
+    profile_results_button = tk.Button(
+        results_button_frame,
+        text="Profile Results",
+        command=lambda: os.startfile(profile_results),
+    )
+    node_results_button.pack(side=tk.LEFT, padx=5)
+    profile_results_button.pack(side=tk.LEFT, padx=5)
+    return results_button_frame
 
 
 def init_run_simulation_frame(app):
@@ -178,6 +199,7 @@ def init_run_simulation_frame(app):
             list(system_vars_listbox.get(0, tk.END)),
             list(profile_vars_listbox.get(0, tk.END)),
             unit_var.get(),
+            run_simulation_frame,
         ),
     )
     run_button_rs.config(font=("Arial", 12, "bold"), height=1, width=20)

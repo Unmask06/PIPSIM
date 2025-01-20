@@ -172,7 +172,7 @@ class NetworkSimulationSummary:
                     node_wb.save()
 
                     node_df = NetworkSimulationSummary.get_min_max_parameter(
-                        df=node_df.loc[node_df["Type"] == "Sink"],
+                        df=node_df,
                         case=sht,
                         parameter=ProfileVariables.PRESSURE,
                         equipment_column="Node",

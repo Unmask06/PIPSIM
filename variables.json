@@ -1,0 +1,9 @@
+{
+  "system_vars": ["Pressure", "Temperature"],
+  "profile_vars": [
+    "Pressure",
+    "Temperature",
+    "MeanVelocityFluid",
+    "ErosionalVelocity"
+  ]
+}
