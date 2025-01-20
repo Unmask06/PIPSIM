@@ -136,6 +136,7 @@ class MultiCaseModeller:
                     row[ConditionColumns.PARAMETER]
                 )
                 setattr(self.model.sim_settings, attr, row["Value"])
+        self.model.tasks.networksimulation.reset_conditions()
 
         logger.info(f"Set simulation settings for condition: {condition}")
 
@@ -162,6 +163,7 @@ class MultiCaseModeller:
                 result[component_name][parameter] = value
 
         self.model.set_values(dict=result)
+        self.model.tasks.networksimulation.reset_conditions()
 
         logger.info(f"Set parameters for condition: {condition}")
 

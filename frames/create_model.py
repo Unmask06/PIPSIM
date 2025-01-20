@@ -10,6 +10,7 @@ from tkinter import messagebox
 import pandas as pd
 from sixgill.definitions import ModelComponents, Parameters
 
+from core import ExcelInputError, PipsimModellingError
 from core.excel_handling import ExcelHandler
 from core.model_builder import ModelBuilder, create_component_name_df
 from project import (
@@ -149,8 +150,12 @@ def submit_populate_model(
             mode="Populate",
         )
         mb.main()
-    logger.info("Model Information populated successfully")
-    messagebox.showinfo("Success", "Model Information populated successfully")
+        logger.info("Model Information populated successfully")
+        messagebox.showinfo("Success", "Model Information populated successfully")
+
+    except ExcelInputError as e:
+        logger.error(f"Error reading Excel file: {e}")
+        messagebox.showerror("Error", f"Error reading Excel file: {e}")
 
 
 def browse_and_update_optionmenu(
