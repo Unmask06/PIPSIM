@@ -4,10 +4,9 @@ import webbrowser
 from tkinter import messagebox
 from typing import Callable
 
-import pandas as pd
-
 from config import BASE_URL
-from core.excel_handling import ExcelHandler
+from core import ExcelInputError
+from core.multi_case_modeller import MultiCaseModeller
 from project import (
     FRAME_STORE,
     browse_folder_or_file,
@@ -92,14 +91,26 @@ def browse_and_update_optionmenu(entry_widget, option_menus: list, variables: li
 
 
 def submit_multi_case_workflow(
+    base_pip_file: str,
     excel_file_path: str,
     well_profile_sheet: str,
     conditions_sheet: str,
-    base_pip_file: str,
 ) -> None:
     logger.info("Handling multi-case workflow")
-    # Implement the logic for handling the multi-case workflow here
-    messagebox.showinfo("Success", "Multi-case workflow handled successfully")
+    try:
+        mbm = MultiCaseModeller(
+            base_model_path=base_pip_file,
+            excel_path=excel_file_path,
+            sink_profile_sheet=well_profile_sheet,
+            condition_sheet=conditions_sheet,
+        )
+
+        mbm.build_all_models()
+        messagebox.showinfo("Success", "Multi-case workflow handled successfully")
+
+    except ExcelInputError as e:
+        logger.error(f"Excel input error: {e}")
+        messagebox.showerror("Error", f"Excel input error: {e}")
 
 
 def init_multi_case_frame(app: tk.Tk) -> tk.Frame:

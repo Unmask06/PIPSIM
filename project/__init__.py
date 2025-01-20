@@ -2,6 +2,7 @@ import logging
 import logging.config
 import tkinter as tk
 import webbrowser
+import os
 from tkinter import filedialog, messagebox
 from typing import Dict, List
 
@@ -37,6 +38,10 @@ def browse_folder_or_file(
         entry_widget.delete(0, tk.END)
         entry_widget.insert(0, path)
         entry_widget.config(state="readonly")
+        
+        open_button = tk.Button(entry_widget.master, text="Open", command=lambda: os.startfile(path))
+        open_button.pack(side="left", padx=5, pady=5)
+        
     return path
 
 

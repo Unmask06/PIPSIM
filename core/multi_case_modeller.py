@@ -242,6 +242,19 @@ class MultiCaseModeller:
         self.save_as_new_model(case, condition)
         self.close_model()
 
+    def build_all_models(self, parameter=Parameters.Sink.LIQUIDFLOWRATE) -> None:
+        """
+        Builds simulation models for all possible cases and conditions.
+        """
+        logger.info(
+            "Building models for all possible cases and conditions....."
+            f"Total combinations: {len(self.cases)}"
+        )
+        for case, condition in self.cases:
+            self.build_model(case, condition, parameter)
+
+        logger.info("All models built successfully \n")
+
 
 # Other methods in the module------------------------------------------------------------
 def _collect_flowline_geometry(df, source_model) -> list:
