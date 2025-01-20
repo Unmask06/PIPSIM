@@ -175,9 +175,22 @@ class NetworkSimulator:
 
         logger.info("Results written to Excel successfully.")
 
+    def get_boundary_conditions(self) -> None:
+        """Retrieves boundary conditions from the Pipesim model."""
+        self.boundary_conditions = pd.DataFrame.from_dict(
+            self.model.tasks.networksimulation.get_conditions()
+        )
+        logger.info("Boundary conditions retrieved successfully.")
+
+    def close_model(self) -> None:
+        """Closes the Pipesim model to release resources."""
+        self.model.close()
+        logger.info("--------Network Simulation Object Closed.-------\n")
+
     def run_existing_model(self) -> None:
         """Runs an existing Pipesim model and processes results."""
         try:
+            logger.info(f"Running simulation for model: \n {self.model_path}")
             self.get_boundary_conditions()
             self.run_simulation()
             self.process_node_results()
@@ -192,15 +205,3 @@ class NetworkSimulator:
             print(traceback.format_exc())
         finally:
             self.close_model()
-
-    def get_boundary_conditions(self) -> None:
-        """Retrieves boundary conditions from the Pipesim model."""
-        self.boundary_conditions = pd.DataFrame.from_dict(
-            self.model.tasks.networksimulation.get_conditions()
-        )
-        logger.info("Boundary conditions retrieved successfully.")
-
-    def close_model(self) -> None:
-        """Closes the Pipesim model to release resources."""
-        self.model.close()
-        logger.info("Network Simulation Object Closed.")
