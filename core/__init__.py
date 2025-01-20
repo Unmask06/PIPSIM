@@ -22,6 +22,13 @@ class PipsimModellingError(Exception):
 class NetworkSimulationError(Exception):
     """Custom exception for network simulation errors."""
 
+    def __init__(self, message, model_path):
+        super().__init__(message)
+        self.model_path = model_path
+
+    def __str__(self):
+        return f"Simulation Error: {self.args[0]} (Model: {self.model_path})"
+
 
 from .excel_handling import ExcelHandler
 from .input_validation import PipSimInput

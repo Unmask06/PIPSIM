@@ -71,7 +71,7 @@ class MultiCaseModeller:
         sink_profile_sheet: str,
         condition_sheet: str,
     ) -> None:
-        self.model = Model.open(base_model_path)
+        self.base_model_path = base_model_path
         self.excel_path = excel_path
         self.sink_profile = self._fetch_excel_data(sink_profile_sheet, "Sinks")
         self.conditions = self._fetch_excel_data(condition_sheet, "Conditions")
@@ -142,6 +142,7 @@ class MultiCaseModeller:
                 row[ConditionColumns.COMPONENT_TYPE]
                 == Parameters.SimulationSetting.__name__
             ):
+                print(_)
                 attr = self.model.sim_settings.__dict__.get("_settings").get(
                     row[ConditionColumns.PARAMETER]
                 )
@@ -236,13 +237,14 @@ class MultiCaseModeller:
             sink_parameter: The sink parameter to be set from the sink profile excel sheet.
         """
         logger.info(f"Building model for case: {case}, condition: {condition}\n")
+        self.model = Model.open(self.base_model_path)
         self.set_simulation_settings(condition)
         self.set_parameters_dict(condition)
         self.set_sink_data(case, sink_parameter)
         self.save_as_new_model(case, condition)
         self.close_model()
 
-    def build_all_models(self, parameter=Parameters.Sink.LIQUIDFLOWRATE) -> None:
+    def build_all_models(self, sink_parameter=Parameters.Sink.LIQUIDFLOWRATE) -> None:
         """
         Builds simulation models for all possible cases and conditions.
         """
@@ -251,7 +253,7 @@ class MultiCaseModeller:
             f"Total combinations: {len(self.cases)}"
         )
         for case, condition in self.cases:
-            self.build_model(case, condition, parameter)
+            self.build_model(case, condition, sink_parameter)
 
         logger.info("All models built successfully \n")
 

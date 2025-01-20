@@ -4,6 +4,8 @@ import webbrowser
 from tkinter import messagebox
 from typing import Callable
 
+from sixgill.definitions import Parameters
+
 from config import BASE_URL
 from core import ExcelInputError
 from core.multi_case_modeller import MultiCaseModeller
@@ -81,7 +83,7 @@ def create_submit_button_frame(parent, command) -> tk.Frame:
 
 
 def browse_and_update_optionmenu(entry_widget, option_menus: list, variables: list):
-    path = browse_folder_or_file(entry_widget)
+    path = browse_folder_or_file(entry_widget, file_types=[("Excel Files", "*.xlsx")])
     if path:
         # update_optionmenu_with_excelsheets(option_menu, variable, excel_file_path=path)
         for option_menu, variable in zip(option_menus, variables):
@@ -105,7 +107,7 @@ def submit_multi_case_workflow(
             condition_sheet=conditions_sheet,
         )
 
-        mbm.build_all_models()
+        mbm.build_all_models(sink_parameter=Parameters.Sink.LIQUIDFLOWRATE)
         messagebox.showinfo("Success", "Multi-case workflow handled successfully")
 
     except ExcelInputError as e:
@@ -153,15 +155,17 @@ def init_multi_case_frame(app: tk.Tk) -> tk.Frame:
     base_pip_frame, base_pip_file_entry = create_file_input_frame(
         multi_case_frame,
         "Base Pip File",
-        lambda: browse_folder_or_file(base_pip_file_entry),
+        lambda: browse_folder_or_file(
+            base_pip_file_entry, file_types=[("Pip Files", "*.pips")]
+        ),
     )
 
     def on_submit() -> None:
         submit_multi_case_workflow(
+            base_pip_file_entry.get(),
             excel_file_entry.get(),
             well_profile_sheet_var.get(),
             conditions_sheet_var.get(),
-            base_pip_file_entry.get(),
         )
 
     create_submit_button_frame(multi_case_frame, on_submit)

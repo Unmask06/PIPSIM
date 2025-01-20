@@ -20,6 +20,22 @@ logger = logging.getLogger("ExcelHandler")
 class ExcelHandlerError(Exception):
     """Base class for exceptions in this module."""
 
+    def __init__(
+        self,
+        message: str,
+        excel_path: Optional[Path] = None,
+        sheet_name: Optional[str] = None,
+    ):
+        super().__init__(message)
+        self.message = message
+        self.excel_path = excel_path
+        self.sheet_name = sheet_name
+
+    def __str__(self):
+        return (
+            f"{self.message} (Excel file: {self.excel_path}, Sheet: {self.sheet_name})"
+        )
+
 
 class ExcelHandler:
     """
@@ -111,9 +127,7 @@ class ExcelHandler:
                 used_range.api.Borders(border_id).LineStyle = (
                     xw_const.LineStyle.xlContinuous
                 )
-                used_range.api.Borders(border_id).Weight = (
-                    xw_const.BorderWeight.xlThin
-                )
+                used_range.api.Borders(border_id).Weight = xw_const.BorderWeight.xlThin
             wb.save()
         except ExcelHandlerError as e:
             logging.error(f"Error formatting Excel: {str(e)}")

@@ -15,7 +15,7 @@ from sixgill.pipesim import Model, Units
 
 from core import NetworkSimulationError
 
-from .excel_handling import ExcelHandler
+from .excel_handling import ExcelHandler, ExcelHandlerError
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +62,11 @@ class NetworkSimulator:
     def run_simulation(self) -> None:
         """Runs the network simulation using Pipesim."""
         if not self.model.tasks.networksimulation.validate():
-            raise NetworkSimulationError("Model validation unsuccessful.")
+            raise NetworkSimulationError(
+                "Model validation unsuccessful.", self.model_path
+            )
 
+        self.model.tasks.networksimulation.reset_conditions()
         self.results = self.model.tasks.networksimulation.run(
             system_variables=self.system_variables,
             profile_variables=self.profile_variables,
@@ -73,12 +76,16 @@ class NetworkSimulator:
     def process_node_results(self) -> None:
         """Processes the node results from the simulation."""
         if not hasattr(self, "results") or self.results is None:
-            raise NetworkSimulationError("Simulation results not available.")
+            raise NetworkSimulationError(
+                "Simulation results not available.", self.model_path
+            )
 
         self.node_results = pd.DataFrame.from_dict(self.results.node)
 
         if self.node_results.empty:
-            raise NetworkSimulationError("Simulation produced no node results.")
+            raise NetworkSimulationError(
+                "Simulation produced no node results.", self.model_path
+            )
 
         self.node_results.reset_index(inplace=True)
         self.node_results.rename(columns={"index": "Node"}, inplace=True)
@@ -111,7 +118,9 @@ class NetworkSimulator:
     def process_profile_results(self) -> None:
         """Processes the profile results from the simulation."""
         if not hasattr(self, "results") or self.results is None:
-            raise NetworkSimulationError("Simulation results not available.")
+            raise NetworkSimulationError(
+                "Simulation results not available.", self.model_path
+            )
 
         units = pd.DataFrame(self.results.profile_units, index=["Units"])
         dfs = []
@@ -143,7 +152,9 @@ class NetworkSimulator:
     def write_results_to_excel(self) -> None:
         """Writes simulation results to Excel files."""
         if self.node_results is None or self.profile_results is None:
-            raise NetworkSimulationError("Results are not available to write to Excel.")
+            raise NetworkSimulationError(
+                "Results are not available to write to Excel.", self.model_path
+            )
 
         sheet_name = Path(self.model_path).stem[:31]
 
@@ -173,9 +184,12 @@ class NetworkSimulator:
             self.process_profile_results()
             self.write_results_to_excel()
             self.model.save()
+        except (NetworkSimulationError, ExcelHandlerError) as e:
+            logger.error(e)
+
         except Exception as e:
-            logger.error(f"An error occurred: {e}")
-            traceback.print_exc()
+            logger.error(f"An error occurred during simulation: {e}")
+            print(traceback.format_exc())
         finally:
             self.close_model()
 

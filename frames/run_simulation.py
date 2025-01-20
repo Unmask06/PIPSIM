@@ -11,6 +11,7 @@ from tkinter import filedialog, messagebox
 
 from sixgill.definitions import ProfileVariables, SystemVariables, Units
 
+from core import NetworkSimulationError
 from core.network_simulation import NetworkSimulator
 from project import FRAME_STORE, browse_folder_or_file, get_string_values_from_class
 from widgets.dual_combo_box import DualSelectableCombobox
@@ -43,8 +44,8 @@ def run_simulation(folder_path, system_vars, profile_vars, unit):
         try:
             ns = NetworkSimulator(str(pips_file), system_vars, profile_vars, unit)
             ns.run_existing_model()
-        except Exception as e:
-            logger.error(f"Error running simulation for {pips_file}: {e}")
+        except NetworkSimulationError as e:
+            logger.error(e)
 
 
 def open_checkable_combobox(parent, title, values, listbox):
