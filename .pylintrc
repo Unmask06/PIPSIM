@@ -27,7 +27,7 @@ max-module-lines=800
 
 
 [MESSAGES CONTROL]
-disable=W1203,R0903, C3001, use-dict-literal
+disable=W1203,R0903, C3001, use-dict-literal, C0116
 enable=c-extension-no-member, consider-using-f-string
 
 ignore-patterns=__init__.py

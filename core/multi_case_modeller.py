@@ -21,7 +21,7 @@ import pandas as pd
 from sixgill.definitions import ModelComponents, Parameters
 from sixgill.pipesim import Model
 
-from core import PipsimModellingError
+from core import ExcelInputError, PipsimModellingError
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,18 @@ class ConditionColumns:
 class MultiCaseModeller:
     """
     Builds the model for network simulation using the Pipesim model for multiple cases.
+
+    Attributes:
+        model (Model): The Pipesim model object.
+        excel_path (str): The path to the excel file.
+        sink_profile (pd.DataFrame): The sink profile data.
+        conditions (pd.DataFrame): The conditions data.
+
+    Main Methods:
+        - build_model: Builds the model for network simulation using the Pipesim model.
+
+    Properties:
+        cases (list): Generates all possible cases from the sink profile and conditions.
     """
 
     model: Model
@@ -78,9 +90,8 @@ class MultiCaseModeller:
         data = pd.read_excel(self.excel_path, sheet_name=sheet_name)
 
         if not key_column in data.iloc[:, 0].to_list():
-            msg = f"Key column '{key_column}' not found in the first column of sheet '{sheet_name}'"
-            logger.error(msg)
-            raise PipsimModellingError(msg)
+            msg = f"Key column '{key_column}' not found in the first column "
+            raise ExcelInputError(msg, self.excel_path, sheet_name)
 
         header_row = data.loc[data.iloc[:, 0] == key_column].index[0]
         data.columns = data.iloc[header_row]
@@ -103,8 +114,7 @@ class MultiCaseModeller:
             ]
             if not all(col in data.columns for col in mandatory_cols):
                 msg = f"Missing mandatory columns in sheet '{sheet_name}': {mandatory_cols}"
-                logger.error(msg)
-                raise PipsimModellingError(msg)
+                raise ExcelInputError(msg, self.excel_path, sheet_name)
 
         return data
 
@@ -136,9 +146,15 @@ class MultiCaseModeller:
                     row[ConditionColumns.PARAMETER]
                 )
                 setattr(self.model.sim_settings, attr, row["Value"])
-        self.model.tasks.networksimulation.reset_conditions()
+        reset = self.model.tasks.networksimulation.reset_conditions()
+        self.model.save()
 
-        logger.info(f"Set simulation settings for condition: {condition}")
+        if reset:
+            logger.info(f"Set simulation settings for condition: {condition}")
+        else:
+            logger.warning(
+                f"Failed to set simulation settings for condition: {condition}"
+            )
 
     def set_parameters_dict(self, condition: str) -> None:
 
@@ -163,9 +179,12 @@ class MultiCaseModeller:
                 result[component_name][parameter] = value
 
         self.model.set_values(dict=result)
-        self.model.tasks.networksimulation.reset_conditions()
+        reset = self.model.tasks.networksimulation.reset_conditions()
 
-        logger.info(f"Set parameters for condition: {condition}")
+        if reset:
+            logger.info(f"Set parameters for condition: {condition}")
+        else:
+            logger.warning(f"Failed to set parameters for condition: {condition}")
 
     def set_sink_data(self, case: str, parameter: str = Parameters.Sink.LIQUIDFLOWRATE):
 
@@ -195,9 +214,9 @@ class MultiCaseModeller:
         logger.info(f"Set sink data for case: {case}")
 
     def save_as_new_model(self, case: str, condition: str) -> None:
-        folder_path = Path(self.excel_path).parent / "Models"
+        folder_path = Path(self.excel_path).parent.absolute() / "Models"
         folder_path.mkdir(exist_ok=True)
-        new_file = Path(folder_path) / f"{case}_{condition}_{self.model.filename}"
+        new_file = folder_path / f"{case}_{condition}_{Path(self.model.filename).name}"
         self.model.save(str(new_file))
         logger.info(f"Model saved as {new_file}")
 
@@ -206,8 +225,16 @@ class MultiCaseModeller:
         logger.info("------------Network Simulation Object Closed----------------\n")
 
     def build_model(
-        self, case, condition, sink_parameter=Parameters.Sink.LIQUIDFLOWRATE
-    ):
+        self, case: str, condition: str, sink_parameter=Parameters.Sink.LIQUIDFLOWRATE
+    ) -> None:
+        """
+        Builds a simulation model for a given case and condition.
+
+        Args:
+            case: Sink profile case abbreviation.
+            condition: Condition for the simulation model.
+            sink_parameter: The sink parameter to be set from the sink profile excel sheet.
+        """
         logger.info(f"Building model for case: {case}, condition: {condition}\n")
         self.set_simulation_settings(condition)
         self.set_parameters_dict(condition)
