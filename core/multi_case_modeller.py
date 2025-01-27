@@ -332,6 +332,8 @@ def copy_flowline_data(source_model_path: str, destination_folder_path: str) -> 
         target_model.save()
         target_model.close()
         logger.info(
-            f"Flowline data copied successfully to {Path(target_model_path).name}",
-            f"(Completed {idx} of {len(target_files)} models)",
+            "Flowline data copied successfully to %s (Completed %d of %d models)",
+            Path(target_model_path).name,
+            idx,
+            len(target_files),
         )

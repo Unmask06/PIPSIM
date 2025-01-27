@@ -35,7 +35,7 @@ def create_help_frame(parent) -> tk.Frame:
 
     def open_documentation():
         webbrowser.open(
-            f"{BASE_URL}/docs/static/user-guide/pipesim-userguide/pipesim-pilot-user-guide.html#multi-case-simulation-workflow"
+            f"{BASE_URL}/docs/static/user-guide/pipesim-pilot/workflow-userguide.html#multi-case-simulation-workflow"
         )
 
     help_button = tk.Button(
