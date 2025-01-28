@@ -73,10 +73,13 @@ def create_option_menu_frame(
 
 
 def create_radio_buttons_frame(
-    parent, options: dict, variable: tk.StringVar, app: tk.Tk
+    parent, options: dict, variable: tk.StringVar, app: tk.Tk, sheet_name_var: tk.StringVar
 ) -> tk.Frame:
     frame = tk.Frame(parent)
     frame.pack(pady=5)
+
+    def on_radio_button_change():
+        sheet_name_var.set("Select Sheet Name")
 
     for option, description in options.items():
 
@@ -84,7 +87,7 @@ def create_radio_buttons_frame(
             scratch_frame = tk.Frame(frame)
             scratch_frame.pack(pady=10)
             radio_button = tk.Radiobutton(
-                scratch_frame, text=description, variable=variable, value=option
+                scratch_frame, text=description, variable=variable, value=option, command=on_radio_button_change
             )
             radio_button.grid(row=0, column=0, padx=5, pady=5)
 
@@ -99,7 +102,7 @@ def create_radio_buttons_frame(
             populate_frame = tk.Frame(frame)
             populate_frame.pack(pady=10)
             radio_button = tk.Radiobutton(
-                populate_frame, text=description, variable=variable, value=option
+                populate_frame, text=description, variable=variable, value=option, command=on_radio_button_change
             )
             radio_button.grid(row=1, column=0, padx=5, pady=5)
 
@@ -128,6 +131,9 @@ def create_submit_button_frame(parent, command) -> tk.Frame:
 def submit_create_model(
     pipesim_file_path: str, excel_file_path: str, sheet_name: str
 ) -> None:
+    if sheet_name == "Select Sheet Name":
+        messagebox.showerror("Error", "Please select a valid sheet name.")
+        return
     logger.info("Creating model from scratch")
     component_name = create_component_name_df(excel_file_path, sheet_name)
     mb = ModelBuilder(
@@ -142,6 +148,9 @@ def submit_create_model(
 def submit_populate_model(
     pipesim_file_path: str, excel_file_path: str, sheet_name: str
 ) -> None:
+    if sheet_name == "Select Sheet Name":
+        messagebox.showerror("Error", "Please select a valid sheet name.")
+        return
     component_data = pd.read_excel(excel_file_path, sheet_name=sheet_name)
     try:
         mb = ModelBuilder(
@@ -161,10 +170,11 @@ def submit_populate_model(
 def browse_and_update_optionmenu(
     entry_widget: tk.Entry, option_menu: tk.OptionMenu, variable: tk.StringVar
 ) -> None:
-    file_path = browse_folder_or_file(
-        entry_widget, file_types=[("Excel Files", "*.xlsx *.xls")]
-    )
-    update_optionmenu_with_excelsheets(option_menu, variable, file_path)
+    if entry_widget.get() == "":
+        file_path = browse_folder_or_file(
+            entry_widget, file_types=[("Excel Files", "*.xlsx *.xls")]
+        )
+        update_optionmenu_with_excelsheets(option_menu, variable, file_path)
 
 
 def open_component_list(parent: tk.Tk) -> None:
@@ -240,7 +250,7 @@ def init_create_model_frame(app: tk.Tk) -> tk.Frame:
     }
     model_option_var = tk.StringVar()
     model_option_var.set("Scratch")
-    create_radio_buttons_frame(create_model_frame, model_options, model_option_var, app)
+    create_radio_buttons_frame(create_model_frame, model_options, model_option_var, app, sheet_name_var)
 
     def on_submit() -> None:
         if model_option_var.get() == "Scratch":
