@@ -1,3 +1,4 @@
+import inspect
 import logging
 import logging.config
 import tkinter as tk
@@ -39,6 +40,11 @@ def browse_folder_or_file(
         entry_widget.insert(0, path)
         entry_widget.config(state="readonly")
         
+        # Remove existing open button if it exists
+        for widget in entry_widget.master.winfo_children():
+            if isinstance(widget, tk.Button) and widget.cget("text") == "Open":
+                widget.destroy()
+        
         open_button = tk.Button(entry_widget.master, text="Open", command=lambda: os.startfile(path))
         open_button.pack(side="left", padx=5, pady=5)
         
@@ -52,24 +58,32 @@ def setup_logger():
     logging.config.dictConfig(config)
 
 
-def get_string_values_from_class(*class_names: type | list[type]) -> list:
-    def extract_string_values(class_group):
+def get_string_values_from_class(class_names: type | list[type]) -> list:
+    def extract_string_values(class_name):
         return sorted(
             [
                 value
-                for key, value in class_group.__dict__.items()
+                for key, value in class_name.__dict__.items()
                 if not key.startswith("__") and isinstance(value, str)
             ]
         )
 
-    combined_values = []
-    for class_group in class_names:
-        if isinstance(class_group, list):
-            for class_name in class_group:
-                combined_values.extend(extract_string_values(class_name))
-        else:
-            combined_values.extend(extract_string_values(class_group))
-    return combined_values
+    combined_values = set()
+
+    def get_inherited_classes(class_name):
+        for _class in inspect.getmro(class_name):
+            if _class.__name__ == "object":
+                break
+            combined_values.update(extract_string_values(_class))
+        return combined_values
+    
+    if isinstance(class_names, list):
+        for class_name in class_names:
+            get_inherited_classes(class_name)
+    else:
+        get_inherited_classes(class_names)
+    
+    return sorted(combined_values)
 
 
 def get_class_by_name(abstract_class: type, class_name: str) -> type:
@@ -128,7 +142,7 @@ def update_optionmenu_with_excelsheets(
     menu.delete(0, "end")
     for sheet in sheets:
         menu.add_command(label=sheet, command=lambda v=sheet: variable.set(v))
-    variable.set(str(sheets[0]) if sheets else "No sheets available")
+    variable.set("Select Sheet Name" if sheets else "No sheets available")
 
 
 def open_documentation():
