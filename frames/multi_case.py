@@ -97,6 +97,7 @@ def submit_multi_case_workflow(
     excel_file_path: str,
     well_profile_sheet: str,
     conditions_sheet: str,
+    sink_parameter: str,
 ) -> None:
     logger.info("Handling multi-case workflow")
     try:
@@ -107,7 +108,7 @@ def submit_multi_case_workflow(
             condition_sheet=conditions_sheet,
         )
 
-        mbm.build_all_models(sink_parameter=Parameters.Sink.LIQUIDFLOWRATE)
+        mbm.build_all_models(sink_parameter=sink_parameter)
         messagebox.showinfo("Success", "Multi-case workflow handled successfully")
 
     except ExcelInputError as e:
@@ -160,12 +161,25 @@ def init_multi_case_frame(app: tk.Tk) -> tk.Frame:
         ),
     )
 
+    sink_parameter_var = tk.StringVar()
+    sink_parameter_var.set(Parameters.Sink.LIQUIDFLOWRATE)
+    sink_parameter_frame, sink_parameter_dropdown = create_option_menu_frame(
+        multi_case_frame, sink_parameter_var, "Sink Parameter"
+    )
+    sink_parameter_dropdown["menu"].delete(0, "end")
+    for option in Parameters.Sink.__dict__.values():
+        if isinstance(option, str):
+            sink_parameter_dropdown["menu"].add_command(
+                label=option, command=lambda value=option: sink_parameter_var.set(value)
+            )
+
     def on_submit() -> None:
         submit_multi_case_workflow(
             base_pip_file_entry.get(),
             excel_file_entry.get(),
             well_profile_sheet_var.get(),
             conditions_sheet_var.get(),
+            sink_parameter_var.get(),
         )
 
     create_submit_button_frame(multi_case_frame, on_submit)
