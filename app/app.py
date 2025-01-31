@@ -31,7 +31,9 @@ logger = logging.getLogger(__name__)
 def load_logging_config():
     """Load the logging configuration from the YAML file."""
     try:
-        with open("logging.yml", "r", encoding="utf-8") as f:
+        base_dir = Path(__file__).resolve().parent
+        log_file = base_dir / "logging.yml"
+        with open(log_file, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
             logging.config.dictConfig(config)
     except ValueError as e:
