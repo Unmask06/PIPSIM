@@ -13,9 +13,9 @@ import pandas as pd
 from sixgill.definitions import ProfileVariables, SystemVariables
 from sixgill.pipesim import Model, Units
 
-from core import NetworkSimulationError
+from app.core import NetworkSimulationError
 
-from .excel_handling import ExcelHandler, ExcelHandlerError
+from app.core.excel_handling import ExcelHandler, ExcelHandlerError
 
 logger = logging.getLogger(__name__)
 
