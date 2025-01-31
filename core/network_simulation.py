@@ -63,13 +63,13 @@ class NetworkSimulator:
 
     def run_simulation(self) -> None:
         """Runs the network simulation using Pipesim."""
-        if self.model.tasks.networksimulation.validate():
+        if self.model.tasks.networksimulation.validate():  # type: ignore
             raise NetworkSimulationError(
                 "Model validation unsuccessful.", self.model_path
             )
 
-        self.model.tasks.networksimulation.reset_conditions()
-        self.results = self.model.tasks.networksimulation.run(
+        self.model.tasks.networksimulation.reset_conditions()  # type: ignore
+        self.results = self.model.tasks.networksimulation.run(  # type: ignore
             system_variables=self.system_variables,
             profile_variables=self.profile_variables,
         )
@@ -180,7 +180,7 @@ class NetworkSimulator:
     def get_boundary_conditions(self) -> None:
         """Retrieves boundary conditions from the Pipesim model."""
         self.boundary_conditions = pd.DataFrame.from_dict(
-            self.model.tasks.networksimulation.get_conditions()
+            self.model.tasks.networksimulation.get_conditions()  # type: ignore
         )
         logger.info("Boundary conditions retrieved successfully.")
 

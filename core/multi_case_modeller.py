@@ -147,7 +147,8 @@ class MultiCaseModeller:
                     row[ConditionColumns.PARAMETER]
                 )
                 setattr(self.model.sim_settings, attr, row["Value"])
-        reset = self.model.tasks.networksimulation.reset_conditions()
+
+        reset = self.model.tasks.networksimulation.reset_conditions() # type: ignore
         self.model.save()
 
         if reset:
@@ -180,7 +181,7 @@ class MultiCaseModeller:
                 result[component_name][parameter] = value
 
         self.model.set_values(dict=result)
-        reset = self.model.tasks.networksimulation.reset_conditions()
+        reset = self.model.tasks.networksimulation.reset_conditions()  # type: ignore
 
         if reset:
             logger.info(f"Set parameters for condition: {condition}")
@@ -298,7 +299,8 @@ def copy_flowline_data(source_model_path: str, destination_folder_path: str) -> 
         f"to all models in {destination_folder_path}....."
     )
     logger.info(
-        f"Total number of models in the destination folder: {len(list(Path(destination_folder_path).glob('*.pips')))}"
+        "Total number of flowlines in the destination folder: %d",
+        len(list(Path(destination_folder_path).glob("*.pips"))),
     )
 
     source_model = Model.open(source_model_path)
