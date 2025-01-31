@@ -13,6 +13,7 @@ from pathlib import Path
 from tkinter import messagebox
 
 import yaml
+
 from app.config import fetch_response
 from app.frames import (
     init_create_model_frame,
@@ -150,4 +151,5 @@ def launch_application():
     app.mainloop()
 
 
-launch_application()
+if __name__ == "__main__":
+    launch_application()

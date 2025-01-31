@@ -1,0 +1,48 @@
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  detailed:
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    datefmt: "%H:%M"
+  colored:
+    (): colorlog.ColoredFormatter
+    format: "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    datefmt: "%H:%M"
+    log_colors:
+      DEBUG:    cyan
+      INFO:     white
+      WARNING:  yellow
+      ERROR:    red
+      CRITICAL: red,bg_white
+  simulation_formatter:
+    (): colorlog.ColoredFormatter
+    format: "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    datefmt: "%H:%M"
+    log_colors:
+      DEBUG:   bold_cyan
+      INFO:    bold_green
+      WARNING: bold_yellow
+      ERROR:   bold_red
+      CRITICAL: bold_red,bg_white
+handlers:
+  console_default:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: colored
+    stream: ext://sys.stdout
+  console_simulation:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: simulation_formatter
+    stream: ext://sys.stdout
+loggers:
+  core:
+    level: DEBUG
+    handlers: [console_simulation]
+    propagate: false
+
+root:
+  level: DEBUG
+  handlers: [console_default]
+

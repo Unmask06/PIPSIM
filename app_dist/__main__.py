@@ -1,4 +1,2 @@
-from app.__main__ import launch_application
-
-if __name__ == "__main__":
-    launch_application()
+from app.app import launch_application 
+launch_application() 
