@@ -39,12 +39,13 @@ def run_simulation(folder_path, system_vars, profile_vars, unit, parent, progres
     def task():
         progress_bar.pack(pady=10)
         logger.info("Running simulation")
+        folder = Path(folder_path)
         logger.debug(
             f"System Variables: {system_vars}, Profile Variables: {profile_vars}, Unit: {unit}"
         )
 
         progress_bar.start()
-        for pips_file in folder_path.glob("*.pips"):
+        for pips_file in folder.glob("*.pips"):
             try:
                 ns = NetworkSimulator(str(pips_file), system_vars, profile_vars, unit)
                 ns.run_existing_model()
@@ -52,7 +53,9 @@ def run_simulation(folder_path, system_vars, profile_vars, unit, parent, progres
                 logger.error(e)
         progress_bar.stop()
         progress_bar.pack_forget()
-        create_results_button_frame(parent, ns.NODE_RESULTS_FILE, ns.PROFILE_RESULTS_FILE)
+        create_results_button_frame(
+            parent, ns.NODE_RESULTS_FILE, ns.PROFILE_RESULTS_FILE
+        )
         messagebox.showinfo("Success", "Simulation completed successfully")
 
     threading.Thread(target=task).start()
