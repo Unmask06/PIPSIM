@@ -73,7 +73,6 @@ class NetworkSimulator:
             system_variables=self.system_variables,
             profile_variables=self.profile_variables,
         )
-        pd.DataFrame(self.results.node).to_excel("bulk_node_results.xlsx")
         logger.info("Simulation completed successfully.")
 
     def process_node_results(self) -> None:

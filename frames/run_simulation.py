@@ -6,9 +6,10 @@ This script contains the code for the run_simulation frame of the application.
 import json
 import logging
 import os
+import threading
 import tkinter as tk
 from pathlib import Path
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 
 from sixgill.definitions import ProfileVariables, SystemVariables, Units
 
@@ -20,7 +21,7 @@ from widgets.dual_combo_box import DualSelectableCombobox
 logger = logging.getLogger("core.network_simulation")
 
 
-def run_simulation(folder_path, system_vars, profile_vars, unit, parent):
+def run_simulation(folder_path, system_vars, profile_vars, unit, parent, progress_bar):
     """
     Excutes the run_existing_model method of the NetworkSimulator class for all .pips files in the specified folder.
     i.e., Run the simulation for each .pips file in the folder.
@@ -35,20 +36,27 @@ def run_simulation(folder_path, system_vars, profile_vars, unit, parent):
         Exception: If an error occurs during the simulation of any .pips file, it will be caught and printed.
     """
 
-    logger.info("Running simulation")
-    folder_path = Path(folder_path)
-    logger.debug(
-        f"System Variables: {system_vars}, Profile Variables: {profile_vars}, Unit: {unit}"
-    )
+    def task():
+        progress_bar.pack(pady=10)
+        logger.info("Running simulation")
+        folder_path = Path(folder_path)
+        logger.debug(
+            f"System Variables: {system_vars}, Profile Variables: {profile_vars}, Unit: {unit}"
+        )
 
-    for pips_file in folder_path.glob("*.pips"):
-        try:
-            ns = NetworkSimulator(str(pips_file), system_vars, profile_vars, unit)
-            ns.run_existing_model()
-        except NetworkSimulationError as e:
-            logger.error(e)
-    create_results_button_frame(parent, ns.NODE_RESULTS_FILE, ns.PROFILE_RESULTS_FILE)
-    messagebox.showinfo("Success", "Simulation completed successfully")
+        progress_bar.start()
+        for pips_file in folder_path.glob("*.pips"):
+            try:
+                ns = NetworkSimulator(str(pips_file), system_vars, profile_vars, unit)
+                ns.run_existing_model()
+            except NetworkSimulationError as e:
+                logger.error(e)
+        progress_bar.stop()
+        progress_bar.pack_forget()
+        create_results_button_frame(parent, ns.NODE_RESULTS_FILE, ns.PROFILE_RESULTS_FILE)
+        messagebox.showinfo("Success", "Simulation completed successfully")
+
+    threading.Thread(target=task).start()
 
 
 def open_checkable_combobox(parent, title, values, listbox):
@@ -191,6 +199,8 @@ def init_run_simulation_frame(app):
     )
     load_button.pack(pady=5)
 
+    progress_bar = ttk.Progressbar(run_simulation_frame, mode="indeterminate")
+
     run_button_rs = tk.Button(
         center_frame,
         text="Run Simulations",
@@ -200,6 +210,7 @@ def init_run_simulation_frame(app):
             list(profile_vars_listbox.get(0, tk.END)),
             unit_var.get(),
             run_simulation_frame,
+            progress_bar,
         ),
     )
     run_button_rs.config(font=("Arial", 12, "bold"), height=1, width=20)
