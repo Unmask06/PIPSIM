@@ -13,10 +13,10 @@ from tkinter import filedialog, messagebox, ttk
 
 from sixgill.definitions import ProfileVariables, SystemVariables, Units
 
-from core import NetworkSimulationError
-from core.network_simulation import NetworkSimulator
-from project import FRAME_STORE, browse_folder_or_file, get_string_values_from_class
-from widgets.dual_combo_box import DualSelectableCombobox
+from app.core import NetworkSimulationError
+from app.core.network_simulation import NetworkSimulator
+from app.project import FRAME_STORE, browse_folder_or_file, get_string_values_from_class
+from app.widgets.dual_combo_box import DualSelectableCombobox
 
 logger = logging.getLogger("core.network_simulation")
 

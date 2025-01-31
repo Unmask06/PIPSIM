@@ -13,7 +13,7 @@ from pathlib import Path
 from tkinter import messagebox
 
 import yaml
-from frames import (
+from app.frames import (
     init_create_model_frame,
     init_home_frame,
     init_multi_case_frame,
@@ -21,7 +21,7 @@ from frames import (
     init_summarize_frame,
     init_update_conditions_frame,
 )
-from project import FRAME_STORE, open_documentation, switch_frame
+from app.project import FRAME_STORE, open_documentation, switch_frame
 
 from app.config import fetch_response
 

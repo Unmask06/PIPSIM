@@ -2,7 +2,7 @@
 import logging
 import tkinter as tk
 
-from project import FRAME_STORE, switch_frame
+from app.project import FRAME_STORE, switch_frame
 
 logger = logging.getLogger(__name__)
 
