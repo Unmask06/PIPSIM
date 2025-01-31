@@ -39,7 +39,6 @@ def run_simulation(folder_path, system_vars, profile_vars, unit, parent, progres
     def task():
         progress_bar.pack(pady=10)
         logger.info("Running simulation")
-        folder_path = Path(folder_path)
         logger.debug(
             f"System Variables: {system_vars}, Profile Variables: {profile_vars}, Unit: {unit}"
         )
