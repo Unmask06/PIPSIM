@@ -13,6 +13,7 @@ from pathlib import Path
 from tkinter import messagebox
 
 import yaml
+from app.config import fetch_response
 from app.frames import (
     init_create_model_frame,
     init_home_frame,
@@ -22,8 +23,6 @@ from app.frames import (
     init_update_conditions_frame,
 )
 from app.project import FRAME_STORE, open_documentation, switch_frame
-
-from app.config import fetch_response
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +126,7 @@ def create_app_data() -> Path:
     return appdata
 
 
-def main():
+def launch_application():
 
     load_logging_config()
     # Tkinter GUI setup
@@ -151,5 +150,4 @@ def main():
     app.mainloop()
 
 
-if __name__ == "__main__":
-    main()
+launch_application()
