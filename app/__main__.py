@@ -13,8 +13,6 @@ from pathlib import Path
 from tkinter import messagebox
 
 import yaml
-
-from config import fetch_response
 from frames import (
     init_create_model_frame,
     init_home_frame,
@@ -24,6 +22,8 @@ from frames import (
     init_update_conditions_frame,
 )
 from project import FRAME_STORE, open_documentation, switch_frame
+
+from app.config import fetch_response
 
 logger = logging.getLogger(__name__)
 
