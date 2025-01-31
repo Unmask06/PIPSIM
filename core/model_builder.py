@@ -7,6 +7,8 @@ import pandas as pd
 from sixgill.definitions import Parameters, Units
 from sixgill.pipesim import Model, ModelComponents
 
+from core import ExcelInputError
+
 logger = logging.getLogger(__name__)
 
 
@@ -95,6 +97,10 @@ class ModelBuilder:
             )
         if self.component_data.empty:
             raise ValueError("Component data is empty.")
+
+        # check duplicate index
+        if self.component_data.index.duplicated().any():
+            raise ValueError("Duplicate index found in component data.")
 
     def create_model(self) -> None:
         """Main method to create the Pipsim model from the input data."""

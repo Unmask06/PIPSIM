@@ -48,6 +48,8 @@ class NetworkSimulator:
             SystemVariables.TYPE,
             SystemVariables.PRESSURE,
             SystemVariables.TEMPERATURE,
+            SystemVariables.DELTA_PRESSURE,
+            SystemVariables.TYPE,
         ]
         self.profile_variables = profile_variables or [
             ProfileVariables.PRESSURE,
@@ -71,6 +73,7 @@ class NetworkSimulator:
             system_variables=self.system_variables,
             profile_variables=self.profile_variables,
         )
+        pd.DataFrame(self.results.node).to_excel("bulk_node_results.xlsx")
         logger.info("Simulation completed successfully.")
 
     def process_node_results(self) -> None:
@@ -103,7 +106,7 @@ class NetworkSimulator:
         self.node_results.sort_values(
             by=[SystemVariables.TYPE, "Node"], ascending=[False, True], inplace=True
         )
-        self.node_results.dropna(subset=[SystemVariables.TYPE], inplace=True)
+        # self.node_results.dropna(subset=[SystemVariables.TYPE], inplace=True)
         self.node_results = pd.concat([unit_row, self.node_results], ignore_index=True)
 
         cols = ["Node"] + [
