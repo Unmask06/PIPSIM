@@ -4,8 +4,9 @@ Generate the create_model frame for the application.
 """
 
 import logging
+import threading
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 
 import pandas as pd
 from sixgill.definitions import ModelComponents, Parameters
@@ -141,42 +142,62 @@ def create_submit_button_frame(parent, command) -> tk.Frame:
 
 
 def submit_create_model(
-    pipesim_file_path: str, excel_file_path: str, sheet_name: str
+    pipesim_file_path: str, excel_file_path: str, sheet_name: str, progress_bar: ttk.Progressbar
 ) -> None:
     if sheet_name == "Select Sheet Name":
         messagebox.showerror("Error", "Please select a valid sheet name.")
         return
-    logger.info("Creating model from scratch")
-    component_name = create_component_name_df(excel_file_path, sheet_name)
-    mb = ModelBuilder(
-        pipsim_file_path=pipesim_file_path,
-        component_name=component_name,
-        mode="Scratch",
-    )
-    mb.main()
-    messagebox.showinfo("Success", "Model created successfully")
+
+    def task():
+        progress_bar.pack(pady=10)
+        logger.info("Creating model from scratch")
+        progress_bar.start()
+
+        component_name = create_component_name_df(excel_file_path, sheet_name)
+        mb = ModelBuilder(
+            pipsim_file_path=pipesim_file_path,
+            component_name=component_name,
+            mode="Scratch",
+        )
+        mb.main()
+
+        progress_bar.stop()
+        progress_bar.pack_forget()
+        messagebox.showinfo("Success", "Model created successfully")
+
+    threading.Thread(target=task).start()
 
 
 def submit_populate_model(
-    pipesim_file_path: str, excel_file_path: str, sheet_name: str
+    pipesim_file_path: str, excel_file_path: str, sheet_name: str, progress_bar: ttk.Progressbar
 ) -> None:
     if sheet_name == "Select Sheet Name":
         messagebox.showerror("Error", "Please select a valid sheet name.")
         return
-    component_data = pd.read_excel(excel_file_path, sheet_name=sheet_name)
-    try:
-        mb = ModelBuilder(
-            pipsim_file_path=pipesim_file_path,
-            component_data=component_data,
-            mode="Populate",
-        )
-        mb.main()
-        logger.info("Model Information populated successfully")
-        messagebox.showinfo("Success", "Model Information populated successfully")
 
-    except ExcelInputError as e:
-        logger.error(f"Error reading Excel file: {e}")
-        messagebox.showerror("Error", f"Error reading Excel file: {e}")
+    def task():
+        progress_bar.pack(pady=10)
+        component_data = pd.read_excel(excel_file_path, sheet_name=sheet_name)
+        try:
+            progress_bar.start()
+            mb = ModelBuilder(
+                pipsim_file_path=pipesim_file_path,
+                component_data=component_data,
+                mode="Populate",
+            )
+            mb.main()
+            logger.info("Model Information populated successfully")
+            progress_bar.stop()
+            progress_bar.pack_forget()
+            messagebox.showinfo("Success", "Model Information populated successfully")
+
+        except ExcelInputError as e:
+            logger.error(f"Error reading Excel file: {e}")
+            progress_bar.stop()
+            progress_bar.pack_forget()
+            messagebox.showerror("Error", f"Error reading Excel file: {e}")
+
+    threading.Thread(target=task).start()
 
 
 def browse_and_update_optionmenu(
@@ -265,14 +286,16 @@ def init_create_model_frame(app: tk.Tk) -> tk.Frame:
         create_model_frame, model_options, model_option_var, app, sheet_name_var
     )
 
+    progress_bar = ttk.Progressbar(create_model_frame, mode="indeterminate")
+
     def on_submit() -> None:
         if model_option_var.get() == "Scratch":
             submit_create_model(
-                ps_file_entry.get(), excel_file_entry.get(), sheet_name_var.get()
+                ps_file_entry.get(), excel_file_entry.get(), sheet_name_var.get(), progress_bar
             )
         else:
             submit_populate_model(
-                ps_file_entry.get(), excel_file_entry.get(), sheet_name_var.get()
+                ps_file_entry.get(), excel_file_entry.get(), sheet_name_var.get(), progress_bar
             )
 
     create_submit_button_frame(create_model_frame, on_submit)

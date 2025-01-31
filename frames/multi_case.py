@@ -1,7 +1,8 @@
 import logging
+import threading
 import tkinter as tk
 import webbrowser
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 from typing import Callable
 
 from sixgill.definitions import Parameters
@@ -98,22 +99,33 @@ def submit_multi_case_workflow(
     well_profile_sheet: str,
     conditions_sheet: str,
     sink_parameter: str,
+    progress_bar: ttk.Progressbar
 ) -> None:
     logger.info("Handling multi-case workflow")
-    try:
-        mbm = MultiCaseModeller(
-            base_model_path=base_pip_file,
-            excel_path=excel_file_path,
-            sink_profile_sheet=well_profile_sheet,
-            condition_sheet=conditions_sheet,
-        )
 
-        mbm.build_all_models(sink_parameter=sink_parameter)
-        messagebox.showinfo("Success", "Multi-case workflow handled successfully")
+    def task():
+        progress_bar.pack(pady=10)
+        progress_bar.start()
 
-    except ExcelInputError as e:
-        logger.error(f"Excel input error: {e}")
-        messagebox.showerror("Error", f"Excel input error: {e}")
+        try:
+            mbm = MultiCaseModeller(
+                base_model_path=base_pip_file,
+                excel_path=excel_file_path,
+                sink_profile_sheet=well_profile_sheet,
+                condition_sheet=conditions_sheet,
+            )
+
+            mbm.build_all_models(sink_parameter=sink_parameter)
+            messagebox.showinfo("Success", "Multi-case workflow handled successfully")
+
+        except ExcelInputError as e:
+            logger.error(f"Excel input error: {e}")
+            messagebox.showerror("Error", f"Excel input error: {e}")
+
+        progress_bar.stop()
+        progress_bar.pack_forget()
+
+    threading.Thread(target=task).start()
 
 
 def init_multi_case_frame(app: tk.Tk) -> tk.Frame:
@@ -173,6 +185,8 @@ def init_multi_case_frame(app: tk.Tk) -> tk.Frame:
                 label=option, command=lambda value=option: sink_parameter_var.set(value)
             )
 
+    progress_bar = ttk.Progressbar(multi_case_frame, mode="indeterminate")
+
     def on_submit() -> None:
         submit_multi_case_workflow(
             base_pip_file_entry.get(),
@@ -180,6 +194,7 @@ def init_multi_case_frame(app: tk.Tk) -> tk.Frame:
             well_profile_sheet_var.get(),
             conditions_sheet_var.get(),
             sink_parameter_var.get(),
+            progress_bar
         )
 
     create_submit_button_frame(multi_case_frame, on_submit)

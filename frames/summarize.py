@@ -1,14 +1,28 @@
 import logging
+import threading
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 
 from project import FRAME_STORE
 
 logger_sm = logging.getLogger("SummarizeLogger")
 
 
-def summarize():
-    logger_sm.info("Summarizing data")
+def summarize(progress_bar):
+    def task():
+        progress_bar.pack(pady=10)
+        logger_sm.info("Summarizing data")
+        progress_bar.start()
+
+        # Simulate summarizing data
+        import time
+        time.sleep(5)
+
+        progress_bar.stop()
+        progress_bar.pack_forget()
+        messagebox.showinfo("Success", "Data summarized successfully")
+
+    threading.Thread(target=task).start()
 
 
 def init_summarize_frame(app):
@@ -29,8 +43,11 @@ def init_summarize_frame(app):
         command=lambda: filedialog.askopenfilename(),
     )
     config_browse_button_sm.pack(pady=5)
+
+    progress_bar = ttk.Progressbar(summarize_frame, mode="indeterminate")
+
     submit_button_sm = tk.Button(
-        summarize_frame, text="Submit", command=lambda: summarize()
+        summarize_frame, text="Submit", command=lambda: summarize(progress_bar)
     )
     submit_button_sm.pack(pady=10)
     return summarize_frame
