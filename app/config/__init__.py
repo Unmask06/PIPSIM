@@ -1,6 +1,6 @@
 import requests
 
-VERSION = "1.0"
+VERSION = "1.0.0"
 BASE_URL = "http://127.0.0.1:80"
 URL = f"{BASE_URL}/streamline/pipesim-pilot/getAccess"
 

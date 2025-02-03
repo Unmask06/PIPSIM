@@ -18,7 +18,7 @@ from app.core.network_simulation import NetworkSimulator
 from app.project import FRAME_STORE, browse_folder_or_file, get_string_values_from_class
 from app.widgets.dual_combo_box import DualSelectableCombobox
 
-logger = logging.getLogger("core.network_simulation")
+logger = logging.getLogger("app.core.network_simulation")
 
 
 def run_simulation(folder_path, system_vars, profile_vars, unit, parent, progress_bar):

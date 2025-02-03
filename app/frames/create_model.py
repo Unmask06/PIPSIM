@@ -23,7 +23,7 @@ from app.project import (
 )
 from app.widgets import DualCascadeListBox, DualSelectableCombobox
 
-logger = logging.getLogger("core.model_builder")
+logger = logging.getLogger("app.core.model_builder")
 
 
 ############################################

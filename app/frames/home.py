@@ -3,6 +3,7 @@ import logging
 import tkinter as tk
 
 from app.project import FRAME_STORE, switch_frame
+from app.config import VERSION
 
 logger = logging.getLogger(__name__)
 

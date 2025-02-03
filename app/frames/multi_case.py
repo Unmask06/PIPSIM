@@ -16,7 +16,7 @@ from app.project import (
     update_optionmenu_with_excelsheets,
 )
 
-logger = logging.getLogger("multi_case")
+logger = logging.getLogger("app.core.multi_case_modeller")
 
 
 def create_title_frame(parent) -> tk.Frame:
@@ -99,7 +99,7 @@ def submit_multi_case_workflow(
     well_profile_sheet: str,
     conditions_sheet: str,
     sink_parameter: str,
-    progress_bar: ttk.Progressbar
+    progress_bar: ttk.Progressbar,
 ) -> None:
     logger.info("Handling multi-case workflow")
 
@@ -194,7 +194,7 @@ def init_multi_case_frame(app: tk.Tk) -> tk.Frame:
             well_profile_sheet_var.get(),
             conditions_sheet_var.get(),
             sink_parameter_var.get(),
-            progress_bar
+            progress_bar,
         )
 
     create_submit_button_frame(multi_case_frame, on_submit)
