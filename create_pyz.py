@@ -6,8 +6,10 @@ import sys
 PYTHON_INTERPRETER = "C:/Program Files/Schlumberger/Pipesim_PTK_2023.1/python.exe"
 
 # ✅ Define paths
-SOURCE_DIR = "dist"  # The folder containing the app and pyarmor_runtime
-OUTPUT_FILE = "app_dist.pyz"
+SOURCE_DIR = (
+    "pipesim-pilot"  # The folder containing the app and pyarmor_runtime
+)
+OUTPUT_FILE = "pipesim-pilot.pyz"
 ENTRY_POINT = "app.__main__:main"  # Ensure this points to the correct main function
 
 
