@@ -1,0 +1,10 @@
+colorama==0.4.*
+colorlog==6.9.*
+Flask==3.1.*
+numpy==1.*
+openpyxl==3.1.*
+pandas==2.0.*
+pathlib2==2.3.*
+PyYAML==6.0.*
+XlsxWriter==3.2.*
+xlwings==0.33.*
