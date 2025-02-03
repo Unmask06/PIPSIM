@@ -21,7 +21,7 @@ import pandas as pd
 from sixgill.definitions import ModelComponents, Parameters
 from sixgill.pipesim import Model
 
-from core import ExcelInputError, PipsimModellingError
+from app.core import ExcelInputError, PipsimModellingError
 
 logger = logging.getLogger(__name__)
 

@@ -7,7 +7,7 @@ import pandas as pd
 from sixgill.definitions import Parameters, Units
 from sixgill.pipesim import Model, ModelComponents
 
-from core import ExcelInputError
+from app.core import ExcelInputError
 
 logger = logging.getLogger(__name__)
 

@@ -10,7 +10,7 @@ from typing import Dict, List
 import pandas as pd
 import yaml
 
-from config import BASE_URL
+from app.config import BASE_URL
 
 FRAME_STORE: dict[str, tk.Frame] = {}
 
@@ -72,7 +72,7 @@ def get_string_values_from_class(class_names: type | list[type]) -> list:
 
     def get_inherited_classes(class_name):
         for _class in inspect.getmro(class_name):
-            if _class.__name__ == "object":
+            if (_class.__name__ == "object"):
                 break
             combined_values.update(extract_string_values(_class))
         return combined_values

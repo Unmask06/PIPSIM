@@ -9,7 +9,7 @@ from itertools import product
 
 import pandas as pd
 
-from .excel_handling import ExcelHandler
+from app.core.excel_handling import ExcelHandler
 
 
 @dataclass

@@ -8,7 +8,7 @@ import pandas as pd
 import xlwings as xw
 from sixgill.definitions import ProfileVariables
 
-from core import ExcelHandler, NetworkSimulator
+from app.core import ExcelHandler, NetworkSimulator
 
 parameters = [
     ProfileVariables.MEAN_VELOCITY_FLUID,
@@ -93,6 +93,7 @@ class NetworkSimulationSummary:
             max_parameter_idx = df_copy.loc[
                 df_copy["Type"] == "Sink", parameter
             ].idxmax()
+
         else:
             min_parameter_idx = df_copy[parameter].idxmin()
             max_parameter_idx = df_copy[parameter].idxmax()

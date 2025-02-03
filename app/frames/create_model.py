@@ -11,17 +11,17 @@ from tkinter import messagebox, ttk
 import pandas as pd
 from sixgill.definitions import ModelComponents, Parameters
 
-from core import ExcelInputError, PipsimModellingError
-from core.excel_handling import ExcelHandler
-from core.model_builder import ModelBuilder, create_component_name_df
-from project import (
+from app.core import ExcelInputError, PipsimModellingError
+from app.core.excel_handling import ExcelHandler
+from app.core.model_builder import ModelBuilder, create_component_name_df
+from app.project import (
     FRAME_STORE,
     browse_folder_or_file,
     generate_dict_from_class,
     get_string_values_from_class,
     update_optionmenu_with_excelsheets,
 )
-from widgets import DualCascadeListBox, DualSelectableCombobox
+from app.widgets import DualCascadeListBox, DualSelectableCombobox
 
 logger = logging.getLogger("core.model_builder")
 

@@ -3,7 +3,7 @@ import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-from project import FRAME_STORE
+from app.project import FRAME_STORE
 
 logger_sm = logging.getLogger("SummarizeLogger")
 

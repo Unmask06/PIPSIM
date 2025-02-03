@@ -7,10 +7,10 @@ from typing import Callable
 
 from sixgill.definitions import Parameters
 
-from config import BASE_URL
-from core import ExcelInputError
-from core.multi_case_modeller import MultiCaseModeller
-from project import (
+from app.config import BASE_URL
+from app.core import ExcelInputError
+from app.core.multi_case_modeller import MultiCaseModeller
+from app.project import (
     FRAME_STORE,
     browse_folder_or_file,
     update_optionmenu_with_excelsheets,
