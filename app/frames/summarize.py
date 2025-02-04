@@ -16,11 +16,15 @@ def summarize(progress_bar):
 
         # Simulate summarizing data
         import time
+
         time.sleep(5)
 
         progress_bar.stop()
         progress_bar.pack_forget()
-        messagebox.showinfo("Success", "Data summarized successfully")
+        messagebox.showwarning(
+            "Wait", "Data summarization feature is not available yet"
+        )
+        # messagebox.showinfo("Success", "Data summarized successfully")
 
     threading.Thread(target=task).start()
 

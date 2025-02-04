@@ -28,7 +28,6 @@ def create_pyz():
             interpreter=PYTHON_INTERPRETER,
         )
         print(f"✅ Successfully created '{OUTPUT_FILE}'")
-        print(f"➡ Run it using: {PYTHON_INTERPRETER} {OUTPUT_FILE}")
     except Exception as e:
         print(f"❌ Failed to create .pyz: {e}")
 

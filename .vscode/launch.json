@@ -8,7 +8,7 @@
             "name": "Python Debugger: Pipesim",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/app.py",
+            "module": "app.app",
             "console": "integratedTerminal"
         }
     ]
