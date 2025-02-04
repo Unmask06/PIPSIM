@@ -2,8 +2,8 @@
 import logging
 import tkinter as tk
 
-from app.project import FRAME_STORE, switch_frame
 from app.config import VERSION
+from app.project import FRAME_STORE, switch_frame
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,7 @@ def init_home_frame(app: tk.Tk) -> tk.Frame:
         text="Summarize Results Workflow",
         command=lambda: switch_frame(FRAME_STORE["summarize"]),
         width=30,
+        state=tk.DISABLED,  # TODO: Enable this button when the feature is ready
     )
 
     multi_case_button = tk.Button(
