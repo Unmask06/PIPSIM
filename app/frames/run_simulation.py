@@ -47,7 +47,9 @@ def run_simulation(folder_path, system_vars, profile_vars, unit, parent, progres
         progress_bar.start()
         for pips_file in folder.glob("*.pips"):
             try:
-                ns = NetworkSimulator(str(pips_file), system_vars, profile_vars, unit)
+                ns = NetworkSimulator(
+                    str(pips_file), system_vars, profile_vars, unit, folder=str(folder)
+                )
                 ns.run_existing_model()
             except NetworkSimulationError as e:
                 logger.error(e)

@@ -14,7 +14,6 @@ from sixgill.definitions import ProfileVariables, SystemVariables
 from sixgill.pipesim import Model, Units
 
 from app.core import NetworkSimulationError
-
 from app.core.excel_handling import ExcelHandler, ExcelHandlerError
 
 logger = logging.getLogger(__name__)
@@ -41,6 +40,7 @@ class NetworkSimulator:
         system_variables: Optional[List[str]] = None,
         profile_variables: Optional[List[str]] = None,
         unit: str = Units.METRIC,
+        folder: str = "",
     ) -> None:
         self.model_path = model_path
         self.model = Model.open(model_path, units=unit)
@@ -60,6 +60,7 @@ class NetworkSimulator:
         self.unit = unit
         self.node_results: Optional[pd.DataFrame] = None
         self.profile_results: Optional[pd.DataFrame] = None
+        self.folder = folder
 
     def run_simulation(self) -> None:
         """Runs the network simulation using Pipesim."""
@@ -165,14 +166,14 @@ class NetworkSimulator:
             sheet_name=sheet_name,
             clear_sheet=True,
             sht_range="A2",
-            workbook=self.NODE_RESULTS_FILE,
+            workbook=str(Path(self.folder).absolute() / self.NODE_RESULTS_FILE),
         )
 
         ExcelHandler.write_excel(
             df=self.profile_results,
             sheet_name=sheet_name,
             clear_sheet=True,
-            workbook=self.PROFILE_RESULTS_FILE,
+            workbook=str(Path(self.folder).absolute() / self.PROFILE_RESULTS_FILE),
         )
 
         logger.info("Results written to Excel successfully.")
