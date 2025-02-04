@@ -1,14 +1,12 @@
-import zipapp
 import os
 import sys
+import zipapp
 
 # ✅ Modify this to specify the Python interpreter to be used
 PYTHON_INTERPRETER = "C:/Program Files/Schlumberger/Pipesim_PTK_2023.1/python.exe"
 
 # ✅ Define paths
-SOURCE_DIR = (
-    "pipesim-pilot"  # The folder containing the app and pyarmor_runtime
-)
+SOURCE_DIR = "pipesim-pilot"  # The folder containing the app and pyarmor_runtime
 OUTPUT_FILE = "pipesim-pilot.pyz"
 ENTRY_POINT = "app.__main__:main"  # Ensure this points to the correct main function
 
@@ -28,6 +26,7 @@ def create_pyz():
             interpreter=PYTHON_INTERPRETER,
         )
         print(f"✅ Successfully created '{OUTPUT_FILE}'")
+        print("Copy the .pyz file to the PANDORA downloads folder")
     except Exception as e:
         print(f"❌ Failed to create .pyz: {e}")
 
