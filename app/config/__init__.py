@@ -1,7 +1,7 @@
 import requests
 
-VERSION = "1.0.1"
-BASE_URL = "http://127.0.0.1:80"
+VERSION = "1.0.2"
+BASE_URL = "https://sv03919.res1.rlaone.net"
 URL = f"{BASE_URL}/streamline/pipesim-pilot/getAccess"
 
 
