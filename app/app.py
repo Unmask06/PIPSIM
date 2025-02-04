@@ -63,7 +63,7 @@ def show_menu(app: tk.Tk):
     app.config(menu=menu_bar)
 
 
-def check_access(app: tk.Tk, trail=False):  #! trail=False in production
+def check_access(app: tk.Tk, trail=True):  #! trail=False in production
     """Check access and display the appropriate frame with flexibility for trail mode."""
     response = fetch_response(trail)
 
