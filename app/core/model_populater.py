@@ -27,7 +27,7 @@ class ModelPopulater:
         self,
         pipesim_file: str,
         excel_file: str,
-        mode: Literal["import", "export"],
+        mode: Literal["import", "export", "simple_import"],
         unit: str = Units.METRIC,
     ):
         self.pipesim_file = pipesim_file

@@ -76,11 +76,11 @@ def create_mode_selection_frame(
 ) -> tk.Frame:
     frame = tk.Frame(parent)
     frame.pack(pady=5)
-    
+
     modes = {
-        "export": "Export data from the model",
-        "bulk import": "Bulk import data into the model",
-        "simple import": "Simple import data into the model"
+        "export": "Export the entire data from the mode for the selected components",
+        "bulk import": "Bulk import data into the model from the Excel file created by the export mode",
+        "simple_import": "Import data into the model from selected sheet in the Excel file",
     }
 
     def on_mode_change(*args):
@@ -94,8 +94,10 @@ def create_mode_selection_frame(
     for i, (mode, explanation) in enumerate(modes.items()):
         radio_button = tk.Radiobutton(frame, text=mode, variable=variable, value=mode)
         radio_button.grid(row=i, column=0, sticky=tk.W)
-        explanation_label = tk.Label(frame, text=explanation)
-        explanation_label.grid(row=i, column=1, sticky=tk.W)
+        explanation_label = tk.Label(
+            frame, text=explanation, font=("Arial", 9, "italic")
+        )
+        explanation_label.grid(row=i, column=1, sticky=tk.W, padx=10)
 
     return frame
 
@@ -120,7 +122,7 @@ def submit_populate_model(
     mode: str,
     progress_bar: ttk.Progressbar,
 ) -> None:
-    if mode == "simple import" and sheet_name == "Select Sheet Name":
+    if mode == "simple_import" and sheet_name == "Select Sheet Name":
         messagebox.showerror("Error", "Please select a valid sheet name.")
         return
 
@@ -150,7 +152,7 @@ def browse_and_update_optionmenu(
     entry_widget: tk.Entry, option_menu: tk.OptionMenu, variable: tk.StringVar
 ) -> None:
     file_path = browse_folder_or_file(
-        entry_widget, file_types=[("Excel Files", "*.xlsx *.xls")]
+        entry_widget, file_types=[("Excel Files", "*.xlsx *.xls *.xlsm")]
     )
     update_optionmenu_with_excelsheets(option_menu, variable, file_path)
 

@@ -129,7 +129,7 @@ def browse_and_update_optionmenu(
     entry_widget: tk.Entry, option_menu: tk.OptionMenu, variable: tk.StringVar
 ) -> None:
     file_path = browse_folder_or_file(
-        entry_widget, file_types=[("Excel Files", "*.xlsx *.xls")]
+        entry_widget, file_types=[("Excel Files", "*.xlsx *.xls *.xlsm")]
     )
     update_optionmenu_with_excelsheets(option_menu, variable, file_path)
 

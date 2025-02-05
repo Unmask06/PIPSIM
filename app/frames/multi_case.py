@@ -84,7 +84,9 @@ def create_submit_button_frame(parent, command) -> tk.Frame:
 
 
 def browse_and_update_optionmenu(entry_widget, option_menus: list, variables: list):
-    path = browse_folder_or_file(entry_widget, file_types=[("Excel Files", "*.xlsx")])
+    path = browse_folder_or_file(
+        entry_widget, file_types=[("Excel Files", "*.xlsx *.xls *.xlsm")]
+    )
     if path:
         # update_optionmenu_with_excelsheets(option_menu, variable, excel_file_path=path)
         for option_menu, variable in zip(option_menus, variables):
