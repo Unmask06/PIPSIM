@@ -51,7 +51,6 @@ class ModelBuilder:
     Class for creating the components for the Pipsim model from an Excel file.
     Methods:
     create_model: Create the Pipsim model from the input data.
-    set_new_parameters: Set the new parameters for the components in the Pipsim model.
     """
 
     section_list: List[List[PipsimComponents]] = []
@@ -59,89 +58,51 @@ class ModelBuilder:
     def __init__(
         self,
         pipsim_file_path: str,
-        mode: Literal["Scratch", "Populate"] = "Scratch",
-        component_name: Optional[pd.DataFrame] = None,
-        component_data: Optional[pd.DataFrame] = None,
+        component_name: pd.DataFrame,
         units: str = Units.METRIC,
     ) -> None:
         self.model = Model.open(pipsim_file_path, units=units)
-        self.component_name = component_name if mode == "Scratch" else None
-        self.component_data = (
-            component_data.dropna(subset=["Name", "Component"])
-            if mode == "Populate" and component_data is not None
-            else None
-        )
-        self.mode = mode
-
-        if mode == "Populate" and self.component_data is None:
-            logger.warning("Component data is None, but mode is 'Populate'.")
+        self.component_name = component_name
 
     def main(self) -> None:
         """Main method to create the Pipsim model from the input data."""
-        if self.mode == "Scratch":
-            self.create_model()
-            self.model.save()
-            self.model.close()
-            logger.info("Pipsim model created")
-
-        elif self.mode == "Populate":
-            self.set_new_parameters()
-            self.model.save()
-            self.model.close()
-            logger.info("Pipsim model updated with new parameters")
-
-    def _check_component_data(self) -> None:
-        if self.component_data is None:
-            raise ValueError(
-                "component_data is not set. Ensure mode is 'Populate' and data is provided."
-            )
-        if self.component_data.empty:
-            raise ValueError("Component data is empty.")
-
-        # check duplicate index
-        if self.component_data.index.duplicated().any():
-            raise ValueError("Duplicate index found in component data.")
+        self.create_model()
+        self.model.save()
+        self.model.close()
+        logger.info("Pipsim model created")
 
     def create_model(self) -> None:
         """Main method to create the Pipsim model from the input data."""
-
         self.create_section_components()
         for idx, section in enumerate(self.section_list):
             self.build_section(section, x=4000, y=idx * 100)
         logger.info("Pipsim model created")
 
-    def set_new_parameters(self) -> None:
-        """Set new parameters for components in the Pipsim model."""
-        if self.component_data is None:
-            raise ValueError("component_data is None. Cannot set new parameters.")
+    def create_section_components(self) -> None:
+        """
+        Generates a List[List[PipsimComponents]]
+        - where each inner list contains adjacent components in the data
+        """
+        self.section_list = []
+        if self.component_name is None:
+            logger.error("component_name is None. Cannot create section components.")
+            return
 
-        for component in self.component_data["Component"].unique():
-            new_parameters = self._get_new_parameters(component)
-            if not new_parameters:
-                logger.warning(
-                    f"No new parameters found for component {component}. Skipping."
-                )
-                continue
+        columns = self.component_name.columns
+        for i in range(0, len(columns), 2):
+            adjacent_columns = columns[i : i + 2]
+            df_pair = self.component_name[adjacent_columns].dropna(axis=0, how="all")
+            df_pair = self.insert_junctions(
+                df_pair, i // 2, adjacent_columns[0], adjacent_columns[1]
+            )
+            component_list = [
+                PipsimComponents(*row)
+                for row in df_pair.itertuples(index=False, name=None)
+            ]
+            if component_list:
+                self.section_list.append(component_list)
 
-            self.model.set_values(dict=new_parameters)
-            logger.info(f"New parameters set for component - {component}")
-
-    def set_flowline_elevations(self) -> None:
-        """Main method to set the elevations for the flowlines in the Pipsim model."""
-        if self.component_data is None:
-            raise ValueError("component_data is None. Cannot set flowline elevations.")
-
-        flowlines_xl = self.component_data[
-            self.component_data["Component"] == ModelComponents.FLOWLINE
-        ]["Name"]
-
-        flowlines_model = list(
-            self.model.get_values(component=ModelComponents.FLOWLINE).keys()
-        )
-
-        for flowline in set(flowlines_xl).intersection(flowlines_model):
-            self._set_flowline_elevation(flowline)
-        logger.info(f"Flowline elevation set for {len(flowlines_xl)} flowlines")
+        logger.info(f"Section list created with {len(self.section_list)} sections")
 
     def insert_junctions(
         self, df: pd.DataFrame, section_number: int, loop_column: str, type_column: str
@@ -204,100 +165,6 @@ class ModelBuilder:
             )
 
         return pd.DataFrame(new_rows)
-
-    def _set_flowline_elevation(self, flowline: str):
-        try:
-            if self.component_data is None:
-                raise ValueError(
-                    "component_data is None. Cannot set flowline elevation."
-                )
-
-            dff = self.component_data.loc[
-                self.component_data["Name"] == flowline,
-                ["Start Elevation", "End Elevation", "Measured Distance"],
-            ]
-            a = [
-                dff["Start Elevation"].values[0],
-                dff["End Elevation"].values[0],
-            ]
-            b = [0, dff["Measured Distance"].values[0]]
-            n_df = pd.DataFrame(
-                {
-                    Parameters.Flowline.HORIZONTALDISTANCE: b,
-                    Parameters.Flowline.MEASUREDDISTANCE: b,
-                    Parameters.Flowline.ELEVATION: a,
-                }
-            )
-            self.model.set_geometry(Flowline=flowline, value=n_df)
-        except KeyError as ke:
-            logger.error(f"KeyError: {ke}")
-
-    def _get_new_parameters(self, component: str) -> Optional[dict]:
-        """Get new parameters for a component from isometric data."""
-        if self.component_data is None:
-            logger.error("component_data is None. Cannot retrieve parameters.")
-            return None
-
-        component_names = list(self.model.get_values(component=component).keys())
-        filtered_isometric_data = self.component_data[
-            (self.component_data["Component"] == component)
-            & self.component_data["Name"].isin(component_names)
-        ]
-
-        if filtered_isometric_data.empty:
-            logger.warning(
-                f"No matching isometric data found for component {component}."
-            )
-            return None
-
-        extra_names = set(filtered_isometric_data["Name"]) - set(component_names)
-        if extra_names:
-            logger.error(
-                f"Extra names in isometric data for component {component}: {extra_names}"
-            )
-
-        available_parameters = set(
-            pd.DataFrame(self.model.get_values(component=component)).index
-        )
-        required_parameters = available_parameters.intersection(
-            filtered_isometric_data.columns
-        )
-
-        if not required_parameters:
-            logger.warning(f"No matching parameters found for component {component}.")
-            return None
-
-        return (
-            filtered_isometric_data[list(required_parameters)]
-            .set_index("Name")
-            .to_dict("index")
-        )
-
-    def create_section_components(self) -> None:
-        """
-        Generates a List[List[PipsimComponents]]
-        - where each inner list contains adjacent components in the data
-        """
-        self.section_list = []
-        if self.component_name is None:
-            logger.error("component_name is None. Cannot create section components.")
-            return
-
-        columns = self.component_name.columns
-        for i in range(0, len(columns), 2):
-            adjacent_columns = columns[i : i + 2]
-            df_pair = self.component_name[adjacent_columns].dropna(axis=0, how="all")
-            df_pair = self.insert_junctions(
-                df_pair, i // 2, adjacent_columns[0], adjacent_columns[1]
-            )
-            component_list = [
-                PipsimComponents(*row)
-                for row in df_pair.itertuples(index=False, name=None)
-            ]
-            if component_list:
-                self.section_list.append(component_list)
-
-        logger.info(f"Section list created with {len(self.section_list)} sections")
 
     def connect_nodes(self, node1: PipsimComponents, node2: PipsimComponents) -> None:
         if node1 and node2:

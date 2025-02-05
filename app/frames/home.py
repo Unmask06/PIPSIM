@@ -23,6 +23,13 @@ def init_home_frame(app: tk.Tk) -> tk.Frame:
         width=30,
     )
 
+    populate_model_button = tk.Button(
+        home_frame,
+        text="Populate Model Workflow",
+        command=lambda: switch_frame(FRAME_STORE["populate_model"]),
+        width=30,
+    )
+
     copy_flowline_data_button = tk.Button(
         home_frame,
         text="Copy Flowline Data Workflow",
@@ -54,6 +61,7 @@ def init_home_frame(app: tk.Tk) -> tk.Frame:
 
     home_frame.pack(pady=10)
     create_model_button.pack(pady=5)
+    populate_model_button.pack(pady=5)
     multi_case_button.pack(pady=5)
     run_simulation_button.pack(pady=5)
     copy_flowline_data_button.pack(pady=5)
