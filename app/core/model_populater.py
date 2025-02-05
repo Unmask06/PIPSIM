@@ -27,7 +27,9 @@ class ModelPopulater:
         self,
         pipesim_file: str,
         excel_file: str,
-        mode: Literal["import", "export", "simple_import"],
+        mode: Literal[
+            "bulk_import", "export", "simple_import", "import_flowline_geometry"
+        ],
         unit: str = Units.METRIC,
     ):
         self.pipesim_file = pipesim_file
@@ -35,16 +37,30 @@ class ModelPopulater:
         self.mode = mode
         self.model = Model.open(pipesim_file, units=unit)
 
+    def populate_model(self, sheet_name: str | None = None) -> None:
+
+        if self.mode == "simple_import":
+            if sheet_name is None:
+                raise ValueError("sheet_name is required for simple_import mode.")
+            self.simple_import_data(sheet_name)
+        elif self.mode == "export":
+            self.export_values(self.excel_file)
+        elif self.mode == "bulk_import":
+            self.bulk_import_values(self.excel_file)
+        elif self.mode == "import_flowline_geometry":
+            self.set_flowline_elevations()
+        else:
+            raise ValueError(f"Invalid mode: {self.mode}")
+
     # Code Block for Import Mode
 
-    def import_data(self, sheet_name: str) -> None:
+    def simple_import_data(self, sheet_name: str) -> None:
         """Import data from the Excel file to the Pipsim model."""
-        if self.mode != "import":
-            raise ValueError("Mode must be 'import' to import data.")
+        if self.mode != "simple_import":
+            raise ValueError("Mode must be 'simple_import' to import data.")
 
         self.component_data = self._check_create_component_data(sheet_name)
         self.set_new_parameters()
-        self.set_flowline_elevations()
 
     def _check_create_component_data(self, sheet_name: str) -> pd.DataFrame:
         """Perform a check to create the component data."""
@@ -201,7 +217,9 @@ class ModelPopulater:
             .to_dict("index")
         )
 
-    def export_values(self, excel_file: str, components: Optional[list[str]] = None) -> None:
+    def export_values(
+        self, excel_file: str, components: Optional[list[str]] = None
+    ) -> None:
         """Export model values to an Excel file."""
         model = Model.open(self.pipesim_file)
 
@@ -214,7 +232,6 @@ class ModelPopulater:
                 v = model.get_values(component=component)
                 values[component] = v
             except ContextError:
-                logger.warning(f"ContextError: Unable to get values for component {component}")
                 continue
 
         with pd.ExcelWriter(excel_file) as writer:
@@ -226,13 +243,13 @@ class ModelPopulater:
     def bulk_import_values(self, excel_file: str) -> None:
         """Import model values from an Excel file."""
         df = pd.read_excel(excel_file, sheet_name=None, index_col=0)
-        model = Model.open(self.pipesim_file)
 
         for key, value in df.items():
             try:
                 components = get_string_values_from_class(ModelComponents)
                 if key in components:
-                    model.set_values(component=key, dict=value.to_dict(orient="index"))
+                    self.model.set_values(dict=value.to_dict(orient="index"))
+                    logger.info(f"Values set for {key}")
             except ParameterError:
                 logger.error(f"ParameterError: Error setting values for {key}")
             except Exception as e:

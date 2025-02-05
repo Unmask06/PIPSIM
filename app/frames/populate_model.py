@@ -7,6 +7,7 @@ import logging
 import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
+from typing import Literal
 
 from app.core import ExcelInputError, PipsimModellingError
 from app.core.excel_handling import ExcelHandler
@@ -79,12 +80,13 @@ def create_mode_selection_frame(
 
     modes = {
         "export": "Export the entire data from the mode for the selected components",
-        "bulk import": "Bulk import data into the model from the Excel file created by the export mode",
+        "bulk_import": "Bulk import data into the model from the Excel file created by the export mode",
         "simple_import": "Import data into the model from selected sheet in the Excel file",
+        "import_flowline_geometry": "Import flowline geometry data into the model from the Excel file",
     }
 
     def on_mode_change(*args):
-        if variable.get() == "simple import":
+        if variable.get() in ["simple_import", "import_flowline_geometry"]:
             sheet_name_frame.pack(pady=5)
         else:
             sheet_name_frame.pack_forget()
@@ -119,10 +121,13 @@ def submit_populate_model(
     pipesim_file_path: str,
     excel_file_path: str,
     sheet_name: str,
-    mode: str,
+    mode: Literal["bulk_import", "export", "simple_import", "import_flowline_geometry"],
     progress_bar: ttk.Progressbar,
 ) -> None:
-    if mode == "simple_import" and sheet_name == "Select Sheet Name":
+    if (
+        mode in ["simple_import", "import_flowline_geometry"]
+        and sheet_name == "Select Sheet Name"
+    ):
         messagebox.showerror("Error", "Please select a valid sheet name.")
         return
 
@@ -134,12 +139,7 @@ def submit_populate_model(
         mp = ModelPopulater(
             pipesim_file=pipesim_file_path, excel_file=excel_file_path, mode=mode
         )
-        if mode == "simple import":
-            mp.import_data(sheet_name)
-        elif mode == "bulk import":
-            mp.bulk_import_data()
-        elif mode == "export":
-            mp.export_data()
+        mp.populate_model(sheet_name=sheet_name)
 
         progress_bar.stop()
         progress_bar.pack_forget()
@@ -173,7 +173,9 @@ def init_populate_model_frame(app: tk.Tk) -> tk.Frame:
     pipesim_frame, ps_file_entry = create_file_input_frame(
         populate_model_frame,
         "Pipesim File",
-        lambda: browse_folder_or_file(ps_file_entry),
+        lambda: browse_folder_or_file(
+            ps_file_entry, file_types=[("Pipesim Files", "*.pips")]
+        ),
     )
     excel_frame, excel_file_entry = create_file_input_frame(
         populate_model_frame,
@@ -189,7 +191,7 @@ def init_populate_model_frame(app: tk.Tk) -> tk.Frame:
         populate_model_frame, sheet_name_var
     )
 
-    mode_var = tk.StringVar(value="simple import")
+    mode_var = tk.StringVar(value="export")
     create_mode_selection_frame(populate_model_frame, mode_var, sheet_name_frame)
 
     progress_bar = ttk.Progressbar(populate_model_frame, mode="indeterminate")
