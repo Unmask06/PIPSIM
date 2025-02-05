@@ -19,6 +19,7 @@ from app.frames import (
     init_create_model_frame,
     init_home_frame,
     init_multi_case_frame,
+    init_populate_model_frame,
     init_run_simulation_frame,
     init_summarize_frame,
     init_update_conditions_frame,
@@ -140,6 +141,7 @@ def launch_application():
     # Initialize frames
     init_home_frame(app)
     init_create_model_frame(app)
+    init_populate_model_frame(app)
     init_update_conditions_frame(app)
     init_run_simulation_frame(app)
     init_summarize_frame(app)

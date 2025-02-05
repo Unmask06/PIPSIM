@@ -8,6 +8,8 @@ import logging
 from typing import Literal, Optional
 
 import pandas as pd
+from sixgill.core.mapping import ParameterError
+from sixgill.core.model_context import ContextError
 from sixgill.definitions import ModelComponents, Parameters, Units
 from sixgill.pipesim import Model
 
@@ -198,3 +200,41 @@ class ModelPopulater:
             .set_index("Name")
             .to_dict("index")
         )
+
+    def export_values(self, excel_file: str, components: Optional[list[str]] = None) -> None:
+        """Export model values to an Excel file."""
+        model = Model.open(self.pipesim_file)
+
+        if components is None:
+            components = get_string_values_from_class(ModelComponents)
+
+        values = {}
+        for component in components:
+            try:
+                v = model.get_values(component=component)
+                values[component] = v
+            except ContextError:
+                logger.warning(f"ContextError: Unable to get values for component {component}")
+                continue
+
+        with pd.ExcelWriter(excel_file) as writer:
+            for key, value in values.items():
+                df = pd.DataFrame(value).T
+                df.to_excel(writer, sheet_name=key)
+        logger.info(f"Model values exported to {excel_file}")
+
+    def bulk_import_values(self, excel_file: str) -> None:
+        """Import model values from an Excel file."""
+        df = pd.read_excel(excel_file, sheet_name=None, index_col=0)
+        model = Model.open(self.pipesim_file)
+
+        for key, value in df.items():
+            try:
+                components = get_string_values_from_class(ModelComponents)
+                if key in components:
+                    model.set_values(component=key, dict=value.to_dict(orient="index"))
+            except ParameterError:
+                logger.error(f"ParameterError: Error setting values for {key}")
+            except Exception as e:
+                logger.error(f"Error setting values for {key}: {e}")
+        logger.info(f"Model values imported from {excel_file}")
