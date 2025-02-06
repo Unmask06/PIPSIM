@@ -64,7 +64,9 @@ def show_menu(app: tk.Tk):
 
     # Help menu
     help_menu = tk.Menu(menu_bar, tearoff=0)
-    help_menu.add_command(label="Component Parameters", command=lambda: open_component_param_box(app))
+    help_menu.add_command(
+        label="Component Parameters", command=lambda: open_component_param_box(app)
+    )
     help_menu.add_command(label="Documentation", command=lambda: open_documentation())
     menu_bar.add_cascade(label="Help", menu=help_menu)
     app.config(menu=menu_bar)

@@ -5,7 +5,7 @@ Generate an excel file with the data from the existing model.
 """
 
 import logging
-from typing import Literal, Optional
+from typing import Dict, Literal, Optional
 
 import pandas as pd
 from sixgill.core.mapping import ParameterError
@@ -37,22 +37,35 @@ class ModelPopulater:
         self.mode = mode
         self.model = Model.open(pipesim_file, units=unit)
 
-    def populate_model(self, sheet_name: str | None = None) -> None:
+    def populate_model(self, sheet_name: Optional[str] = None) -> None:
+        if (
+            self.mode in {"simple_import", "import_flowline_geometry"}
+            and not sheet_name
+        ):
+            raise ValueError(
+                "sheet_name is required for simple_import or import_flowline_geometry mode."
+            )
 
-        if self.mode == "simple_import":
-            if sheet_name is None:
-                raise ValueError("sheet_name is required for simple_import mode.")
-            self.simple_import_data(sheet_name)
-        elif self.mode == "export":
-            self.export_values(self.excel_file)
-        elif self.mode == "bulk_import":
-            self.bulk_import_values(self.excel_file)
-        elif self.mode == "import_flowline_geometry":
-            self.set_flowline_elevations()
+        mode_actions = {
+            "simple_import": lambda: (
+                self.simple_import_data(sheet_name) if sheet_name else None
+            ),
+            "export": lambda: self.export_values(self.excel_file),
+            "bulk_import": lambda: self.bulk_import_values(self.excel_file),
+            "import_flowline_geometry": lambda: (
+                self.import_flowline_geometry(sheet_name) if sheet_name else None
+            ),
+        }
+
+        action = mode_actions.get(self.mode)
+        if action:
+            action()
         else:
             raise ValueError(f"Invalid mode: {self.mode}")
 
-    # Code Block for Import Mode
+    ############################
+    # Methods for simple import
+    ############################
 
     def simple_import_data(self, sheet_name: str) -> None:
         """Import data from the Excel file to the Pipsim model."""
@@ -132,50 +145,6 @@ class ModelPopulater:
             self.model.set_values(dict=new_parameters)
             logger.info(f"New parameters set for component - {component}")
 
-    def set_flowline_elevations(self) -> None:
-        """Main method to set the elevations for the flowlines in the Pipsim model."""
-        if self.component_data is None:
-            raise ValueError("component_data is None. Cannot set flowline elevations.")
-
-        flowlines_xl = self.component_data[
-            self.component_data["Component"] == ModelComponents.FLOWLINE
-        ]["Name"]
-
-        flowlines_model = list(
-            self.model.get_values(component=ModelComponents.FLOWLINE).keys()
-        )
-
-        for flowline in set(flowlines_xl).intersection(flowlines_model):
-            self._set_flowline_elevation(flowline)
-        logger.info(f"Flowline elevation set for {len(flowlines_xl)} flowlines")
-
-    def _set_flowline_elevation(self, flowline: str):
-        try:
-            if self.component_data is None:
-                raise ValueError(
-                    "component_data is None. Cannot set flowline elevation."
-                )
-
-            dff = self.component_data.loc[
-                self.component_data["Name"] == flowline,
-                ["Start Elevation", "End Elevation", "Measured Distance"],
-            ]
-            a = [
-                dff["Start Elevation"].values[0],
-                dff["End Elevation"].values[0],
-            ]
-            b = [0, dff["Measured Distance"].values[0]]
-            n_df = pd.DataFrame(
-                {
-                    Parameters.Flowline.HORIZONTALDISTANCE: b,
-                    Parameters.Flowline.MEASUREDDISTANCE: b,
-                    Parameters.Flowline.ELEVATION: a,
-                }
-            )
-            self.model.set_geometry(Flowline=flowline, value=n_df)
-        except KeyError as ke:
-            logger.error(f"KeyError: {ke}")
-
     def _get_new_parameters(self, component: str) -> Optional[dict]:
         """Get new parameters for a component from isometric data."""
         if self.component_data is None:
@@ -217,6 +186,10 @@ class ModelPopulater:
             .to_dict("index")
         )
 
+    ########################################
+    # Methods for Export and Bulk Import
+    ########################################
+
     def export_values(
         self, excel_file: str, components: Optional[list[str]] = None
     ) -> None:
@@ -255,3 +228,72 @@ class ModelPopulater:
             except Exception as e:
                 logger.error(f"Error setting values for {key}: {e}")
         logger.info(f"Model values imported from {excel_file}")
+
+    ########################################
+    # Methods for Flowline Geometry
+    ########################################
+
+    def _check_n_create_flowline_data(self, sheet_name: str) -> Dict[str, pd.DataFrame]:
+        """Perform a check to create the flowline data."""
+        # Validate sheet existence
+        excel_file = pd.ExcelFile(self.excel_file)
+        if sheet_name not in excel_file.sheet_names:
+            raise ExcelInputError(
+                "Sheet not found!",
+                excel_path=self.excel_file,
+                sheet_name=sheet_name,
+            )
+
+        flowlines_df = pd.read_excel(self.excel_file, sheet_name=sheet_name)
+
+        # Validate required columns
+        required_columns = {"Name", "Elevation"}
+        missing_columns = required_columns - set(flowlines_df.columns)
+        if missing_columns:
+            raise ExcelInputError(
+                f"Missing required columns: {missing_columns}",
+                excel_path=self.excel_file,
+                sheet_name=sheet_name,
+            )
+
+        # create dictionary of flowline data
+        flowlines_df["Name"] = flowlines_df["Name"].fillna(method="ffill")
+        flowlines_df = flowlines_df.dropna(subset=["Name"])
+        flowline_data = {}
+        for name, group in flowlines_df.groupby("Name"):
+            cols = set(
+                get_string_values_from_class(Parameters.FlowlineGeometry)
+            ).intersection(set(group.columns))
+            flowline_data[name] = group[list(cols)]
+
+        return flowline_data
+
+    def convert_to_detailed_flowline(self, flowlines: list):
+        flowline_detail_dict = {
+            flowline: {Parameters.Flowline.DETAILEDMODEL: True}
+            for flowline in flowlines
+        }
+
+        self.model.set_values(dict=flowline_detail_dict)
+        logger.info("Flowline converted to detailed model")
+
+    def set_flowline_geometry(self, context, data):
+        """Set the geometry for a flowline in the Pipsim model."""
+        try:
+            self.model.set_geometry(context, data)
+        except ValueError as e:
+            logger.error(f"Error setting geometry for {context}: {e}")
+
+    def import_flowline_geometry(self, sheet_name: str):
+        """Import flowline geometry data from the Excel file."""
+
+        flowline_data = self._check_n_create_flowline_data(sheet_name)
+
+        # Convert to detailed flowline
+        flowlines = list(flowline_data.keys())
+        self.convert_to_detailed_flowline(flowlines)
+
+        # Set flowline geometry
+        for name, data in flowline_data.items():
+            self.set_flowline_geometry(name, data)
+        logger.info("Flowline geometry imported")

@@ -8,20 +8,13 @@ import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-import pandas as pd
-from sixgill.definitions import ModelComponents, Parameters
-
 from app.core import ExcelInputError, PipsimModellingError
-from app.core.excel_handling import ExcelHandler
 from app.core.model_builder import ModelBuilder
 from app.project import (
     FRAME_STORE,
     browse_folder_or_file,
-    generate_dict_from_class,
-    get_string_values_from_class,
     update_optionmenu_with_excelsheets,
 )
-from app.widgets import DualCascadeListBox, DualSelectableCombobox
 
 logger = logging.getLogger("app.core.model_builder")
 
@@ -131,7 +124,6 @@ def browse_and_update_optionmenu(
     update_optionmenu_with_excelsheets(option_menu, variable, file_path)
 
 
-
 ############################################
 # MAIN FUNCTION
 ############################################
@@ -145,14 +137,14 @@ def init_create_model_frame(app: tk.Tk) -> tk.Frame:
 
     create_help_frame(create_model_frame)
 
-    pipesim_frame, ps_file_entry = create_file_input_frame(
+    _, ps_file_entry = create_file_input_frame(
         create_model_frame,
         "Pipesim File",
         lambda: browse_folder_or_file(
             ps_file_entry, file_types=[("Pipesim Files", "*.pips")]
         ),
     )
-    excel_frame, excel_file_entry = create_file_input_frame(
+    _, excel_file_entry = create_file_input_frame(
         create_model_frame,
         "Excel File",
         lambda: browse_and_update_optionmenu(
@@ -162,7 +154,7 @@ def init_create_model_frame(app: tk.Tk) -> tk.Frame:
 
     sheet_name_var = tk.StringVar()
     sheet_name_var.set("Select Sheet Name")
-    sheet_name_frame, sheet_name_dropdown = create_option_menu_frame(
+    _, sheet_name_dropdown = create_option_menu_frame(
         create_model_frame, sheet_name_var
     )
 
