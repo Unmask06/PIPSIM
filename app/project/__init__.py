@@ -9,8 +9,10 @@ from typing import Dict, List
 
 import pandas as pd
 import yaml
+from sixgill.definitions import Parameters
 
 from app.config import BASE_URL
+from app.widgets import DualCascadeListBox
 
 FRAME_STORE: dict[str, tk.Frame] = {}
 
@@ -157,3 +159,18 @@ def update_optionmenu_with_excelsheets(
 
 def open_documentation():
     webbrowser.open(f"{BASE_URL}/docs/static/user-guide/pipesim-pilot/index.html#")
+
+
+def open_component_param_box(parent: tk.Tk) -> None:
+    """
+    Opens a DualCascadeListBox window to display a list of available parameters.
+
+    Args:
+        parent (tk.Tk): The parent Tkinter window.
+    """
+    cascade_box = DualCascadeListBox(
+        parent,
+        title="Refer the list of available parameters",
+        child_mapping=generate_dict_from_class(Parameters),
+    )
+    parent.wait_window(cascade_box)

@@ -73,17 +73,6 @@ def create_option_menu_frame(
     return frame, option_menu
 
 
-def create_component_parameter_button(parent: tk.Frame, app) -> tk.Button:
-    btn_open_component_list = tk.Button(
-        parent,
-        text="Refer the list of available components",
-        command=lambda: open_component_list(app),
-    )
-    btn_open_component_list.pack(pady=5)
-
-    return btn_open_component_list
-
-
 def create_submit_button_frame(parent, command) -> tk.Frame:
     frame = tk.Frame(parent)
     frame.pack(pady=10)
@@ -142,14 +131,6 @@ def browse_and_update_optionmenu(
     update_optionmenu_with_excelsheets(option_menu, variable, file_path)
 
 
-def open_component_list(parent: tk.Tk) -> None:
-    cascade_box = DualCascadeListBox(
-        parent,
-        title="Refer the list of available parameters",
-        child_mapping=generate_dict_from_class(Parameters),
-    )
-    parent.wait_window(cascade_box)
-
 
 ############################################
 # MAIN FUNCTION
@@ -184,8 +165,6 @@ def init_create_model_frame(app: tk.Tk) -> tk.Frame:
     sheet_name_frame, sheet_name_dropdown = create_option_menu_frame(
         create_model_frame, sheet_name_var
     )
-
-    create_component_parameter_button(create_model_frame, app)
 
     progress_bar = ttk.Progressbar(create_model_frame, mode="indeterminate")
 

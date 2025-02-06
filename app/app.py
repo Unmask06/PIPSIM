@@ -24,7 +24,12 @@ from app.frames import (
     init_summarize_frame,
     init_update_conditions_frame,
 )
-from app.project import FRAME_STORE, open_documentation, switch_frame
+from app.project import (
+    FRAME_STORE,
+    open_component_param_box,
+    open_documentation,
+    switch_frame,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +64,8 @@ def show_menu(app: tk.Tk):
 
     # Help menu
     help_menu = tk.Menu(menu_bar, tearoff=0)
-    help_menu.add_command(label="Help", command=lambda: open_documentation())
+    help_menu.add_command(label="Component Parameters", command=lambda: open_component_param_box(app))
+    help_menu.add_command(label="Documentation", command=lambda: open_documentation())
     menu_bar.add_cascade(label="Help", menu=help_menu)
     app.config(menu=menu_bar)
 
