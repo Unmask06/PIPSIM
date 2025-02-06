@@ -20,6 +20,14 @@ logger = logging.getLogger(__name__)
 
 
 class ModelPopulater:
+    """Populate the model with data from the Excel file.
+
+    Main methods:
+    - simple_import_data: Import data from the Excel file to the Pipsim model.
+    - export_values: Export model values to an Excel file.
+    - bulk_import_values: Import model values from an Excel file.
+    - import_flowline_geometry: Import flowline geometry data from the Excel file.
+    """
 
     component_data: Optional[pd.DataFrame] = None
 
@@ -36,32 +44,6 @@ class ModelPopulater:
         self.excel_file = excel_file
         self.mode = mode
         self.model = Model.open(pipesim_file, units=unit)
-
-    def populate_model(self, sheet_name: Optional[str] = None) -> None:
-        if (
-            self.mode in {"simple_import", "import_flowline_geometry"}
-            and not sheet_name
-        ):
-            raise ValueError(
-                "sheet_name is required for simple_import or import_flowline_geometry mode."
-            )
-
-        mode_actions = {
-            "simple_import": lambda: (
-                self.simple_import_data(sheet_name) if sheet_name else None
-            ),
-            "export": lambda: self.export_values(self.excel_file),
-            "bulk_import": lambda: self.bulk_import_values(self.excel_file),
-            "import_flowline_geometry": lambda: (
-                self.import_flowline_geometry(sheet_name) if sheet_name else None
-            ),
-        }
-
-        action = mode_actions.get(self.mode)
-        if action:
-            action()
-        else:
-            raise ValueError(f"Invalid mode: {self.mode}")
 
     ############################
     # Methods for simple import

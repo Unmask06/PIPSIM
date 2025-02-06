@@ -7,13 +7,18 @@ class DualSelectableCombobox(tk.Toplevel):
     """Custom Combo Box with optional single or dual lists, Add/Remove functionality, Searchbox, and ordering."""
 
     def __init__(
-        self, parent: tk.Tk, title: str, values: List[str], mode: str = "dual"
+        self,
+        parent: tk.Tk,
+        title: str,
+        available_variables: List[str],
+        selected_variables: Optional[List[str]] = None,
+        mode: str = "dual",
     ) -> None:
         super().__init__(parent)
         self.title(title)
         self.geometry("800x400")  # Increase the size of the window
-        self.values: List[str] = values
-        self.selected_values: List[str] = []  # List to maintain order
+        self.available_variables: List[str] = available_variables
+        self.selected_values: List[str] = selected_variables or []
         self.mode: str = mode  # Mode can be 'single' or 'dual'
 
         # Create the main frame
@@ -55,7 +60,7 @@ class DualSelectableCombobox(tk.Toplevel):
 
         # Populate available listbox
         self.filtered_values: List[str] = list(
-            self.values
+            self.available_variables
         )  # Keep a filtered list for searching
         self.update_available_list()
 
@@ -113,12 +118,25 @@ class DualSelectableCombobox(tk.Toplevel):
             self, text="Confirm", command=self.confirm_selection
         )
         self.confirm_button.pack(pady=10)
+        self.update()
+
+    def update(self) -> None:
+        """Ensure the list boxes contain the correct values."""
+        self.available_listbox.delete(0, tk.END)
+        for val in self.available_variables:
+            if val not in self.selected_values:
+                self.available_listbox.insert(tk.END, val)
+
+        if self.mode == "dual":
+            self.selected_listbox.delete(0, tk.END)
+            for val in self.selected_values:
+                self.selected_listbox.insert(tk.END, val)
 
     def update_available_list(self, *args: Any) -> None:
         """Update available listbox based on search entry."""
         search_term = self.search_var.get().lower()
         self.available_listbox.delete(0, tk.END)
-        for val in self.values:
+        for val in self.available_variables:
             if search_term in val.lower():
                 self.available_listbox.insert(tk.END, val)
 
@@ -131,8 +149,7 @@ class DualSelectableCombobox(tk.Toplevel):
             value = self.available_listbox.get(selected_index)
             if value not in self.selected_values:
                 self.selected_values.append(value)
-                self.selected_listbox.insert(tk.END, value)
-                self.available_listbox.delete(selected_index)
+                self.update()
 
     def add_to_selected_double_click(self, event: tk.Event) -> None:
         """Add to selected listbox on double-click."""
@@ -148,10 +165,7 @@ class DualSelectableCombobox(tk.Toplevel):
             value = self.selected_listbox.get(selected_index)
             if value in self.selected_values:
                 self.selected_values.remove(value)
-                self.selected_listbox.delete(selected_index)
-                self.available_listbox.insert(
-                    0, value
-                )  # Insert at the top for better user experience
+                self.update()
 
     def move_selected_up(self) -> None:
         """Move the selected item up in the order."""
@@ -164,7 +178,9 @@ class DualSelectableCombobox(tk.Toplevel):
                 self.selected_values[idx - 1],
                 self.selected_values[idx],
             )
-            self.update_selected_listbox(idx - 1)
+            self.update()
+            self.selected_listbox.select_set(idx - 1)
+            self.selected_listbox.see(idx - 1)
 
     def move_selected_down(self) -> None:
         """Move the selected item down in the order."""
@@ -177,13 +193,13 @@ class DualSelectableCombobox(tk.Toplevel):
                 self.selected_values[idx + 1],
                 self.selected_values[idx],
             )
-            self.update_selected_listbox(idx + 1)
+            self.update()
+            self.selected_listbox.select_set(idx + 1)
+            self.selected_listbox.see(idx + 1)
 
     def update_selected_listbox(self, highlight_index: int) -> None:
         """Update the selected listbox with the current order and highlight an item."""
-        self.selected_listbox.delete(0, tk.END)
-        for val in self.selected_values:
-            self.selected_listbox.insert(tk.END, val)
+        self.update()
         self.selected_listbox.select_set(highlight_index)
         self.selected_listbox.see(
             highlight_index
