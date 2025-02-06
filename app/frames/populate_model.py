@@ -15,11 +15,8 @@ from app.core.model_populater import ModelPopulater
 from app.project import (
     FRAME_STORE,
     browse_folder_or_file,
-    generate_dict_from_class,
-    get_string_values_from_class,
     update_optionmenu_with_excelsheets,
 )
-from app.widgets import DualCascadeListBox, DualSelectableCombobox
 
 logger = logging.getLogger("app.core.model_populater")
 

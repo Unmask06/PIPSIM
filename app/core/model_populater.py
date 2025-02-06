@@ -20,6 +20,17 @@ logger = logging.getLogger(__name__)
 
 
 class ModelPopulater:
+    """
+    ModelPopulater class is responsible for populating a Pipsim model with data from an Excel file.
+    Mode : bulk_import, export, simple_import, import_flowline_geometry
+
+    Main methods:
+    - populate_model: Populate the model with data from the Excel file.
+    - simple_import_data: Import data from the Excel file to the Pipsim model.
+    - export_values: Export model values to an Excel file.
+    - bulk_import_values: Import model values from an Excel file.
+    - import_flowline_geometry: Import flowline geometry data from the Excel file.
+    """
 
     component_data: Optional[pd.DataFrame] = None
 
@@ -72,10 +83,10 @@ class ModelPopulater:
         if self.mode != "simple_import":
             raise ValueError("Mode must be 'simple_import' to import data.")
 
-        self.component_data = self._check_create_component_data(sheet_name)
+        self.component_data = self._validate_and_load_component_data(sheet_name)
         self.set_new_parameters()
 
-    def _check_create_component_data(self, sheet_name: str) -> pd.DataFrame:
+    def _validate_and_load_component_data(self, sheet_name: str) -> pd.DataFrame:
         """Perform a check to create the component data."""
         try:
             # Validate sheet existence
@@ -233,7 +244,9 @@ class ModelPopulater:
     # Methods for Flowline Geometry
     ########################################
 
-    def _check_n_create_flowline_data(self, sheet_name: str) -> Dict[str, pd.DataFrame]:
+    def _validate_and_extract_flowline_data(
+        self, sheet_name: str
+    ) -> Dict[str, pd.DataFrame]:
         """Perform a check to create the flowline data."""
         # Validate sheet existence
         excel_file = pd.ExcelFile(self.excel_file)
@@ -287,7 +300,7 @@ class ModelPopulater:
     def import_flowline_geometry(self, sheet_name: str):
         """Import flowline geometry data from the Excel file."""
 
-        flowline_data = self._check_n_create_flowline_data(sheet_name)
+        flowline_data = self._validate_and_extract_flowline_data(sheet_name)
 
         # Convert to detailed flowline
         flowlines = list(flowline_data.keys())
