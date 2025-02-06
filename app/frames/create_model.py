@@ -13,7 +13,7 @@ from sixgill.definitions import ModelComponents, Parameters
 
 from app.core import ExcelInputError, PipsimModellingError
 from app.core.excel_handling import ExcelHandler
-from app.core.model_builder import ModelBuilder, create_component_name_df
+from app.core.model_builder import ModelBuilder
 from app.project import (
     FRAME_STORE,
     browse_folder_or_file,
@@ -112,11 +112,19 @@ def submit_create_model(
         logger.info("Creating model from scratch")
         progress_bar.start()
 
-        component_name = create_component_name_df(excel_file_path, sheet_name)
-        mb = ModelBuilder(
-            pipsim_file_path=pipesim_file_path, component_name=component_name
-        )
-        mb.main()
+        try:
+            mb = ModelBuilder(
+                pipsim_file_path=pipesim_file_path,
+                excel_file_path=excel_file_path,
+                sheet_name=sheet_name,
+            )
+            mb.create_model()
+
+        except (ExcelInputError, PipsimModellingError) as e:
+            progress_bar.stop()
+            progress_bar.pack_forget()
+            messagebox.showerror("Error", str(e))
+            return
 
         progress_bar.stop()
         progress_bar.pack_forget()
@@ -157,7 +165,11 @@ def init_create_model_frame(app: tk.Tk) -> tk.Frame:
     create_help_frame(create_model_frame)
 
     pipesim_frame, ps_file_entry = create_file_input_frame(
-        create_model_frame, "Pipesim File", lambda: browse_folder_or_file(ps_file_entry)
+        create_model_frame,
+        "Pipesim File",
+        lambda: browse_folder_or_file(
+            ps_file_entry, file_types=[("Pipesim Files", "*.pips")]
+        ),
     )
     excel_frame, excel_file_entry = create_file_input_frame(
         create_model_frame,
@@ -173,12 +185,6 @@ def init_create_model_frame(app: tk.Tk) -> tk.Frame:
         create_model_frame, sheet_name_var
     )
 
-    model_options = {
-        "Scratch": "Create a model from scratch using the Excel file",
-        "Populate": "Populate an existing model with data from the Excel file",
-    }
-    model_option_var = tk.StringVar()
-    model_option_var.set("Scratch")
     create_component_parameter_button(create_model_frame, app)
 
     progress_bar = ttk.Progressbar(create_model_frame, mode="indeterminate")

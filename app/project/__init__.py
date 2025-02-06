@@ -1,9 +1,9 @@
 import inspect
 import logging
 import logging.config
+import os
 import tkinter as tk
 import webbrowser
-import os
 from tkinter import filedialog, messagebox
 from typing import Dict, List
 
@@ -27,6 +27,14 @@ def browse_folder_or_file(
     title: str = "Select a file or folder",
     select_folder: bool = False,
 ) -> str:
+    """
+    Opens a file or folder selection dialog and updates the provided entry widget with the selected path.
+    Wrapper function for the filedialog.askopenfilename and filedialog.askdirectory functions.
+
+    Returns:
+        str: The selected file or folder path.
+    """
+
     path = (
         filedialog.askdirectory(title=title)
         if select_folder
@@ -39,15 +47,17 @@ def browse_folder_or_file(
         entry_widget.delete(0, tk.END)
         entry_widget.insert(0, path)
         entry_widget.config(state="readonly")
-        
+
         # Remove existing open button if it exists
         for widget in entry_widget.master.winfo_children():
             if isinstance(widget, tk.Button) and widget.cget("text") == "Open":
                 widget.destroy()
-        
-        open_button = tk.Button(entry_widget.master, text="Open", command=lambda: os.startfile(path))
+
+        open_button = tk.Button(
+            entry_widget.master, text="Open", command=lambda: os.startfile(path)
+        )
         open_button.pack(side="left", padx=5, pady=5)
-        
+
     return path
 
 
@@ -72,17 +82,17 @@ def get_string_values_from_class(class_names: type | list[type]) -> list:
 
     def get_inherited_classes(class_name):
         for _class in inspect.getmro(class_name):
-            if (_class.__name__ == "object"):
+            if _class.__name__ == "object":
                 break
             combined_values.update(extract_string_values(_class))
         return combined_values
-    
+
     if isinstance(class_names, list):
         for class_name in class_names:
             get_inherited_classes(class_name)
     else:
         get_inherited_classes(class_names)
-    
+
     return sorted(combined_values)
 
 

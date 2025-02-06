@@ -7,7 +7,8 @@ import pandas as pd
 from sixgill.definitions import Parameters, Units
 from sixgill.pipesim import Model, ModelComponents
 
-from app.core import ExcelInputError
+from app.core import ExcelInputError, PipsimModellingError
+from app.project import get_string_values_from_class
 
 logger = logging.getLogger(__name__)
 
@@ -25,32 +26,12 @@ class PipsimComponents(NamedTuple):
     type: str
 
 
-def create_component_name_df(excel_file_path: str, sheet_name: str) -> pd.DataFrame:
-    """
-    Create a DataFrame from the component names in the Excel file.
-
-    Args:
-        excel_file_path (str): The path to the Excel file.
-        sheet_name (str): The name of the sheet containing the component names.
-
-    Returns:
-        pd.DataFrame: A DataFrame containing the component names.
-    """
-    component_name = pd.read_excel(excel_file_path, sheet_name=sheet_name)
-
-    if len(component_name.columns) % 2 != 0:
-        logger.warning(
-            f"Odd number of columns in sheet '{sheet_name}' - dropping last column"
-        )
-        component_name = component_name.drop(component_name.columns[-1], axis=1)
-    return component_name
-
-
 class ModelBuilder:
     """
     Class for creating the components for the Pipsim model from an Excel file.
+
     Methods:
-    create_model: Create the Pipsim model from the input data.
+    create_model() : Create the Pipsim model from the input data.
     """
 
     section_list: List[List[PipsimComponents]] = []
@@ -58,24 +39,70 @@ class ModelBuilder:
     def __init__(
         self,
         pipsim_file_path: str,
-        component_name: pd.DataFrame,
+        excel_file_path: str,
+        sheet_name: str,
         units: str = Units.METRIC,
     ) -> None:
-        self.model = Model.open(pipsim_file_path, units=units)
-        self.component_name = component_name
 
-    def main(self) -> None:
-        """Main method to create the Pipsim model from the input data."""
-        self.create_model()
-        self.model.save()
-        self.model.close()
-        logger.info("Pipsim model created")
+        self.excel_file_path = excel_file_path
+        self.component_name = self._check_n_create_component_name_df(sheet_name)
+        try:
+            self.model = Model.open(pipsim_file_path, units=units)
+        except ValueError as e:
+            raise PipsimModellingError(
+                "Error opening the Pipsim model", pipsim_path=pipsim_file_path
+            ) from e
+
+    def _check_n_create_component_name_df(self, sheet_name: str) -> pd.DataFrame:
+        """Check and create the component name DataFrame from the Excel file."""
+
+        try:
+            excel_file = pd.ExcelFile(self.excel_file_path)
+        except FileNotFoundError as e:
+            raise ExcelInputError(
+                "Excel file not found", excel_path=self.excel_file_path
+            ) from e
+
+        if sheet_name not in excel_file.sheet_names:
+            raise ExcelInputError(
+                f"Sheet '{sheet_name}' not found in the Excel file",
+                excel_path=self.excel_file_path,
+                sheet_name=sheet_name,
+            )
+
+        component_name = pd.read_excel(self.excel_file_path, sheet_name=sheet_name)
+        if component_name.empty:
+            raise ExcelInputError(
+                f"Sheet '{sheet_name}' is empty", excel_path=self.excel_file_path
+            )
+
+        if component_name.shape[1] % 2 != 0:
+            logger.warning(
+                f"Odd number of columns in sheet '{sheet_name}' - dropping last column"
+            )
+            component_name = component_name.iloc[:, :-1]
+
+        # Validate even columns values
+        valid_components = set(get_string_values_from_class(ModelComponents))
+        for col in component_name.columns[1::2]:
+            invalid_components = set(component_name[col].dropna()) - valid_components
+            if invalid_components:
+                raise ExcelInputError(
+                    f"Invalid components found in column '{col}': {invalid_components}",
+                    excel_path=self.excel_file_path,
+                    sheet_name=sheet_name,
+                )
+
+        return component_name
 
     def create_model(self) -> None:
         """Main method to create the Pipsim model from the input data."""
         self.create_section_components()
         for idx, section in enumerate(self.section_list):
             self.build_section(section, x=4000, y=idx * 100)
+
+        self.model.save()
+        self.model.close()
         logger.info("Pipsim model created")
 
     def create_section_components(self) -> None:
@@ -84,9 +111,6 @@ class ModelBuilder:
         - where each inner list contains adjacent components in the data
         """
         self.section_list = []
-        if self.component_name is None:
-            logger.error("component_name is None. Cannot create section components.")
-            return
 
         columns = self.component_name.columns
         for i in range(0, len(columns), 2):
