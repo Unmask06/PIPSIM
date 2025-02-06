@@ -73,7 +73,7 @@ def create_option_menu_frame(
 
 
 def create_mode_selection_frame(
-    parent, variable: tk.StringVar, sheet_name_frame: tk.Frame
+    parent, variable: tk.StringVar, sheet_name_frame: tk.Frame, sub_frame: tk.Frame
 ) -> tk.Frame:
     frame = tk.Frame(parent)
     frame.pack(pady=5)
@@ -90,6 +90,16 @@ def create_mode_selection_frame(
             sheet_name_frame.pack(pady=5)
         else:
             sheet_name_frame.pack_forget()
+
+        for widget in sub_frame.winfo_children():
+            widget.pack_forget()
+
+        if variable.get() == "export":
+            create_export_mode_input(sub_frame)
+        elif variable.get() == "simple_import":
+            create_simple_import_mode_input(sub_frame)
+        elif variable.get() == "import_flowline_geometry":
+            create_import_flowline_geometry_mode_input(sub_frame)
 
     variable.trace_add("write", on_mode_change)
 
@@ -109,6 +119,25 @@ def create_submit_button_frame(parent, command) -> tk.Frame:
     frame.pack(pady=10)
     submit_button = tk.Button(frame, text="Submit", command=command)
     submit_button.pack()
+    return frame
+
+
+def create_scrollable_box_frame(parent) -> tk.Frame:
+    frame = tk.Frame(parent)
+    frame.pack(pady=5)
+    scrollable_box = tk.Listbox(frame, height=10, width=50)
+    scrollable_box.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    scrollbar = tk.Scrollbar(frame, orient="vertical", command=scrollable_box.yview)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    scrollable_box.config(yscrollcommand=scrollbar.set)
+    return frame, scrollable_box
+
+
+def create_dual_combo_box_button_frame(parent, command) -> tk.Frame:
+    frame = tk.Frame(parent)
+    frame.pack(pady=5)
+    button = tk.Button(frame, text="Open Dual Combo Box", command=command)
+    button.pack()
     return frame
 
 
@@ -157,6 +186,42 @@ def browse_and_update_optionmenu(
     update_optionmenu_with_excelsheets(option_menu, variable, file_path)
 
 
+def open_dual_combo_box(scrollable_box):
+    values = ["Option 1", "Option 2", "Option 3", "Option 4"]
+    combobox = DualSelectableCombobox(scrollable_box, "Select Options", values)
+    scrollable_box.wait_window(combobox)
+    selected_values = combobox.confirm_selection()
+    scrollable_box.delete(0, tk.END)
+    for val in selected_values:
+        scrollable_box.insert(tk.END, val)
+
+
+############################################
+# MODE INPUT FUNCTIONS
+############################################
+
+
+def create_export_mode_input(parent) -> None:
+    scrollable_box_frame, scrollable_box = create_scrollable_box_frame(parent)
+    create_dual_combo_box_button_frame(
+        parent, lambda: open_dual_combo_box(scrollable_box)
+    )
+
+
+def create_simple_import_mode_input(parent) -> None:
+    sheet_name_var = tk.StringVar()
+    sheet_name_var.set("Select Sheet Name")
+    sheet_name_frame, sheet_name_dropdown = create_option_menu_frame(parent, sheet_name_var)
+    sheet_name_frame.pack(pady=5)
+
+
+def create_import_flowline_geometry_mode_input(parent) -> None:
+    sheet_name_var = tk.StringVar()
+    sheet_name_var.set("Select Sheet Name")
+    sheet_name_frame, sheet_name_dropdown = create_option_menu_frame(parent, sheet_name_var)
+    sheet_name_frame.pack(pady=5)
+
+
 ############################################
 # MAIN FUNCTION
 ############################################
@@ -191,8 +256,11 @@ def init_populate_model_frame(app: tk.Tk) -> tk.Frame:
         populate_model_frame, sheet_name_var
     )
 
+    sub_frame = tk.Frame(populate_model_frame)
+    sub_frame.pack(pady=5)
+
     mode_var = tk.StringVar(value="export")
-    create_mode_selection_frame(populate_model_frame, mode_var, sheet_name_frame)
+    create_mode_selection_frame(populate_model_frame, mode_var, sheet_name_frame, sub_frame)
 
     progress_bar = ttk.Progressbar(populate_model_frame, mode="indeterminate")
 
