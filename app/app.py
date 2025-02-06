@@ -16,11 +16,11 @@ import yaml
 
 from app.config import fetch_response
 from app.frames import (
-    init_create_model_frame,
-    init_home_frame,
-    init_multi_case_frame,
+    CreateModelFrame,
+    HomeFrame,
     PopulateModelFrame,
-    init_run_simulation_frame,
+    RunSimulationFrame,
+    init_multi_case_frame,
     init_summarize_frame,
     init_update_conditions_frame,
 )
@@ -147,11 +147,11 @@ def launch_application():
     show_menu(app)
 
     # Initialize frames
-    init_home_frame(app)
-    init_create_model_frame(app)
+    HomeFrame(app)
+    CreateModelFrame(app)
     PopulateModelFrame(app)
     init_update_conditions_frame(app)
-    init_run_simulation_frame(app)
+    RunSimulationFrame(app)
     init_summarize_frame(app)
     init_multi_case_frame(app)
 
