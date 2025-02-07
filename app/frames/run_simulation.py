@@ -10,14 +10,19 @@ from sixgill.definitions import ProfileVariables, SystemVariables, Units
 
 from app.core import NetworkSimulationError
 from app.core.network_simulation import NetworkSimulator
+from app.frames import FRAME_STORE, FrameNames
 from app.project import browse_folder_or_file, get_string_values_from_class
 from app.widgets.dual_combo_box import DualSelectableCombobox
-from app.frames import FRAME_STORE, FrameNames
 
 logger = logging.getLogger("app.core.network_simulation")
 
 
 class RunSimulationFrame(tk.Frame):
+
+    system_vars_listbox: tk.Listbox
+    profile_vars_listbox: tk.Listbox
+    unit_var: tk.StringVar
+
     def __init__(self, parent):
         super().__init__(parent)
         FRAME_STORE[FrameNames.RUN_SIMULATION] = self
@@ -77,7 +82,9 @@ class RunSimulationFrame(tk.Frame):
         tk.Button(
             frame,
             text="Add",
-            command=lambda: self.open_checkable_combobox(label, values, listbox),
+            command=lambda: self.open_checkable_combobox(
+                label, values, listbox, list(listbox.get(0, tk.END))
+            ),
         ).pack(pady=5)
         return listbox
 
@@ -104,9 +111,14 @@ class RunSimulationFrame(tk.Frame):
             self.folder_entry, title="Select a folder", select_folder=True
         )
 
-    def open_checkable_combobox(self, title, values, listbox):
+    def open_checkable_combobox(
+        self, title, available_values, listbox, selected_variables: list
+    ):
         combobox = DualSelectableCombobox(
-            self.parent, title, get_string_values_from_class(values)
+            self.parent,
+            title,
+            get_string_values_from_class(available_values),
+            selected_variables,
         )
         self.parent.wait_window(combobox)
         selected_values = combobox.confirm_selection()
@@ -123,7 +135,7 @@ class RunSimulationFrame(tk.Frame):
             defaultextension=".json", filetypes=[("JSON files", "*.json")]
         )
         if file_path:
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(selections, f)
             messagebox.showinfo("Success", "Selections saved successfully")
 
@@ -132,7 +144,7 @@ class RunSimulationFrame(tk.Frame):
             filetypes=[("JSON files", "*.json")], title="Select a JSON file"
         )
         if file_path:
-            with open(file_path, "r") as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 selections = json.load(f)
             self.system_vars_listbox.delete(0, tk.END)
             for var in selections.get("system_vars", []):
@@ -180,6 +192,10 @@ class RunSimulationFrame(tk.Frame):
 
     def create_results_button_frame(self, node_results, profile_results):
         frame = tk.Frame(self)
+        if ["Node Results", "Profile Results"] in self.winfo_children():
+            for child in self.winfo_children():
+                if child.winfo_class() == "Frame":
+                    child.destroy()
         frame.pack(pady=10)
         tk.Button(
             frame, text="Node Results", command=lambda: os.startfile(node_results)

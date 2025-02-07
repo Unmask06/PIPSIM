@@ -126,9 +126,12 @@ class PopulateModelFrame(tk.Frame):
         )
 
         option_menu.pack()
-        option_menu.config(
-            postcommand=self._update_sheet_names(option_menu, self.excel_entry.get())
-        )  # type: ignore
+        if self.excel_entry.get():
+            option_menu.config(
+                postcommand=self._update_sheet_names(
+                    option_menu, self.excel_entry.get()
+                )
+            )  # type: ignore
 
     def create_scrollable_box_frame(self):
         scrollable_box = tk.Listbox(self.sub_frame, height=10, width=50)
