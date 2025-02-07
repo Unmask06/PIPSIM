@@ -42,6 +42,7 @@ class NetworkSimulator:
         unit: str = Units.METRIC,
         folder: str = "",
     ) -> None:
+        logger.info("🚀 Intializing Network Simulation Workflow !!")
         self.model_path = model_path
         self.model = Model.open(model_path, units=unit)
         self.system_variables = system_variables or [

@@ -44,6 +44,7 @@ class ModelBuilder:
         units: str = Units.METRIC,
     ) -> None:
 
+        logger.info("🚀 Intializing Model Builder Workflow !!")
         self.excel_file_path = excel_file_path
         self.component_name = self._check_n_create_component_name_df(sheet_name)
         try:

@@ -18,14 +18,15 @@ from app.config import fetch_response
 from app.frames import (
     CreateModelFrame,
     HomeFrame,
+    MultiCaseFrame,
     PopulateModelFrame,
     RunSimulationFrame,
-    init_multi_case_frame,
     init_summarize_frame,
     init_update_conditions_frame,
 )
 from app.project import (
     FRAME_STORE,
+    download_sample_excel,
     open_component_param_box,
     open_documentation,
     switch_frame,
@@ -68,6 +69,11 @@ def show_menu(app: tk.Tk):
         label="Component Parameters", command=lambda: open_component_param_box(app)
     )
     help_menu.add_command(label="Documentation", command=lambda: open_documentation())
+    help_menu.add_separator()
+    help_menu.add_command(
+        label="Sample Import File",
+        command=lambda: download_sample_excel(),
+    )
     menu_bar.add_cascade(label="Help", menu=help_menu)
     app.config(menu=menu_bar)
 
@@ -153,7 +159,7 @@ def launch_application():
     init_update_conditions_frame(app)
     RunSimulationFrame(app)
     init_summarize_frame(app)
-    init_multi_case_frame(app)
+    MultiCaseFrame(app)
 
     # Check access
     check_access(app)
