@@ -8,6 +8,7 @@ from tkinter import filedialog, messagebox
 from typing import Dict, List
 
 import pandas as pd
+import xlwings as xw
 import yaml
 from sixgill.definitions import Parameters
 
@@ -185,3 +186,7 @@ def open_component_param_box(parent: tk.Tk) -> None:
         child_mapping=generate_dict_from_class(Parameters),
     )
     parent.wait_window(cascade_box)
+
+
+def download_sample_excel():
+    webbrowser.open(BASE_URL + "/download/pipesim-pilot/Sample-Pilot-File.xlsx")
