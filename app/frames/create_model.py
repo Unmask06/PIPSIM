@@ -1,16 +1,17 @@
 import logging
 import threading
 import tkinter as tk
+import traceback
 from tkinter import messagebox, ttk
 
 from app.core import ExcelInputError, PipsimModellingError
 from app.core.model_builder import ModelBuilder
 from app.project import (
+    FRAME_STORE,
+    FrameNames,
     browse_folder_or_file,
     update_optionmenu_with_excelsheets,
 )
-
-from app.frames import FRAME_STORE, FrameNames
 
 logger = logging.getLogger("app.core.model_builder")
 
@@ -118,14 +119,16 @@ class CreateModelFrame(tk.Frame):
                     sheet_name=sheet_name,
                 )
                 mb.create_model()
+                messagebox.showinfo("Success", "Model created successfully")
             except (ExcelInputError, PipsimModellingError) as e:
+                messagebox.showerror("Error", str(e))
+            except Exception:
+                messagebox.showerror(
+                    "Unexpected Error", "Contact the developer or send the error log."
+                )
+                logger.error(traceback.format_exc())
+            finally:
                 self.progress_bar.stop()
                 self.progress_bar.pack_forget()
-                messagebox.showerror("Error", str(e))
-                return
-
-            self.progress_bar.stop()
-            self.progress_bar.pack_forget()
-            messagebox.showinfo("Success", "Model created successfully")
 
         threading.Thread(target=task).start()

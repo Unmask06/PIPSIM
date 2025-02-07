@@ -43,9 +43,11 @@ class ModelPopulater:
             "bulk_import", "export", "simple_import", "import_flowline_geometry"
         ],
         unit: str = Units.METRIC,
+        sheet_name: Optional[str] = None,
     ):
         self.pipesim_file = pipesim_file
         self.excel_file = excel_file
+        self.sheet_name = sheet_name
         self.mode = mode
         self.model = Model.open(pipesim_file, units=unit)
 
@@ -122,7 +124,9 @@ class ModelPopulater:
 
             # Validate 'Component' column values
             valid_components = set(get_string_values_from_class(ModelComponents))
-            invalid_components = set(component_data["Component"]) - valid_components
+            invalid_components = (
+                set(component_data["Component"].dropna()) - valid_components
+            )
             if invalid_components:
                 logger.warning(
                     f"Invalid components found and removed: {invalid_components}"
@@ -146,16 +150,21 @@ class ModelPopulater:
         if self.component_data is None:
             raise ValueError("component_data is None. Cannot set new parameters.")
 
-        for component in self.component_data["Component"].unique():
-            new_parameters = self._get_new_parameters(component)
-            if not new_parameters:
-                logger.warning(
-                    f"No new parameters found for component {component}. Skipping."
-                )
-                continue
+        for component in self.component_data["Component"].dropna().unique():
+            try:
+                new_parameters = self._get_new_parameters(component)
+                if not new_parameters:
+                    logger.warning(
+                        f"No new parameters found for component {component}. Skipping."
+                    )
+                    continue
 
-            self.model.set_values(dict=new_parameters)
-            logger.info(f"New parameters set for component - {component}")
+                self.model.set_values(dict=new_parameters)
+                logger.info(f"New parameters set for component - {component}")
+            except Exception as e:
+                logger.error(
+                    f"Error setting new parameters for component {component}: {e}"
+                )
 
     def _get_new_parameters(self, component: str) -> Optional[dict]:
         """Get new parameters for a component from isometric data."""

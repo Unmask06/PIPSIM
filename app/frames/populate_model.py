@@ -1,6 +1,7 @@
 import logging
 import threading
 import tkinter as tk
+import traceback
 from tkinter import messagebox, ttk
 
 import pandas as pd
@@ -8,8 +9,12 @@ from sixgill.definitions import ModelComponents
 
 from app.core import ExcelInputError, PipsimModellingError
 from app.core.model_populater import ModelPopulater
-from app.frames import FRAME_STORE, FrameNames
-from app.project import browse_folder_or_file, get_string_values_from_class
+from app.project import (
+    FRAME_STORE,
+    FrameNames,
+    browse_folder_or_file,
+    get_string_values_from_class,
+)
 from app.widgets import DualSelectableCombobox
 
 logger = logging.getLogger("app.core.model_populater")
@@ -207,8 +212,11 @@ class PopulateModelFrame(tk.Frame):
             except (ExcelInputError, PipsimModellingError) as e:
                 messagebox.showerror("Error", str(e))
 
-            except Exception as e:
-                messagebox.showerror("Error", str(e))
+            except Exception:
+                messagebox.showerror(
+                    "Unexpected Error", "Contact the developer or send the error log."
+                )
+                logger.error(traceback.format_exc())
             finally:
                 self.progress_bar.stop()
                 self.progress_bar.pack_forget()

@@ -10,8 +10,12 @@ from sixgill.definitions import ProfileVariables, SystemVariables, Units
 
 from app.core import NetworkSimulationError
 from app.core.network_simulation import NetworkSimulator
-from app.frames import FRAME_STORE, FrameNames
-from app.project import browse_folder_or_file, get_string_values_from_class
+from app.project import (
+    FRAME_STORE,
+    FrameNames,
+    browse_folder_or_file,
+    get_string_values_from_class,
+)
 from app.widgets.dual_combo_box import DualSelectableCombobox
 
 logger = logging.getLogger("app.core.network_simulation")
