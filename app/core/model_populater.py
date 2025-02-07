@@ -251,7 +251,8 @@ class ModelPopulater:
             try:
                 components = get_string_values_from_class(ModelComponents)
                 if key in components:
-                    self.model.set_values(dict=value.to_dict(orient="index"))
+                    value = value.dropna(how="all", axis=1).to_dict(orient="index")
+                    self.model.set_values(dict=value)
                     logger.info(f"Values set for {key}")
             except ParameterError:
                 logger.error(f"ParameterError: Error setting values for {key}")

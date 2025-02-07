@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pandas as pd
 from sixgill.definitions import ModelComponents, Parameters
-from sixgill.pipesim import Model
+from sixgill.pipesim import Model, Units
 
 from app.core import ExcelInputError, PipsimModellingError
 from app.core.helper import generate_dict_from_class
@@ -65,12 +65,14 @@ class MultiCaseModeller:
         base_model_path: str,
         excel_path: str,
         multi_case_sheet: str,
+        units: str = Units.METRIC,
     ) -> None:
         logger.info("🚀 Initializing Multi-Case Modeller !!")
         self.base_model_path = base_model_path
         self.excel_path = excel_path
         self.multi_case_sheet = multi_case_sheet
         self.multi_case_data = self._validate_n_load_data()
+        self.units = units
 
     def _validate_n_load_data(self) -> pd.DataFrame:
         """
@@ -211,7 +213,7 @@ class MultiCaseModeller:
             case: Sink profile case abbreviation.
         """
         logger.info(f"⏳ Building model for case: {case}")
-        self.model = Model.open(self.base_model_path)
+        self.model = Model.open(self.base_model_path, units=self.units)
         self.set_simulation_settings(case)
         self.set_parameters_dict(case)
         self.save_as_new_model(case)
@@ -260,7 +262,7 @@ def _collect_flowline_geometry(df: pd.DataFrame, source_model: Model) -> list:
     return flowline_geometry
 
 
-def copy_flowline_data(source_model_path: str, destination_folder_path: str) -> None:
+def copy_flowline_data(source_model_path: str, destination_folder_path: str, unit: str):
     """
     Copy flowline data from the source model to all target models in the destination folder.
 
@@ -285,7 +287,7 @@ def copy_flowline_data(source_model_path: str, destination_folder_path: str) -> 
         len(list(Path(destination_folder_path).glob("*.pips"))),
     )
 
-    source_model = Model.open(source_model_path)
+    source_model = Model.open(source_model_path, units=unit)
     logger.info(f"Getting flowline data from {Path(source_model_path).name}.....")
     source_values = source_model.get_values(component=ModelComponents.FLOWLINE)
     df = pd.DataFrame(source_values)
