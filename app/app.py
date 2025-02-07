@@ -16,14 +16,20 @@ import yaml
 
 from app.config import fetch_response
 from app.frames import (
-    init_create_model_frame,
-    init_home_frame,
+    CreateModelFrame,
+    HomeFrame,
+    PopulateModelFrame,
+    RunSimulationFrame,
     init_multi_case_frame,
-    init_run_simulation_frame,
     init_summarize_frame,
     init_update_conditions_frame,
 )
-from app.project import FRAME_STORE, open_documentation, switch_frame
+from app.project import (
+    FRAME_STORE,
+    open_component_param_box,
+    open_documentation,
+    switch_frame,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +64,10 @@ def show_menu(app: tk.Tk):
 
     # Help menu
     help_menu = tk.Menu(menu_bar, tearoff=0)
-    help_menu.add_command(label="Help", command=lambda: open_documentation())
+    help_menu.add_command(
+        label="Component Parameters", command=lambda: open_component_param_box(app)
+    )
+    help_menu.add_command(label="Documentation", command=lambda: open_documentation())
     menu_bar.add_cascade(label="Help", menu=help_menu)
     app.config(menu=menu_bar)
 
@@ -133,15 +142,16 @@ def launch_application():
     # Tkinter GUI setup
     app = tk.Tk()
     app.title("PANDORA - Pipesim Pilot")
-    app.geometry("700x500")
+    app.geometry("700x550")
 
     show_menu(app)
 
     # Initialize frames
-    init_home_frame(app)
-    init_create_model_frame(app)
+    HomeFrame(app)
+    CreateModelFrame(app)
+    PopulateModelFrame(app)
     init_update_conditions_frame(app)
-    init_run_simulation_frame(app)
+    RunSimulationFrame(app)
     init_summarize_frame(app)
     init_multi_case_frame(app)
 

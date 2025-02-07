@@ -18,6 +18,13 @@ class ExcelInputError(Exception):
 class PipsimModellingError(Exception):
     """Raised when an error occurs in the modelling process."""
 
+    def __init__(self, message, pipsim_path):
+        super().__init__(message)
+        self.pipsim_path = pipsim_path
+
+    def __str__(self):
+        return f"Modeling Error: {self.args[0]} (Model: {self.pipsim_path})"
+
 
 class NetworkSimulationError(Exception):
     """Custom exception for network simulation errors."""
@@ -31,8 +38,6 @@ class NetworkSimulationError(Exception):
 
 
 from .excel_handling import ExcelHandler
-from .input_validation import PipSimInput
-from .inputdata import InputData
 from .multi_case_modeller import MultiCaseModeller
 from .network_simulation import NetworkSimulator
 from .network_simulation_summary import NetworkSimulationSummary, SummaryError

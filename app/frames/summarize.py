@@ -3,7 +3,7 @@ import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-from app.project import FRAME_STORE
+from app.frames import FRAME_STORE, FrameNames
 
 logger_sm = logging.getLogger("SummarizeLogger")
 
@@ -31,7 +31,7 @@ def summarize(progress_bar):
 
 def init_summarize_frame(app):
     summarize_frame = tk.Frame(app)
-    FRAME_STORE["summarize"] = summarize_frame
+    FRAME_STORE[FrameNames.SUMMARIZE] = summarize_frame
     summarize_label = tk.Label(
         summarize_frame, text="Summarize Data", font=("Arial", 14)
     )
