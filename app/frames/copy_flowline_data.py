@@ -3,14 +3,16 @@ import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+from sixgill.definitions import Units
+
 from app.core.multi_case_modeller import copy_flowline_data
-from app.project import FRAME_STORE, FrameNames, browse_folder_or_file
+from app.project import FRAME_STORE, FrameNames, browse_folder_or_file, get_string_values_from_class
 
 logger_uc = logging.getLogger("app.core.simulation_modeller")
 
 
 def submit_copy_flowline_data(
-    source_file: str, destination_folder: str, progress_bar: ttk.Progressbar
+    source_file: str, destination_folder: str, progress_bar: ttk.Progressbar, unit: str
 ):
     """Copy the flowline information from the source file to all the files in the destination folder."""
 
@@ -19,7 +21,7 @@ def submit_copy_flowline_data(
         logger_uc.info("Copying flowline conditions")
         progress_bar.start()
 
-        copy_flowline_data(source_file, destination_folder)
+        copy_flowline_data(source_file, destination_folder, unit)
 
         progress_bar.stop()
         progress_bar.pack_forget()
@@ -82,6 +84,16 @@ def init_update_conditions_frame(app: tk.Tk) -> tk.Frame:
     )
     folder_browse_button_uc.pack(side=tk.LEFT, padx=5)
 
+    # Unit selection
+    unit_frame = tk.Frame(update_conditions_frame)
+    unit_frame.pack(pady=5)
+    tk.Label(unit_frame, text="Select Unit").pack()
+    unit_var = tk.StringVar(value=Units.METRIC)
+    unit_option_menu = tk.OptionMenu(
+        unit_frame, unit_var, *get_string_values_from_class(Units)
+    )
+    unit_option_menu.pack()
+
     # Progress bar
     progress_bar = ttk.Progressbar(update_conditions_frame, mode="indeterminate")
 
@@ -90,7 +102,7 @@ def init_update_conditions_frame(app: tk.Tk) -> tk.Frame:
         update_conditions_frame,
         text="Copy Data",
         command=lambda: submit_copy_flowline_data(
-            source_file_entry_uc.get(), folder_entry_uc.get(), progress_bar
+            source_file_entry_uc.get(), folder_entry_uc.get(), progress_bar, unit_var.get()
         ),
     )
     submit_button_uc.pack(pady=10)

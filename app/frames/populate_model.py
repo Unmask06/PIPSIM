@@ -5,7 +5,7 @@ import traceback
 from tkinter import messagebox, ttk
 
 import pandas as pd
-from sixgill.definitions import ModelComponents
+from sixgill.definitions import ModelComponents, Units
 
 from app.core import ExcelInputError, PipsimModellingError
 from app.core.model_populater import ModelPopulater
@@ -39,6 +39,7 @@ class PopulateModelFrame(tk.Frame):
 
         self.selected_mode_var = tk.StringVar(value="bulk_import")
         self.sheet_name_var = tk.StringVar(value="Select Sheet Name")
+        self.unit_var = tk.StringVar(value=Units.METRIC)
 
         self._create_widgets()
         self.selected_mode_var.trace_add("write", self.update_sub_frame)
@@ -53,6 +54,7 @@ class PopulateModelFrame(tk.Frame):
         )
         self.pips_frame.pack(pady=5)
         self.excel_frame.pack(pady=5)
+        self.create_unit_option_menu_frame().pack(pady=5)
         self.create_mode_selection_frame().pack(pady=10)
         self.sub_frame = tk.Frame(self)
         self.sub_frame.pack(pady=5)
@@ -82,6 +84,15 @@ class PopulateModelFrame(tk.Frame):
             ),
         ).pack(padx=5, side=tk.LEFT)
         return frame, entry
+
+    def create_unit_option_menu_frame(self):
+        frame = tk.Frame(self)
+        tk.Label(frame, text="Select Unit").pack()
+        unit_option_menu = tk.OptionMenu(
+            frame, self.unit_var, *get_string_values_from_class(Units)
+        )
+        unit_option_menu.pack()
+        return frame
 
     def create_mode_selection_frame(self):
         frame = tk.Frame(self)
@@ -179,6 +190,7 @@ class PopulateModelFrame(tk.Frame):
         excel_file_path = self.excel_entry.get()
         sheet_name = self.sheet_name_var.get()
         mode = self.selected_mode_var.get()
+        unit = self.unit_var.get()
 
         if (
             mode in ["simple_import", "flowline_geometry_import"]
@@ -194,6 +206,7 @@ class PopulateModelFrame(tk.Frame):
                 pipesim_file=pipesim_file_path,
                 excel_file=excel_file_path,
                 mode=mode,  # type:ignore
+                unit=unit,
             )
             try:
                 if mode == "export":

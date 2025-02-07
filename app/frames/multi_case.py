@@ -11,6 +11,8 @@ import traceback
 from tkinter import messagebox, ttk
 from typing import Callable
 
+from sixgill.definitions import Units
+
 from app.core import ExcelInputError
 from app.core.multi_case_modeller import MultiCaseModeller
 from app.project import (
@@ -18,6 +20,7 @@ from app.project import (
     FrameNames,
     browse_folder_or_file,
     update_optionmenu_with_excelsheets,
+    get_string_values_from_class,
 )
 
 logger = logging.getLogger("app.core.multi_case_modeller")
@@ -32,6 +35,7 @@ class MultiCaseFrame(tk.Frame):
         FRAME_STORE[FrameNames.MULTI_CASE] = self
 
         self.multi_case_sheet_var = tk.StringVar(value="Select Sheet Name")
+        self.unit_var = tk.StringVar(value=Units.METRIC)
 
         self.create_widgets()
 
@@ -39,6 +43,7 @@ class MultiCaseFrame(tk.Frame):
         self.create_title_frame()
         self.create_file_input_frames()
         self.create_option_menus()
+        self.create_unit_option_menu_frame()
         self.progress_bar = ttk.Progressbar(self, mode="indeterminate")
         self.create_submit_button()
 
@@ -108,6 +113,15 @@ class MultiCaseFrame(tk.Frame):
         option_menu.pack()
         return option_menu
 
+    def create_unit_option_menu_frame(self):
+        frame = tk.Frame(self)
+        frame.pack(pady=5)
+        tk.Label(frame, text="Select Unit").pack()
+        unit_option_menu = tk.OptionMenu(
+            frame, self.unit_var, *get_string_values_from_class(Units)
+        )
+        unit_option_menu.pack()
+
     def create_result_folder_button(self, path: str) -> tk.Button:
 
         for widget in self.winfo_children():
@@ -138,6 +152,7 @@ class MultiCaseFrame(tk.Frame):
                 base_model_path=self.base_pip_file_entry.get(),
                 excel_path=self.excel_file_entry.get(),
                 multi_case_sheet=self.multi_case_sheet_var.get(),
+                units=self.unit_var.get(),
             )
             model_path = mbm.build_all_models()
             self.parent.after(

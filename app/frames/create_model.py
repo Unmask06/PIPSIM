@@ -4,6 +4,8 @@ import tkinter as tk
 import traceback
 from tkinter import messagebox, ttk
 
+from sixgill.definitions import Units
+
 from app.core import ExcelInputError, PipsimModellingError
 from app.core.model_builder import ModelBuilder
 from app.project import (
@@ -22,6 +24,7 @@ class CreateModelFrame(tk.Frame):
         FRAME_STORE[FrameNames.CREATE_MODEL] = self
 
         self.sheet_name_var = tk.StringVar(value="Select Sheet Name")
+        self.unit_var = tk.StringVar(value=Units.METRIC)
         self._create_widgets()
 
     def _create_widgets(self):
@@ -42,6 +45,9 @@ class CreateModelFrame(tk.Frame):
             self.create_option_menu_frame()
         )
         self.option_menu_frame.pack(pady=5)
+
+        self.unit_option_menu_frame = self.create_unit_option_menu_frame()
+        self.unit_option_menu_frame.pack(pady=5)
 
         self.progress_bar = ttk.Progressbar(self, mode="indeterminate")
 
@@ -84,6 +90,15 @@ class CreateModelFrame(tk.Frame):
         option_menu.pack()
         return frame, option_menu
 
+    def create_unit_option_menu_frame(self):
+        frame = tk.Frame(self)
+        tk.Label(frame, text="Select Unit").pack()
+        unit_option_menu = tk.OptionMenu(
+            frame, self.unit_var, *get_string_values_from_class(Units)
+        )
+        unit_option_menu.pack()
+        return frame
+
     def create_submit_button(self):
         return tk.Button(self, text="Submit", command=self.submit_create_model)
 
@@ -102,6 +117,7 @@ class CreateModelFrame(tk.Frame):
         pipesim_file_path = self.pipesim_entry.get()
         excel_file_path = self.excel_entry.get()
         sheet_name = self.sheet_name_var.get()
+        unit = self.unit_var.get()
 
         if sheet_name == "Select Sheet Name":
             messagebox.showerror("Error", "Please select a valid sheet name.")
@@ -117,6 +133,7 @@ class CreateModelFrame(tk.Frame):
                     pipsim_file_path=pipesim_file_path,
                     excel_file_path=excel_file_path,
                     sheet_name=sheet_name,
+                    units=unit,
                 )
                 mb.create_model()
                 messagebox.showinfo("Success", "Model created successfully")

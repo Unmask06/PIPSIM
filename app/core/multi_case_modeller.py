@@ -65,12 +65,14 @@ class MultiCaseModeller:
         base_model_path: str,
         excel_path: str,
         multi_case_sheet: str,
+        units: str = Units.METRIC,
     ) -> None:
         logger.info("🚀 Initializing Multi-Case Modeller !!")
         self.base_model_path = base_model_path
         self.excel_path = excel_path
         self.multi_case_sheet = multi_case_sheet
         self.multi_case_data = self._validate_n_load_data()
+        self.units = units
 
     def _validate_n_load_data(self) -> pd.DataFrame:
         """
@@ -211,7 +213,7 @@ class MultiCaseModeller:
             case: Sink profile case abbreviation.
         """
         logger.info(f"⏳ Building model for case: {case}")
-        self.model = Model.open(self.base_model_path)
+        self.model = Model.open(self.base_model_path, units=self.units)
         self.set_simulation_settings(case)
         self.set_parameters_dict(case)
         self.save_as_new_model(case)
