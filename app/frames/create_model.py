@@ -7,6 +7,7 @@ from tkinter import messagebox, ttk
 from sixgill.definitions import Units
 
 from app.core import ExcelInputError, PipsimModellingError
+from app.core.helper import get_string_values_from_class
 from app.core.model_builder import ModelBuilder
 from app.project import (
     FRAME_STORE,

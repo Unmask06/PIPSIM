@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pandas as pd
 from sixgill.definitions import ModelComponents, Parameters
-from sixgill.pipesim import Model
+from sixgill.pipesim import Model, Units
 
 from app.core import ExcelInputError, PipsimModellingError
 from app.core.helper import generate_dict_from_class
@@ -262,7 +262,7 @@ def _collect_flowline_geometry(df: pd.DataFrame, source_model: Model) -> list:
     return flowline_geometry
 
 
-def copy_flowline_data(source_model_path: str, destination_folder_path: str) -> None:
+def copy_flowline_data(source_model_path: str, destination_folder_path: str, unit: str):
     """
     Copy flowline data from the source model to all target models in the destination folder.
 
@@ -287,7 +287,7 @@ def copy_flowline_data(source_model_path: str, destination_folder_path: str) -> 
         len(list(Path(destination_folder_path).glob("*.pips"))),
     )
 
-    source_model = Model.open(source_model_path)
+    source_model = Model.open(source_model_path, units=unit)
     logger.info(f"Getting flowline data from {Path(source_model_path).name}.....")
     source_values = source_model.get_values(component=ModelComponents.FLOWLINE)
     df = pd.DataFrame(source_values)

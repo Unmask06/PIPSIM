@@ -6,7 +6,12 @@ from tkinter import messagebox, ttk
 from sixgill.definitions import Units
 
 from app.core.multi_case_modeller import copy_flowline_data
-from app.project import FRAME_STORE, FrameNames, browse_folder_or_file, get_string_values_from_class
+from app.project import (
+    FRAME_STORE,
+    FrameNames,
+    browse_folder_or_file,
+    get_string_values_from_class,
+)
 
 logger_uc = logging.getLogger("app.core.simulation_modeller")
 
@@ -102,7 +107,10 @@ def init_update_conditions_frame(app: tk.Tk) -> tk.Frame:
         update_conditions_frame,
         text="Copy Data",
         command=lambda: submit_copy_flowline_data(
-            source_file_entry_uc.get(), folder_entry_uc.get(), progress_bar, unit_var.get()
+            source_file_entry_uc.get(),
+            folder_entry_uc.get(),
+            progress_bar,
+            unit_var.get(),
         ),
     )
     submit_button_uc.pack(pady=10)
