@@ -11,11 +11,10 @@ from app.config import BASE_URL
 from app.core import ExcelInputError
 from app.core.multi_case_modeller import MultiCaseModeller
 from app.project import (
-    FRAME_STORE,
     browse_folder_or_file,
     update_optionmenu_with_excelsheets,
 )
-
+from app.frames import FRAME_STORE, FrameNames
 logger = logging.getLogger("app.core.multi_case_modeller")
 
 
@@ -132,7 +131,7 @@ def submit_multi_case_workflow(
 
 def init_multi_case_frame(app: tk.Tk) -> tk.Frame:
     multi_case_frame = tk.Frame(app)
-    FRAME_STORE["multi_case"] = multi_case_frame
+    FRAME_STORE[FrameNames.MULTI_CASE] = multi_case_frame
 
     create_title_frame(multi_case_frame)
 

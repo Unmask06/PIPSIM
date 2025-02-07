@@ -12,9 +12,8 @@ import yaml
 from sixgill.definitions import Parameters
 
 from app.config import BASE_URL
+from app.frames import FRAME_STORE
 from app.widgets import DualCascadeListBox
-
-FRAME_STORE: dict[str, tk.Frame] = {}
 
 
 def switch_frame(new_frame: tk.Frame):

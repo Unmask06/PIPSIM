@@ -1,207 +1,195 @@
-"""
-frames/populate_model.py
-Generate the populate_model frame for the application.
-"""
-
 import logging
 import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
-from typing import Literal
+from typing import List, Literal
+
+from sixgill.definitions import ModelComponents
 
 from app.core import ExcelInputError, PipsimModellingError
 from app.core.excel_handling import ExcelHandler
 from app.core.model_populater import ModelPopulater
+from app.frames import FRAME_STORE, FrameNames
 from app.project import (
-    FRAME_STORE,
     browse_folder_or_file,
+    get_string_values_from_class,
     update_optionmenu_with_excelsheets,
 )
+from app.widgets import DualCascadeListBox, DualSelectableCombobox
 
 logger = logging.getLogger("app.core.model_populater")
 
 
-############################################
-# LAYOUT FUNCTIONS
-############################################
-
-
-def create_title_frame(parent) -> tk.Frame:
-    frame = tk.Frame(parent)
-    frame.pack(pady=10)
-    create_label = tk.Label(frame, text="Populate Model Workflow", font=("Arial", 14))
-    create_label.pack()
-    return frame
-
-
-def create_help_frame(parent) -> tk.Frame:
-    frame = tk.Frame(parent)
-    frame.pack(pady=5)
-    help_text = (
-        """ This workflow populates an existing model with data from the Excel file."""
-    )
-    help_label = tk.Label(frame, text=help_text, font=("Arial", 10, "italic"))
-    help_label.pack()
-    return frame
-
-
-def create_file_input_frame(
-    parent, label_text: str, browse_command
-) -> tuple[tk.Frame, tk.Entry]:
-    frame = tk.Frame(parent)
-    frame.pack(pady=5)
-    label = tk.Label(frame, text=label_text)
-    label.pack()
-    entry = tk.Entry(frame, width=75)
-    entry.pack(side=tk.LEFT)
-    browse_button = tk.Button(frame, text="Browse", command=browse_command)
-    browse_button.pack(padx=5, side=tk.LEFT)
-    return frame, entry
-
-
-def create_option_menu_frame(
-    parent, variable: tk.StringVar
-) -> tuple[tk.Frame, tk.OptionMenu]:
-    frame = tk.Frame(parent)
-    frame.pack(pady=5)
-    option_menu = tk.OptionMenu(frame, variable, "Select Sheet Name")
-    option_menu.pack()
-    return frame, option_menu
-
-
-def create_mode_selection_frame(
-    parent, variable: tk.StringVar, sheet_name_frame: tk.Frame
-) -> tk.Frame:
-    frame = tk.Frame(parent)
-    frame.pack(pady=5)
-
-    modes = {
+class PopulateModelFrame(tk.Frame):
+    MODES = {
         "export": "Export the entire data from the mode for the selected components",
         "bulk_import": "Bulk import data into the model from the Excel file created by the export mode",
         "simple_import": "Import data into the model from selected sheet in the Excel file",
         "import_flowline_geometry": "Import flowline geometry data into the model from the Excel file",
     }
 
-    def on_mode_change(*args):
-        if variable.get() in ["simple_import", "import_flowline_geometry"]:
-            sheet_name_frame.pack(pady=5)
-        else:
-            sheet_name_frame.pack_forget()
+    def __init__(self, parent):
+        super().__init__(parent)
+        FRAME_STORE[FrameNames.POPULATE_MODEL] = self
 
-    variable.trace_add("write", on_mode_change)
+        self.selected_mode_var = tk.StringVar(value="bulk_import")
+        self.sheet_name_var = tk.StringVar(value="Select Sheet Name")
+        self.references = {}
 
-    for i, (mode, explanation) in enumerate(modes.items()):
-        radio_button = tk.Radiobutton(frame, text=mode, variable=variable, value=mode)
-        radio_button.grid(row=i, column=0, sticky=tk.W)
-        explanation_label = tk.Label(
-            frame, text=explanation, font=("Arial", 9, "italic")
+        self._create_widgets()
+        self.selected_mode_var.trace_add("write", self.update_sub_frame)
+
+    def _create_widgets(self):
+        self.create_title_frame().pack(pady=5)
+        self.pips_frame, self.pips_entry = self.create_file_input_frame(
+            "Pipesim File", "*.pips"
         )
-        explanation_label.grid(row=i, column=1, sticky=tk.W, padx=10)
-
-    return frame
-
-
-def create_submit_button_frame(parent, command) -> tk.Frame:
-    frame = tk.Frame(parent)
-    frame.pack(pady=10)
-    submit_button = tk.Button(frame, text="Submit", command=command)
-    submit_button.pack()
-    return frame
-
-
-############################################
-# CALLBACK FUNCTIONS
-############################################
-
-
-def submit_populate_model(
-    pipesim_file_path: str,
-    excel_file_path: str,
-    sheet_name: str,
-    mode: Literal["bulk_import", "export", "simple_import", "import_flowline_geometry"],
-    progress_bar: ttk.Progressbar,
-) -> None:
-    if (
-        mode in ["simple_import", "import_flowline_geometry"]
-        and sheet_name == "Select Sheet Name"
-    ):
-        messagebox.showerror("Error", "Please select a valid sheet name.")
-        return
-
-    def task():
-        progress_bar.pack(pady=10)
-        logger.info(f"Running {mode} mode with data from Excel")
-        progress_bar.start()
-
-        mp = ModelPopulater(
-            pipesim_file=pipesim_file_path, excel_file=excel_file_path, mode=mode
+        self.excel_frame, self.excel_entry = self.create_file_input_frame(
+            "Excel File", "*.xlsx *.xls *.xlsm"
         )
-        mp.populate_model(sheet_name=sheet_name)
+        self.pips_frame.pack(pady=5)
+        self.excel_frame.pack(pady=5)
+        self.create_mode_selection_frame().pack(pady=10)
+        self.sub_frame = tk.Frame(self)
+        self.sub_frame.pack(pady=5)
+        self.progress_bar = ttk.Progressbar(self, mode="indeterminate")
+        self.create_submit_button().pack(pady=5)
 
-        progress_bar.stop()
-        progress_bar.pack_forget()
-        messagebox.showinfo("Success", f"Model {mode}ed successfully")
+    def create_title_frame(self):
+        frame = tk.Frame(self)
+        tk.Label(frame, text="Populate Model Workflow", font=("Arial", 14)).pack()
+        tk.Label(
+            frame,
+            text="This workflow populates an existing model with data from the Excel file.",
+            font=("Arial", 10, "italic"),
+        ).pack()
+        return frame
 
-    threading.Thread(target=task).start()
+    def create_file_input_frame(self, label_text, file_types):
+        frame = tk.Frame(self)
+        tk.Label(frame, text=label_text).pack()
+        entry = tk.Entry(frame, width=75)
+        entry.pack(side=tk.LEFT)
+        tk.Button(
+            frame,
+            text="Browse",
+            command=lambda: browse_folder_or_file(
+                entry, file_types=[("Files", file_types)]
+            ),
+        ).pack(padx=5, side=tk.LEFT)
+        return frame, entry
 
+    def create_mode_selection_frame(self):
+        frame = tk.Frame(self)
+        for i, (mode, explanation) in enumerate(self.MODES.items()):
+            tk.Radiobutton(
+                frame, text=mode, variable=self.selected_mode_var, value=mode
+            ).grid(row=i, column=0, sticky=tk.W)
+            tk.Label(frame, text=explanation, font=("Arial", 9, "italic")).grid(
+                row=i, column=1, sticky=tk.W, padx=10
+            )
+        return frame
 
-def browse_and_update_optionmenu(
-    entry_widget: tk.Entry, option_menu: tk.OptionMenu, variable: tk.StringVar
-) -> None:
-    file_path = browse_folder_or_file(
-        entry_widget, file_types=[("Excel Files", "*.xlsx *.xls *.xlsm")]
-    )
-    update_optionmenu_with_excelsheets(option_menu, variable, file_path)
+    def create_submit_button(self):
+        return tk.Button(self, text="Submit", command=self.submit_populate_model)
 
+    def update_sub_frame(self, *args):
+        for widget in self.sub_frame.winfo_children():
+            widget.pack_forget()
+        mode = self.selected_mode_var.get()
+        if mode == "export":
+            self.references["listbox"] = self.create_export_mode_input()
+        elif mode in ["simple_import", "import_flowline_geometry"]:
+            self.create_sheet_selection_mode_input()
 
-############################################
-# MAIN FUNCTION
-############################################
+    def create_export_mode_input(self):
+        scrollable_box = self.create_scrollable_box_frame()
+        self.create_dual_combo_box_button(scrollable_box)
+        return scrollable_box
 
-
-def init_populate_model_frame(app: tk.Tk) -> tk.Frame:
-    populate_model_frame = tk.Frame(app)
-    FRAME_STORE["populate_model"] = populate_model_frame
-
-    create_title_frame(populate_model_frame)
-
-    create_help_frame(populate_model_frame)
-
-    pipesim_frame, ps_file_entry = create_file_input_frame(
-        populate_model_frame,
-        "Pipesim File",
-        lambda: browse_folder_or_file(
-            ps_file_entry, file_types=[("Pipesim Files", "*.pips")]
-        ),
-    )
-    excel_frame, excel_file_entry = create_file_input_frame(
-        populate_model_frame,
-        "Excel File",
-        lambda: browse_and_update_optionmenu(
-            excel_file_entry, sheet_name_dropdown, sheet_name_var
-        ),
-    )
-
-    sheet_name_var = tk.StringVar()
-    sheet_name_var.set("Select Sheet Name")
-    sheet_name_frame, sheet_name_dropdown = create_option_menu_frame(
-        populate_model_frame, sheet_name_var
-    )
-
-    mode_var = tk.StringVar(value="export")
-    create_mode_selection_frame(populate_model_frame, mode_var, sheet_name_frame)
-
-    progress_bar = ttk.Progressbar(populate_model_frame, mode="indeterminate")
-
-    def on_submit() -> None:
-        submit_populate_model(
-            ps_file_entry.get(),
-            excel_file_entry.get(),
-            sheet_name_var.get(),
-            mode_var.get(),
-            progress_bar,
+    def create_sheet_selection_mode_input(self):
+        tk.Label(
+            self.sub_frame,
+            text=f"{self.selected_mode_var.get().replace('_', ' ').title()} Mode: Select an Excel sheet",
+        ).pack()
+        self.sheet_name_var.set("Select Sheet Name")
+        option_menu = tk.OptionMenu(
+            self.sub_frame, self.sheet_name_var, "Select Sheet Name"
         )
+        option_menu.pack()
 
-    create_submit_button_frame(populate_model_frame, on_submit)
+    def create_scrollable_box_frame(self):
+        scrollable_box = tk.Listbox(self.sub_frame, height=10, width=50)
+        scrollable_box.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar = tk.Scrollbar(
+            self.sub_frame, orient="vertical", command=scrollable_box.yview
+        )
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        scrollable_box.config(yscrollcommand=scrollbar.set)
+        return scrollable_box
 
-    return populate_model_frame
+    def create_dual_combo_box_button(self, scrollable_box):
+        button = tk.Button(
+            self.sub_frame,
+            text="Open Dual Combo Box",
+            command=lambda: self.open_dual_combo_box(scrollable_box),
+        )
+        button.pack()
+
+    def open_dual_combo_box(self, scrollable_box):
+        values = get_string_values_from_class(ModelComponents)
+        selected_values = list(scrollable_box.get(0, tk.END))
+        combobox = DualSelectableCombobox(
+            scrollable_box,
+            "Select Options",
+            available_variables=values,
+            selected_variables=selected_values,
+        )
+        self.sub_frame.wait_window(combobox)
+        selected_values = combobox.confirm_selection()
+        scrollable_box.delete(0, tk.END)
+        for val in selected_values:
+            scrollable_box.insert(tk.END, val)
+
+    def submit_populate_model(self):
+        pipesim_file_path = self.pips_entry.get()
+        excel_file_path = self.excel_entry.get()
+        sheet_name = self.sheet_name_var.get()
+        mode = self.selected_mode_var.get()
+
+        if (
+            mode in ["simple_import", "import_flowline_geometry"]
+            and sheet_name == "Select Sheet Name"
+        ):
+            messagebox.showerror("Error", "Please select a valid sheet name.")
+            return
+
+        def task():
+            self.progress_bar.pack(pady=10)
+            logger.info(f"Running {mode} mode with data from Excel")
+            self.progress_bar.start()
+            mp = ModelPopulater(
+                pipesim_file=pipesim_file_path, excel_file=excel_file_path, mode=mode
+            )
+            try:
+                if mode == "export":
+                    lb = self.references.get("listbox", None)
+                    if not lb:
+                        raise ValueError("No component list found for Export mode.")
+                    mp.export_values(
+                        excel_file=excel_file_path, components=list(lb.get(0, tk.END))
+                    )
+                elif mode == "simple_import":
+                    mp.simple_import_data(sheet_name)
+                elif mode == "import_flowline_geometry":
+                    mp.import_flowline_geometry(sheet_name)
+                elif mode == "bulk_import":
+                    mp.bulk_import_values(excel_file=excel_file_path)
+                messagebox.showinfo("Success", f"Model {mode}ed successfully")
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+            finally:
+                self.progress_bar.stop()
+                self.progress_bar.pack_forget()
+
+        threading.Thread(target=task).start()

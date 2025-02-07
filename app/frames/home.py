@@ -1,73 +1,46 @@
-# Home Frame
 import logging
 import tkinter as tk
 
 from app.config import VERSION
-from app.project import FRAME_STORE, switch_frame
+from app.frames import FRAME_STORE, FrameNames
+from app.project import switch_frame
 
 logger = logging.getLogger(__name__)
 
 
-def init_home_frame(app: tk.Tk) -> tk.Frame:
-    home_frame = tk.Frame(app)
-    FRAME_STORE["home"] = home_frame
-    label = tk.Label(
-        home_frame, text="Welcome to PANDORA's Pipesim Pilot", font=("Arial", 16)
-    )
-    label.pack(pady=20)
+class HomeFrame(tk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        FRAME_STORE[FrameNames.HOMEFRAME] = self
+        self.parent = parent
 
-    create_model_button = tk.Button(
-        home_frame,
-        text="Create Model Workflow",
-        command=lambda: switch_frame(FRAME_STORE["create_model"]),
-        width=30,
-    )
+        self.create_widgets()
 
-    populate_model_button = tk.Button(
-        home_frame,
-        text="Populate Model Workflow",
-        command=lambda: switch_frame(FRAME_STORE["populate_model"]),
-        width=30,
-    )
+    def create_widgets(self):
+        tk.Label(
+            self, text="Welcome to PANDORA's Pipesim Pilot", font=("Arial", 16)
+        ).pack(pady=20)
 
-    copy_flowline_data_button = tk.Button(
-        home_frame,
-        text="Copy Flowline Data Workflow",
-        command=lambda: switch_frame(FRAME_STORE["update_conditions"]),
-        width=30,
-    )
+        self.create_navigation_buttons()
 
-    run_simulation_button = tk.Button(
-        home_frame,
-        text="Run Simulation Workflow",
-        command=lambda: switch_frame(FRAME_STORE["run_simulation"]),
-        width=30,
-    )
+        tk.Button(self, text="Exit", command=self.parent.quit, width=30).pack(pady=10)
 
-    summarize_results_button = tk.Button(
-        home_frame,
-        text="Summarize Results Workflow",
-        command=lambda: switch_frame(FRAME_STORE["summarize"]),
-        width=30,
-        state=tk.DISABLED,  # TODO: Enable this button when the feature is ready
-    )
+    def create_navigation_buttons(self):
+        buttons = [
+            ("Create Model Workflow", FrameNames.CREATE_MODEL),
+            ("Populate Model Workflow", FrameNames.POPULATE_MODEL),
+            ("Copy Flowline Data Workflow", FrameNames.COPY_FLOWLINE_DATA),
+            ("Run Simulation Workflow", FrameNames.RUN_SIMULATION),
+            ("Summarize Results Workflow", FrameNames.SUMMARIZE, tk.DISABLED),
+            ("Multi-Case Workflow", FrameNames.MULTI_CASE, tk.DISABLED),
+        ]
 
-    multi_case_button = tk.Button(
-        home_frame,
-        text="Multi-Case Workflow",
-        command=lambda: switch_frame(FRAME_STORE["multi_case"]),
-        width=30,
-    )
-
-    home_frame.pack(pady=10)
-    create_model_button.pack(pady=5)
-    populate_model_button.pack(pady=5)
-    multi_case_button.pack(pady=5)
-    run_simulation_button.pack(pady=5)
-    copy_flowline_data_button.pack(pady=5)
-    summarize_results_button.pack(pady=5)
-
-    exit_button = tk.Button(home_frame, text="Exit", command=app.quit, width=30)
-    exit_button.pack(pady=10)
-
-    return home_frame
+        for text, frame_key, *state in buttons:
+            state = state[0] if state else tk.NORMAL
+            tk.Button(
+                self,
+                text=text,
+                command=lambda key=frame_key: switch_frame(FRAME_STORE[key]),
+                width=30,
+                state=state,
+            ).pack(pady=5)
