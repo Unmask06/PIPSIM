@@ -119,7 +119,7 @@ class PopulateModelFrame(tk.Frame):
 
     def create_export_mode_input(self):
         scrollable_box = self.create_scrollable_box_frame()
-        self.create_dual_combo_box_button(scrollable_box)
+        self.create_export_combo_box_btn(scrollable_box)
         return scrollable_box
 
     def _update_sheet_names(self, option_menu: tk.OptionMenu, excel_file_path: str):
@@ -162,10 +162,10 @@ class PopulateModelFrame(tk.Frame):
         scrollable_box.config(yscrollcommand=scrollbar.set)
         return scrollable_box
 
-    def create_dual_combo_box_button(self, scrollable_box):
+    def create_export_combo_box_btn(self, scrollable_box):
         button = tk.Button(
             self.sub_frame,
-            text="Open Dual Combo Box",
+            text="Select Components to Export",
             command=lambda: self.open_dual_combo_box(scrollable_box),
         )
         button.pack()
