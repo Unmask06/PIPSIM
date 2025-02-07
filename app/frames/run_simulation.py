@@ -10,8 +10,9 @@ from sixgill.definitions import ProfileVariables, SystemVariables, Units
 
 from app.core import NetworkSimulationError
 from app.core.network_simulation import NetworkSimulator
-from app.project import FRAME_STORE, browse_folder_or_file, get_string_values_from_class
+from app.project import browse_folder_or_file, get_string_values_from_class
 from app.widgets.dual_combo_box import DualSelectableCombobox
+from app.frames import FRAME_STORE, FrameNames
 
 logger = logging.getLogger("app.core.network_simulation")
 
@@ -19,7 +20,7 @@ logger = logging.getLogger("app.core.network_simulation")
 class RunSimulationFrame(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
-        FRAME_STORE["run_simulation"] = self
+        FRAME_STORE[FrameNames.RUN_SIMULATION] = self
         self.parent = parent
 
         self.create_widgets()

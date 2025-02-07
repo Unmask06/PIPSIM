@@ -9,8 +9,8 @@ from sixgill.definitions import ModelComponents
 from app.core import ExcelInputError, PipsimModellingError
 from app.core.excel_handling import ExcelHandler
 from app.core.model_populater import ModelPopulater
+from app.frames import FRAME_STORE, FrameNames
 from app.project import (
-    FRAME_STORE,
     browse_folder_or_file,
     get_string_values_from_class,
     update_optionmenu_with_excelsheets,
@@ -30,7 +30,7 @@ class PopulateModelFrame(tk.Frame):
 
     def __init__(self, parent):
         super().__init__(parent)
-        FRAME_STORE["populate_model"] = self
+        FRAME_STORE[FrameNames.POPULATE_MODEL] = self
 
         self.selected_mode_var = tk.StringVar(value="bulk_import")
         self.sheet_name_var = tk.StringVar(value="Select Sheet Name")
@@ -99,7 +99,7 @@ class PopulateModelFrame(tk.Frame):
         mode = self.selected_mode_var.get()
         if mode == "export":
             self.references["listbox"] = self.create_export_mode_input()
-        elif mode in ["simple_import", "import_flowline_geometry", "bulk_import"]:
+        elif mode in ["simple_import", "import_flowline_geometry"]:
             self.create_sheet_selection_mode_input()
 
     def create_export_mode_input(self):

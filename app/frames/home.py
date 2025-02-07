@@ -2,25 +2,16 @@ import logging
 import tkinter as tk
 
 from app.config import VERSION
-from app.project import FRAME_STORE, switch_frame
+from app.frames import FRAME_STORE, FrameNames
+from app.project import switch_frame
 
 logger = logging.getLogger(__name__)
-
-
-class FrameNames:
-    HOMEFRAME = "home"
-    CREATE_MODEL = "create_model"
-    POPULATE_MODEL = "populate_model"
-    UPDATE_CONDITIONS = "update_conditions"
-    RUN_SIMULATION = "run_simulation"
-    SUMMARIZE = "summarize"
-    MULTI_CASE = "multi_case"
 
 
 class HomeFrame(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
-        FRAME_STORE["home"] = self
+        FRAME_STORE[FrameNames.HOMEFRAME] = self
         self.parent = parent
 
         self.create_widgets()
@@ -38,7 +29,7 @@ class HomeFrame(tk.Frame):
         buttons = [
             ("Create Model Workflow", FrameNames.CREATE_MODEL),
             ("Populate Model Workflow", FrameNames.POPULATE_MODEL),
-            ("Copy Flowline Data Workflow", FrameNames.UPDATE_CONDITIONS),
+            ("Copy Flowline Data Workflow", FrameNames.COPY_FLOWLINE_DATA),
             ("Run Simulation Workflow", FrameNames.RUN_SIMULATION),
             ("Summarize Results Workflow", FrameNames.SUMMARIZE, tk.DISABLED),
             ("Multi-Case Workflow", FrameNames.MULTI_CASE, tk.DISABLED),

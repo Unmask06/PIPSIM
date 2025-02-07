@@ -6,10 +6,11 @@ from tkinter import messagebox, ttk
 from app.core import ExcelInputError, PipsimModellingError
 from app.core.model_builder import ModelBuilder
 from app.project import (
-    FRAME_STORE,
     browse_folder_or_file,
     update_optionmenu_with_excelsheets,
 )
+
+from app.frames import FRAME_STORE, FrameNames
 
 logger = logging.getLogger("app.core.model_builder")
 
@@ -17,7 +18,7 @@ logger = logging.getLogger("app.core.model_builder")
 class CreateModelFrame(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
-        FRAME_STORE["create_model"] = self
+        FRAME_STORE[FrameNames.CREATE_MODEL] = self
 
         self.sheet_name_var = tk.StringVar(value="Select Sheet Name")
         self._create_widgets()
