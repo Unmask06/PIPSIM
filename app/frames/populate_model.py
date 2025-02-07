@@ -25,11 +25,12 @@ class PopulateModelFrame(tk.Frame):
     A Tkinter Frame that provides a user interface for populating a model with data from an Excel file.
     """
 
+    export_component_listbox: tk.Listbox
     MODES = {
         "export": "Export the entire data from the mode for the selected components",
         "bulk_import": "Bulk import data into the model from the Excel file created by the export mode",
         "simple_import": "Import data into the model from selected sheet in the Excel file",
-        "import_flowline_geometry": "Import flowline geometry data into the model from the Excel file",
+        "flowline_geometry_import": "Import flowline geometry data into the model from the Excel file",
     }
 
     def __init__(self, parent):
@@ -101,8 +102,8 @@ class PopulateModelFrame(tk.Frame):
             widget.pack_forget()
         mode = self.selected_mode_var.get()
         if mode == "export":
-            self.component_lb = self.create_export_mode_input()
-        elif mode in ["simple_import", "import_flowline_geometry"]:
+            self.export_component_listbox = self.create_export_mode_input()
+        elif mode in ["simple_import", "flowline_geometry_import"]:
             self.create_sheet_selection_mode_input()
 
     def create_export_mode_input(self):
@@ -117,7 +118,9 @@ class PopulateModelFrame(tk.Frame):
         for sheet_name in sheet_names:
             menu.add_command(
                 label=sheet_name,
-                command=tk._setit(self.sheet_name_var, sheet_name),  # type: ignore
+                command=lambda sheet_name=sheet_name: self.sheet_name_var.set(
+                    str(sheet_name)
+                ),
             )
 
     def create_sheet_selection_mode_input(self):
@@ -178,7 +181,7 @@ class PopulateModelFrame(tk.Frame):
         mode = self.selected_mode_var.get()
 
         if (
-            mode in ["simple_import", "import_flowline_geometry"]
+            mode in ["simple_import", "flowline_geometry_import"]
             and sheet_name == "Select Sheet Name"
         ):
             messagebox.showerror("Error", "Please select a valid sheet name.")
@@ -195,7 +198,7 @@ class PopulateModelFrame(tk.Frame):
             )
             try:
                 if mode == "export":
-                    lb = self.component_lb
+                    lb = self.export_component_listbox
                     if not lb:
                         raise ValueError("No component list found for Export mode.")
                     mp.export_values(
@@ -203,8 +206,8 @@ class PopulateModelFrame(tk.Frame):
                     )
                 elif mode == "simple_import":
                     mp.simple_import_data(sheet_name)
-                elif mode == "import_flowline_geometry":
-                    mp.import_flowline_geometry(sheet_name)
+                elif mode == "flowline_geometry_import":
+                    mp.flowline_geometry_import(sheet_name)
                 elif mode == "bulk_import":
                     mp.bulk_import_values(excel_file=excel_file_path)
                 messagebox.showinfo("Success", f"Model {mode}ed successfully")

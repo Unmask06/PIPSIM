@@ -173,6 +173,7 @@ class RunSimulationFrame(tk.Frame):
             )
             self.progress_bar.start()
             try:
+                ns = None
                 for pips_file in folder.glob("*.pips"):
                     ns = NetworkSimulator(
                         str(pips_file),
@@ -182,12 +183,18 @@ class RunSimulationFrame(tk.Frame):
                         folder=str(folder),
                     )
                     ns.run_existing_model()
+                if not ns:
+                    raise NetworkSimulationError(
+                        "No pipesim files found in the selected folder",
+                        model_path=folder,
+                    )
                 self.create_results_button_frame(
                     ns.NODE_RESULTS_FILE, ns.PROFILE_RESULTS_FILE
                 )
                 messagebox.showinfo("Success", "Simulation completed successfully")
             except NetworkSimulationError as e:
-                logger.error(e)
+                logger.error(str(e))
+                messagebox.showerror("Error", str(e))
             finally:
                 self.progress_bar.stop()
                 self.progress_bar.pack_forget()
