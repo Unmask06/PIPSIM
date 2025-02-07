@@ -14,6 +14,7 @@ from sixgill.definitions import ModelComponents, Parameters, Units
 from sixgill.pipesim import Model
 
 from app.core import ExcelInputError
+from app.core.excel_handling import ExcelHandler
 from app.project import get_string_values_from_class
 
 logger = logging.getLogger(__name__)
@@ -217,11 +218,9 @@ class ModelPopulater:
                 values[component] = v
             except ContextError:
                 continue
-
-        with pd.ExcelWriter(excel_file) as writer:
-            for key, value in values.items():
-                df = pd.DataFrame(value).T
-                df.to_excel(writer, sheet_name=key)
+        for key, value in values.items():
+            df = pd.DataFrame(value).T
+            ExcelHandler.write_excel(df, excel_file, sheet_name=key, sht_range="A1")
         logger.info(f"Model values exported to {excel_file}")
 
     def bulk_import_values(self, excel_file: str) -> None:

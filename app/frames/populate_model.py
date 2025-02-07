@@ -2,25 +2,24 @@ import logging
 import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
-from typing import List, Literal
 
+import pandas as pd
 from sixgill.definitions import ModelComponents
 
 from app.core import ExcelInputError, PipsimModellingError
-from app.core.excel_handling import ExcelHandler
 from app.core.model_populater import ModelPopulater
 from app.frames import FRAME_STORE, FrameNames
-from app.project import (
-    browse_folder_or_file,
-    get_string_values_from_class,
-    update_optionmenu_with_excelsheets,
-)
-from app.widgets import DualCascadeListBox, DualSelectableCombobox
+from app.project import browse_folder_or_file, get_string_values_from_class
+from app.widgets import DualSelectableCombobox
 
 logger = logging.getLogger("app.core.model_populater")
 
 
 class PopulateModelFrame(tk.Frame):
+    """
+    A Tkinter Frame that provides a user interface for populating a model with data from an Excel file.
+    """
+
     MODES = {
         "export": "Export the entire data from the mode for the selected components",
         "bulk_import": "Bulk import data into the model from the Excel file created by the export mode",
@@ -34,7 +33,6 @@ class PopulateModelFrame(tk.Frame):
 
         self.selected_mode_var = tk.StringVar(value="bulk_import")
         self.sheet_name_var = tk.StringVar(value="Select Sheet Name")
-        self.references = {}
 
         self._create_widgets()
         self.selected_mode_var.trace_add("write", self.update_sub_frame)
@@ -98,7 +96,7 @@ class PopulateModelFrame(tk.Frame):
             widget.pack_forget()
         mode = self.selected_mode_var.get()
         if mode == "export":
-            self.references["listbox"] = self.create_export_mode_input()
+            self.component_lb = self.create_export_mode_input()
         elif mode in ["simple_import", "import_flowline_geometry"]:
             self.create_sheet_selection_mode_input()
 
@@ -106,6 +104,16 @@ class PopulateModelFrame(tk.Frame):
         scrollable_box = self.create_scrollable_box_frame()
         self.create_dual_combo_box_button(scrollable_box)
         return scrollable_box
+
+    def _update_sheet_names(self, option_menu: tk.OptionMenu, excel_file_path: str):
+        sheet_names = pd.ExcelFile(excel_file_path).sheet_names
+        menu = option_menu["menu"]
+        menu.delete(0, "end")
+        for sheet_name in sheet_names:
+            menu.add_command(
+                label=sheet_name,
+                command=tk._setit(self.sheet_name_var, sheet_name),  # type: ignore
+            )
 
     def create_sheet_selection_mode_input(self):
         tk.Label(
@@ -116,7 +124,11 @@ class PopulateModelFrame(tk.Frame):
         option_menu = tk.OptionMenu(
             self.sub_frame, self.sheet_name_var, "Select Sheet Name"
         )
+
         option_menu.pack()
+        option_menu.config(
+            postcommand=self._update_sheet_names(option_menu, self.excel_entry.get())
+        )  # type: ignore
 
     def create_scrollable_box_frame(self):
         scrollable_box = tk.Listbox(self.sub_frame, height=10, width=50)
@@ -169,11 +181,13 @@ class PopulateModelFrame(tk.Frame):
             logger.info(f"Running {mode} mode with data from Excel")
             self.progress_bar.start()
             mp = ModelPopulater(
-                pipesim_file=pipesim_file_path, excel_file=excel_file_path, mode=mode
+                pipesim_file=pipesim_file_path,
+                excel_file=excel_file_path,
+                mode=mode,  # type:ignore
             )
             try:
                 if mode == "export":
-                    lb = self.references.get("listbox", None)
+                    lb = self.component_lb
                     if not lb:
                         raise ValueError("No component list found for Export mode.")
                     mp.export_values(
@@ -186,6 +200,10 @@ class PopulateModelFrame(tk.Frame):
                 elif mode == "bulk_import":
                     mp.bulk_import_values(excel_file=excel_file_path)
                 messagebox.showinfo("Success", f"Model {mode}ed successfully")
+
+            except (ExcelInputError, PipsimModellingError) as e:
+                messagebox.showerror("Error", str(e))
+
             except Exception as e:
                 messagebox.showerror("Error", str(e))
             finally:

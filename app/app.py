@@ -142,7 +142,7 @@ def launch_application():
     # Tkinter GUI setup
     app = tk.Tk()
     app.title("PANDORA - Pipesim Pilot")
-    app.geometry("700x500")
+    app.geometry("700x550")
 
     show_menu(app)
 

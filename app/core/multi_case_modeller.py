@@ -148,7 +148,7 @@ class MultiCaseModeller:
                 )
                 setattr(self.model.sim_settings, attr, row["Value"])
 
-        reset = self.model.tasks.networksimulation.reset_conditions() # type: ignore
+        reset = self.model.tasks.networksimulation.reset_conditions()  # type: ignore
         self.model.save()
 
         if reset:
@@ -197,7 +197,10 @@ class MultiCaseModeller:
         sinks_in_excel = set(self.sink_profile.index)
 
         if (sinks_in_excel - sinks_in_model) or (sinks_in_model - sinks_in_excel):
-            raise PipsimModellingError("Sinks in model and excel do not match.")
+            raise PipsimModellingError(
+                "Sinks in model and excel do not match.",
+                pipsim_path=self.model.filename,
+            )
 
         # Transform sink profile to dictionary
         sink_data = self.sink_profile.loc[:, [case]]
@@ -288,10 +291,10 @@ def copy_flowline_data(source_model_path: str, destination_folder_path: str) -> 
     """
 
     if not Path(source_model_path).exists():
-        raise PipsimModellingError(f"Source model file not found: {source_model_path}")
+        raise PipsimModellingError("Source model file not found", source_model_path)
     if not Path(destination_folder_path).exists():
         raise PipsimModellingError(
-            f"Destination folder not found: {destination_folder_path}"
+            "Destination folder not found", destination_folder_path
         )
 
     logger.info(

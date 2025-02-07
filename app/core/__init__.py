@@ -38,8 +38,6 @@ class NetworkSimulationError(Exception):
 
 
 from .excel_handling import ExcelHandler
-from .input_validation import PipSimInput
-from .inputdata import InputData
 from .multi_case_modeller import MultiCaseModeller
 from .network_simulation import NetworkSimulator
 from .network_simulation_summary import NetworkSimulationSummary, SummaryError
