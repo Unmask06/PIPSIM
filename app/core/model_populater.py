@@ -23,14 +23,14 @@ logger = logging.getLogger(__name__)
 class ModelPopulater:
     """
     ModelPopulater class is responsible for populating a Pipsim model with data from an Excel file.
-    Mode : bulk_import, export, simple_import, import_flowline_geometry
+    Mode : bulk_import, export, simple_import, flowline_geometry_import
 
     Main methods:
     - populate_model: Populate the model with data from the Excel file.
     - simple_import_data: Import data from the Excel file to the Pipsim model.
     - export_values: Export model values to an Excel file.
     - bulk_import_values: Import model values from an Excel file.
-    - import_flowline_geometry: Import flowline geometry data from the Excel file.
+    - flowline_geometry_import: Import flowline geometry data from the Excel file.
     """
 
     component_data: Optional[pd.DataFrame] = None
@@ -40,22 +40,24 @@ class ModelPopulater:
         pipesim_file: str,
         excel_file: str,
         mode: Literal[
-            "bulk_import", "export", "simple_import", "import_flowline_geometry"
+            "bulk_import", "export", "simple_import", "flowline_geometry_import"
         ],
         unit: str = Units.METRIC,
+        sheet_name: Optional[str] = None,
     ):
         self.pipesim_file = pipesim_file
         self.excel_file = excel_file
+        self.sheet_name = sheet_name
         self.mode = mode
         self.model = Model.open(pipesim_file, units=unit)
 
     def populate_model(self, sheet_name: Optional[str] = None) -> None:
         if (
-            self.mode in {"simple_import", "import_flowline_geometry"}
+            self.mode in {"simple_import", "flowline_geometry_import"}
             and not sheet_name
         ):
             raise ValueError(
-                "sheet_name is required for simple_import or import_flowline_geometry mode."
+                "sheet_name is required for simple_import or flowline_geometry_import mode."
             )
 
         mode_actions = {
@@ -64,8 +66,8 @@ class ModelPopulater:
             ),
             "export": lambda: self.export_values(self.excel_file),
             "bulk_import": lambda: self.bulk_import_values(self.excel_file),
-            "import_flowline_geometry": lambda: (
-                self.import_flowline_geometry(sheet_name) if sheet_name else None
+            "flowline_geometry_import": lambda: (
+                self.flowline_geometry_import(sheet_name) if sheet_name else None
             ),
         }
 
@@ -122,7 +124,9 @@ class ModelPopulater:
 
             # Validate 'Component' column values
             valid_components = set(get_string_values_from_class(ModelComponents))
-            invalid_components = set(component_data["Component"]) - valid_components
+            invalid_components = (
+                set(component_data["Component"].dropna()) - valid_components
+            )
             if invalid_components:
                 logger.warning(
                     f"Invalid components found and removed: {invalid_components}"
@@ -146,16 +150,21 @@ class ModelPopulater:
         if self.component_data is None:
             raise ValueError("component_data is None. Cannot set new parameters.")
 
-        for component in self.component_data["Component"].unique():
-            new_parameters = self._get_new_parameters(component)
-            if not new_parameters:
-                logger.warning(
-                    f"No new parameters found for component {component}. Skipping."
-                )
-                continue
+        for component in self.component_data["Component"].dropna().unique():
+            try:
+                new_parameters = self._get_new_parameters(component)
+                if not new_parameters:
+                    logger.warning(
+                        f"No new parameters found for component {component}. Skipping."
+                    )
+                    continue
 
-            self.model.set_values(dict=new_parameters)
-            logger.info(f"New parameters set for component - {component}")
+                self.model.set_values(dict=new_parameters)
+                logger.info(f"New parameters set for component - {component}")
+            except Exception as e:
+                logger.error(
+                    f"Error setting new parameters for component {component}: {e}"
+                )
 
     def _get_new_parameters(self, component: str) -> Optional[dict]:
         """Get new parameters for a component from isometric data."""
@@ -296,7 +305,7 @@ class ModelPopulater:
         except ValueError as e:
             logger.error(f"Error setting geometry for {context}: {e}")
 
-    def import_flowline_geometry(self, sheet_name: str):
+    def flowline_geometry_import(self, sheet_name: str):
         """Import flowline geometry data from the Excel file."""
 
         flowline_data = self._validate_and_extract_flowline_data(sheet_name)

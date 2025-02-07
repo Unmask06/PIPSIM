@@ -4,8 +4,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from app.core.multi_case_modeller import copy_flowline_data
-from app.frames import FRAME_STORE, FrameNames
-from app.project import browse_folder_or_file
+from app.project import FRAME_STORE, FrameNames, browse_folder_or_file
 
 logger_uc = logging.getLogger("app.core.simulation_modeller")
 

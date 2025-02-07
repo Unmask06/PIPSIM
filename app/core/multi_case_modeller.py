@@ -143,7 +143,7 @@ class MultiCaseModeller:
                 == Parameters.SimulationSetting.__name__
             ):
                 print(_)
-                attr = self.model.sim_settings.__dict__.get("_settings").get(
+                attr = self.model.sim_settings.__dict__.get("_settings").get(  # type: ignore
                     row[ConditionColumns.PARAMETER]
                 )
                 setattr(self.model.sim_settings, attr, row["Value"])
@@ -221,6 +221,9 @@ class MultiCaseModeller:
     def save_as_new_model(self, case: str, condition: str) -> None:
         folder_path = Path(self.excel_path).parent.absolute() / "Models"
         folder_path.mkdir(exist_ok=True)
+
+        if self.model.filename is None:
+            raise PipsimModellingError("Model filename is None", self.model.filename)
         new_file = folder_path / f"{case}_{condition}_{Path(self.model.filename).name}"
         self.model.save(str(new_file))
         logger.info(f"Model saved as {new_file}")
@@ -263,13 +266,17 @@ class MultiCaseModeller:
 
 
 # Other methods in the module------------------------------------------------------------
-def _collect_flowline_geometry(df, source_model) -> list:
+def _collect_flowline_geometry(df: pd.DataFrame, source_model: Model) -> list:
     """
     Helper function to collect flowline geometry from the source model
     used in the copy_flowline_data function
     """
     flowline_geometry = []
-    detailed_flowlines = df.loc[:, df.loc["DetailedModel"] == True].columns.to_list()
+    detailed_flowlines = df.loc[
+        :,
+        df.loc[Parameters.Flowline.DETAILEDMODEL]
+        == True,  # pylint: disable=singleton-comparison
+    ].columns.to_list()
     for flowline in detailed_flowlines:
         try:
             flowline_geometry.append(
@@ -277,7 +284,6 @@ def _collect_flowline_geometry(df, source_model) -> list:
             )
         except Exception as e:
             logger.error(f"Error getting geometry for {flowline}: {e}")
-            # logger.error(traceback.format_exc())
     return flowline_geometry
 
 
