@@ -189,7 +189,6 @@ class PopulateModelFrame(tk.Frame):
 
         def task():
             self.progress_bar.pack(pady=10)
-            logger.info(f"Running {mode} mode with data from Excel")
             self.progress_bar.start()
             mp = ModelPopulater(
                 pipesim_file=pipesim_file_path,
@@ -207,7 +206,7 @@ class PopulateModelFrame(tk.Frame):
                 elif mode == "simple_import":
                     mp.simple_import_data(sheet_name)
                 elif mode == "flowline_geometry_import":
-                    mp.flowline_geometry_import(sheet_name)
+                    mp.import_flowline_geometry(sheet_name)
                 elif mode == "bulk_import":
                     mp.bulk_import_values(excel_file=excel_file_path)
                 messagebox.showinfo("Success", f"Model {mode}ed successfully")

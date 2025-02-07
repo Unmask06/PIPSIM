@@ -1,13 +1,16 @@
+"""
+frame/multi_case.py
+This module contains the MultiCaseFrame class which is responsible for handling the multi-case workflow.
+"""
+
 import logging
+import os
 import threading
 import tkinter as tk
-import webbrowser
+import traceback
 from tkinter import messagebox, ttk
 from typing import Callable
 
-from sixgill.definitions import Parameters
-
-from app.config import BASE_URL
 from app.core import ExcelInputError
 from app.core.multi_case_modeller import MultiCaseModeller
 from app.project import (
@@ -20,186 +23,144 @@ from app.project import (
 logger = logging.getLogger("app.core.multi_case_modeller")
 
 
-def create_title_frame(parent) -> tk.Frame:
-    frame = tk.Frame(parent)
-    frame.pack(pady=10)
-    create_label = tk.Label(frame, text="Multi-Case Workflow", font=("Arial", 14))
-    create_label.pack()
-    return frame
+class MultiCaseFrame(tk.Frame):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.pack()
 
+        FRAME_STORE[FrameNames.MULTI_CASE] = self
 
-def create_help_frame(parent) -> tk.Frame:
-    frame = tk.Frame(parent)
-    frame.pack(pady=5)
-    help_text = """ 
-    Read the documentation to understand how to use the multi-case workflow.
-    """
+        self.multi_case_sheet_var = tk.StringVar(value="Select Sheet Name")
 
-    def open_documentation():
-        webbrowser.open(
-            f"{BASE_URL}/docs/static/user-guide/pipesim-pilot/workflow-userguide.html#multi-case-simulation-workflow"
+        self.create_widgets()
+
+    def create_widgets(self):
+        self.create_title_frame()
+        self.create_file_input_frames()
+        self.create_option_menus()
+        self.progress_bar = ttk.Progressbar(self, mode="indeterminate")
+        self.create_submit_button()
+
+    def create_title_frame(self):
+        frame = tk.Frame(self)
+        frame.pack(pady=10)
+        tk.Label(frame, text="Multi-Case Workflow", font=("Arial", 14)).pack()
+        tk.Label(
+            frame,
+            text="This workflow creates multiple models from an Excel file.",
+            font=("Arial", 10, "italic"),
+        ).pack(pady=5)
+
+    def create_file_input_frames(self):
+        self.base_pip_file_entry = self.create_file_input_frame(
+            "Base Pipesim File", self.browse_pip_file
         )
 
-    help_button = tk.Button(
-        frame, text="Open Documentation", command=open_documentation
-    )
+        self.excel_file_entry = self.create_file_input_frame(
+            "Excel File", self.browse_excel_file
+        )
 
-    help_label = tk.Label(frame, text=help_text, font=("Arial", 10, "italic"))
-    help_label.pack(side=tk.LEFT)
-    help_button.pack(side=tk.LEFT, padx=10)
-    return frame
+    def create_file_input_frame(
+        self, label_text: str, browse_command: Callable
+    ) -> tk.Entry:
+        frame = tk.Frame(self)
+        frame.pack(pady=5)
+        tk.Label(frame, text=label_text).pack()
+        entry = tk.Entry(frame, width=75)
+        entry.pack(side=tk.LEFT)
+        tk.Button(frame, text="Browse", command=browse_command).pack(
+            padx=5, side=tk.LEFT
+        )
+        return entry
 
-
-def create_file_input_frame(
-    parent, label_text: str, browse_command: Callable
-) -> tuple[tk.Frame, tk.Entry]:
-    frame = tk.Frame(parent)
-    frame.pack(pady=5)
-    label = tk.Label(frame, text=label_text)
-    label.pack()
-    entry = tk.Entry(frame, width=75)
-    entry.pack(side=tk.LEFT)
-    browse_button = tk.Button(frame, text="Browse", command=browse_command)
-    browse_button.pack(padx=5, side=tk.LEFT)
-    return frame, entry
-
-
-def create_option_menu_frame(
-    parent, variable: tk.StringVar, label_text: str = "Label"
-) -> tuple[tk.Frame, tk.OptionMenu]:
-    frame = tk.Frame(parent)
-    frame.pack(pady=5)
-    label = tk.Label(frame, text=label_text)
-    label.pack()
-    option_menu = tk.OptionMenu(frame, variable, "Select Sheet Name")
-    option_menu.pack()
-    return frame, option_menu
-
-
-def create_submit_button_frame(parent, command) -> tk.Frame:
-    frame = tk.Frame(parent)
-    frame.pack(pady=10)
-    submit_button = tk.Button(frame, text="Submit", command=command)
-    submit_button.pack()
-    return frame
-
-
-def browse_and_update_optionmenu(entry_widget, option_menus: list, variables: list):
-    path = browse_folder_or_file(
-        entry_widget, file_types=[("Excel Files", "*.xlsx *.xls *.xlsm")]
-    )
-    if path:
-        # update_optionmenu_with_excelsheets(option_menu, variable, excel_file_path=path)
-        for option_menu, variable in zip(option_menus, variables):
+    def browse_excel_file(self):
+        path = browse_folder_or_file(
+            self.excel_file_entry, file_types=[("Excel Files", "*.xlsx *.xls *.xlsm")]
+        )
+        if path:
             update_optionmenu_with_excelsheets(
-                option_menu, variable, excel_file_path=path
+                self.sheet_dropdown,
+                self.multi_case_sheet_var,
+                excel_file_path=path,
             )
 
+    def browse_pip_file(self):
+        browse_folder_or_file(
+            self.base_pip_file_entry, file_types=[("Pip Files", "*.pips")]
+        )
 
-def submit_multi_case_workflow(
-    base_pip_file: str,
-    excel_file_path: str,
-    well_profile_sheet: str,
-    conditions_sheet: str,
-    sink_parameter: str,
-    progress_bar: ttk.Progressbar,
-) -> None:
-    logger.info("Handling multi-case workflow")
+    def create_option_menus(self):
+        sheet_frames = tk.Frame(self)
+        sheet_frames.pack(pady=5)
 
-    def task():
-        progress_bar.pack(pady=10)
-        progress_bar.start()
+        self.sheet_dropdown = self.create_option_menu(
+            sheet_frames, self.multi_case_sheet_var, "Multi-Case Sheet"
+        )
+
+    def create_option_menu(
+        self, parent, variable: tk.StringVar, label_text: str
+    ) -> tk.OptionMenu:
+        frame = tk.Frame(parent)
+        frame.pack(side=tk.LEFT, padx=10)
+        tk.Label(frame, text=label_text).pack()
+        option_menu = tk.OptionMenu(frame, variable, "Select Sheet Name")
+        option_menu.pack()
+        return option_menu
+
+    def create_result_folder_button(self, path: str) -> tk.Button:
+
+        for widget in self.winfo_children():
+            if isinstance(widget, tk.Button):
+                if widget.cget("text") == "Open Result Folder":
+                    widget.destroy()
+                    break
+        return tk.Button(
+            self,
+            text="Open Result Folder",
+            command=lambda: os.startfile(path),
+        )
+
+    def create_submit_button(self):
+        frame = tk.Frame(self)
+        frame.pack(pady=10)
+        tk.Button(frame, text="Submit", command=self.on_submit).pack()
+
+    def on_submit(self):
+        threading.Thread(target=self.submit_multi_case_workflow).start()
+
+    def submit_multi_case_workflow(self):
+        self.progress_bar.pack(pady=10)
+        self.progress_bar.start()
 
         try:
             mbm = MultiCaseModeller(
-                base_model_path=base_pip_file,
-                excel_path=excel_file_path,
-                sink_profile_sheet=well_profile_sheet,
-                condition_sheet=conditions_sheet,
+                base_model_path=self.base_pip_file_entry.get(),
+                excel_path=self.excel_file_entry.get(),
+                multi_case_sheet=self.multi_case_sheet_var.get(),
             )
-
-            mbm.build_all_models(sink_parameter=sink_parameter)
-            messagebox.showinfo("Success", "Multi-case workflow handled successfully")
-
+            model_path = mbm.build_all_models()
+            self.parent.after(
+                0,
+                lambda: messagebox.showinfo(
+                    "Success", "Multi-case workflow handled successfully"
+                ),
+            )
+            self.create_result_folder_button(str(model_path)).pack()
         except ExcelInputError as e:
             logger.error(f"Excel input error: {e}")
-            messagebox.showerror("Error", f"Excel input error: {e}")
-
-        progress_bar.stop()
-        progress_bar.pack_forget()
-
-    threading.Thread(target=task).start()
-
-
-def init_multi_case_frame(app: tk.Tk) -> tk.Frame:
-    multi_case_frame = tk.Frame(app)
-    FRAME_STORE[FrameNames.MULTI_CASE] = multi_case_frame
-
-    create_title_frame(multi_case_frame)
-
-    create_help_frame(multi_case_frame)
-
-    excel_frame, excel_file_entry = create_file_input_frame(
-        multi_case_frame,
-        "Excel File",
-        lambda: browse_and_update_optionmenu(
-            excel_file_entry,
-            [well_profile_sheet_dropdown, conditions_sheet_dropdown],
-            [well_profile_sheet_var, conditions_sheet_var],
-        ),
-    )
-
-    well_profile_sheet_var = tk.StringVar()
-    well_profile_sheet_var.set("Select Sheet Name")
-    sheet_frames = tk.Frame(multi_case_frame)
-    sheet_frames.pack(pady=5)
-
-    well_profile_sheet_var = tk.StringVar()
-    well_profile_sheet_var.set("Select Sheet Name")
-    well_profile_sheet_frame, well_profile_sheet_dropdown = create_option_menu_frame(
-        sheet_frames, well_profile_sheet_var, "Well Profile Sheet Name"
-    )
-    well_profile_sheet_frame.pack(side=tk.LEFT, padx=10)
-
-    conditions_sheet_var = tk.StringVar()
-    conditions_sheet_var.set("Select Sheet Name")
-    conditions_sheet_frame, conditions_sheet_dropdown = create_option_menu_frame(
-        sheet_frames, conditions_sheet_var, "Conditions Sheet Name"
-    )
-    conditions_sheet_frame.pack(side=tk.LEFT, padx=10)
-
-    base_pip_frame, base_pip_file_entry = create_file_input_frame(
-        multi_case_frame,
-        "Base Pip File",
-        lambda: browse_folder_or_file(
-            base_pip_file_entry, file_types=[("Pip Files", "*.pips")]
-        ),
-    )
-
-    sink_parameter_var = tk.StringVar()
-    sink_parameter_var.set(Parameters.Sink.LIQUIDFLOWRATE)
-    sink_parameter_frame, sink_parameter_dropdown = create_option_menu_frame(
-        multi_case_frame, sink_parameter_var, "Sink Parameter"
-    )
-    sink_parameter_dropdown["menu"].delete(0, "end")
-    for option in Parameters.Sink.__dict__.values():
-        if isinstance(option, str):
-            sink_parameter_dropdown["menu"].add_command(
-                label=option, command=lambda value=option: sink_parameter_var.set(value)
+            self.parent.after(
+                0, lambda: messagebox.showerror("Error", f"Excel input error: {e}")
             )
-
-    progress_bar = ttk.Progressbar(multi_case_frame, mode="indeterminate")
-
-    def on_submit() -> None:
-        submit_multi_case_workflow(
-            base_pip_file_entry.get(),
-            excel_file_entry.get(),
-            well_profile_sheet_var.get(),
-            conditions_sheet_var.get(),
-            sink_parameter_var.get(),
-            progress_bar,
-        )
-
-    create_submit_button_frame(multi_case_frame, on_submit)
-
-    return multi_case_frame
+        except Exception as e:
+            logger.error(f"Error handling multi-case workflow: {e}")
+            logger.error(traceback.format_exc())
+            self.parent.after(
+                0,
+                lambda: messagebox.showerror(
+                    "Unexpected Error", "Contact the developer for help"
+                ),
+            )
+        finally:
+            self.parent.after(0, self.progress_bar.stop)
+            self.parent.after(0, self.progress_bar.pack_forget)

@@ -18,9 +18,9 @@ from app.config import fetch_response
 from app.frames import (
     CreateModelFrame,
     HomeFrame,
+    MultiCaseFrame,
     PopulateModelFrame,
     RunSimulationFrame,
-    init_multi_case_frame,
     init_summarize_frame,
     init_update_conditions_frame,
 )
@@ -153,7 +153,7 @@ def launch_application():
     init_update_conditions_frame(app)
     RunSimulationFrame(app)
     init_summarize_frame(app)
-    init_multi_case_frame(app)
+    MultiCaseFrame(app)
 
     # Check access
     check_access(app)

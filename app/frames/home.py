@@ -28,10 +28,10 @@ class HomeFrame(tk.Frame):
         buttons = [
             ("Create Model Workflow", FrameNames.CREATE_MODEL),
             ("Populate Model Workflow", FrameNames.POPULATE_MODEL),
+            ("Multi-Case Workflow", FrameNames.MULTI_CASE),
             ("Copy Flowline Data Workflow", FrameNames.COPY_FLOWLINE_DATA),
             ("Run Simulation Workflow", FrameNames.RUN_SIMULATION),
             ("Summarize Results Workflow", FrameNames.SUMMARIZE, tk.DISABLED),
-            ("Multi-Case Workflow", FrameNames.MULTI_CASE, tk.DISABLED),
         ]
 
         for text, frame_key, *state in buttons:

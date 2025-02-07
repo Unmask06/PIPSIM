@@ -45,6 +45,7 @@ class ModelPopulater:
         unit: str = Units.METRIC,
         sheet_name: Optional[str] = None,
     ):
+        logger.info("🚀 Intializing Model Populater Workflow !!")
         self.pipesim_file = pipesim_file
         self.excel_file = excel_file
         self.sheet_name = sheet_name
@@ -67,7 +68,7 @@ class ModelPopulater:
             "export": lambda: self.export_values(self.excel_file),
             "bulk_import": lambda: self.bulk_import_values(self.excel_file),
             "flowline_geometry_import": lambda: (
-                self.flowline_geometry_import(sheet_name) if sheet_name else None
+                self.import_flowline_geometry(sheet_name) if sheet_name else None
             ),
         }
 
@@ -83,11 +84,17 @@ class ModelPopulater:
 
     def simple_import_data(self, sheet_name: str) -> None:
         """Import data from the Excel file to the Pipsim model."""
+        logger.info(f"🔃 Importing data from {self.excel_file} to the model.")
         if self.mode != "simple_import":
             raise ValueError("Mode must be 'simple_import' to import data.")
 
         self.component_data = self._validate_and_load_component_data(sheet_name)
         self.set_new_parameters()
+        self.model.save()
+        self.model.close()
+        logger.info(
+            f"✌ Data imported successfully to the model for {self.model.filename}"
+        )
 
     def _validate_and_load_component_data(self, sheet_name: str) -> pd.DataFrame:
         """Perform a check to create the component data."""
@@ -135,6 +142,7 @@ class ModelPopulater:
                     component_data["Component"].isin(valid_components)
                 ]
 
+            logger.info(f"Component data loaded from sheet {sheet_name}")
             return component_data
 
         except pd.errors.EmptyDataError as exc:
@@ -215,7 +223,7 @@ class ModelPopulater:
         self, excel_file: str, components: Optional[list[str]] = None
     ) -> None:
         """Export model values to an Excel file."""
-        model = Model.open(self.pipesim_file)
+        logger.info(f"🔃 Exporting model values to {excel_file}")
 
         if components is None:
             components = get_string_values_from_class(ModelComponents)
@@ -223,17 +231,20 @@ class ModelPopulater:
         values = {}
         for component in components:
             try:
-                v = model.get_values(component=component)
+                v = self.model.get_values(component=component)
                 values[component] = v
             except ContextError:
                 continue
         for key, value in values.items():
             df = pd.DataFrame(value).T
             ExcelHandler.write_excel(df, excel_file, sheet_name=key, sht_range="A1")
-        logger.info(f"Model values exported to {excel_file}")
+        self.model.save()
+        self.model.close()
+        logger.info(f"✌ Model values exported to {excel_file}")
 
     def bulk_import_values(self, excel_file: str) -> None:
         """Import model values from an Excel file."""
+        logger.info(f"🔃 Importing model values from {excel_file}")
         df = pd.read_excel(excel_file, sheet_name=None, index_col=0)
 
         for key, value in df.items():
@@ -246,7 +257,9 @@ class ModelPopulater:
                 logger.error(f"ParameterError: Error setting values for {key}")
             except Exception as e:
                 logger.error(f"Error setting values for {key}: {e}")
-        logger.info(f"Model values imported from {excel_file}")
+        self.model.save()
+        self.model.close()
+        logger.info(f"✌ Model values imported from {excel_file}")
 
     ########################################
     # Methods for Flowline Geometry
@@ -305,9 +318,10 @@ class ModelPopulater:
         except ValueError as e:
             logger.error(f"Error setting geometry for {context}: {e}")
 
-    def flowline_geometry_import(self, sheet_name: str):
+    def import_flowline_geometry(self, sheet_name: str):
         """Import flowline geometry data from the Excel file."""
 
+        logger.info(f"🔃 Importing flowline geometry data from {self.excel_file}")
         flowline_data = self._validate_and_extract_flowline_data(sheet_name)
 
         # Convert to detailed flowline
@@ -317,4 +331,6 @@ class ModelPopulater:
         # Set flowline geometry
         for name, data in flowline_data.items():
             self.set_flowline_geometry(name, data)
-        logger.info("Flowline geometry imported")
+        self.model.save()
+        self.model.close()
+        logger.info(f"✌ Flowline geometry data imported from {self.excel_file}")
