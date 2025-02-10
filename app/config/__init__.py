@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import requests
 
-VERSION = "2025.2.7"
+VERSION = "2025.2.10"
 BASE_URL = "https://sv03919.res1.rlaone.net"
 # BASE_URL = "http://10.29.1.69:80"
 URL = f"{BASE_URL}/streamline/pipesim-pilot/getAccess"
@@ -26,7 +26,7 @@ def fetch_response(trail=False):
                 "trail": trail,
             }
     # Define the start date for the trail period
-    trail_start_date = datetime(2025, 2, 3).date()  # Example start date
+    trail_start_date = datetime(2025, 2, 10).date()  # Example start date
     trail_end_date = trail_start_date + timedelta(days=7)
 
     if trail:
