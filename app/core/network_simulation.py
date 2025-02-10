@@ -7,7 +7,7 @@ using the Pipesim model.
 import logging
 import traceback
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import pandas as pd
 from sixgill.definitions import ProfileVariables, SystemVariables
@@ -31,8 +31,9 @@ class NetworkSimulator:
         profile_results (Optional[pd.DataFrame]): DataFrame containing profile simulation results.
     """
 
-    NODE_RESULTS_FILE: str = "Node Results.xlsx"
-    PROFILE_RESULTS_FILE: str = "Profile Results.xlsx"
+    node_results_file: str
+    profile_results_file: str
+    boundary_conditions: pd.DataFrame
 
     def __init__(
         self,
@@ -162,19 +163,28 @@ class NetworkSimulator:
 
         sheet_name = Path(self.model_path).stem[:31]
 
+        self.node_results_file = str(
+            Path(self.folder).absolute()
+            / f"{Path(self.model_path).stem}_Node_Results.xlsx"
+        )
+        self.profile_results_file = str(
+            Path(self.folder).absolute()
+            / f"{Path(self.model_path).stem}_Profile_Results.xlsx"
+        )
+
         ExcelHandler.write_excel(
             df=self.node_results,
             sheet_name=sheet_name,
             clear_sheet=True,
             sht_range="A2",
-            workbook=str(Path(self.folder).absolute() / self.NODE_RESULTS_FILE),
+            workbook=str(Path(self.folder).absolute() / self.node_results_file),
         )
 
         ExcelHandler.write_excel(
             df=self.profile_results,
             sheet_name=sheet_name,
             clear_sheet=True,
-            workbook=str(Path(self.folder).absolute() / self.PROFILE_RESULTS_FILE),
+            workbook=str(Path(self.folder).absolute() / self.profile_results_file),
         )
 
         logger.info("Results written to Excel successfully.")
@@ -206,6 +216,5 @@ class NetworkSimulator:
 
         except Exception as e:
             logger.error(f"An error occurred during simulation: {e}")
-            print(traceback.format_exc())
         finally:
             self.close_model()

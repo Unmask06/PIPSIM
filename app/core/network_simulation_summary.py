@@ -10,6 +10,8 @@ from sixgill.definitions import ProfileVariables
 
 from app.core import ExcelHandler, NetworkSimulator
 
+logger = logging.getLogger(__name__)
+
 parameters = [
     ProfileVariables.MEAN_VELOCITY_FLUID,
     ProfileVariables.PRESSURE,
@@ -36,12 +38,7 @@ class NetworkSimulationSummary:
     profile_summary_list: dict
     pump_operating_points: pd.DataFrame
 
-    def __init__(
-        self,
-        node_result_xl: str = NetworkSimulator.NODE_RESULTS_FILE,
-        profile_result_xl: str = NetworkSimulator.PROFILE_RESULTS_FILE,
-    ) -> None:
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, node_result_xl: str, profile_result_xl: str) -> None:
 
         if not Path(node_result_xl).is_file():
             raise FileNotFoundError(f"File not found: {node_result_xl}")
@@ -148,7 +145,7 @@ class NetworkSimulationSummary:
         return pump_op_df
 
     def get_node_summary(self):
-        self.logger.info("Getting Node Summary.....")
+        logger.info("Getting Node Summary.....")
         with xw.App(visible=False):
             node_wb = xw.Book(self.node_result_xl)
             node_sheets = [
@@ -181,7 +178,7 @@ class NetworkSimulationSummary:
                     node_summary_list.append(node_df)
                 except SummaryWarning as exc:
                     err = f"Error in getting node summary for {sht}: {exc}"
-                    self.logger.warning(err)
+                    logger.warning(err)
 
         node_summary = pd.concat(node_summary_list, ignore_index=True)
         self.node_summary = node_summary
@@ -196,7 +193,7 @@ class NetworkSimulationSummary:
         self.node_summary.reset_index(drop=True, inplace=True)
 
     def get_profile_summary(self):
-        self.logger.info("Getting Profile Summary.....")
+        logger.info("Getting Profile Summary.....")
         with xw.App(visible=False):
             profile_wb = xw.Book(self.profile_result_xl)
             self.profile_sheets = [
@@ -249,7 +246,7 @@ class NetworkSimulationSummary:
                     raise e
 
     def get_pump_operating_points(self, suction_node, discharge_node):
-        self.logger.info("Getting Pump Operating Points.....")
+        logger.info("Getting Pump Operating Points.....")
         pump_operating_points_dfs = []
         for sht in self.profile_sheets:
             try:
@@ -272,7 +269,7 @@ class NetworkSimulationSummary:
         self.pump_operating_points.reset_index(drop=True, inplace=True)
 
     def write_node_summary(self):
-        self.logger.info("Writing Node Summary.....")
+        logger.info("Writing Node Summary.....")
         ExcelHandler.write_excel(
             self.node_summary,
             self.node_result_xl,
@@ -282,7 +279,7 @@ class NetworkSimulationSummary:
         )
 
     def write_profile_summary(self):
-        self.logger.info("Writing Profile Summary.....")
+        logger.info("Writing Profile Summary.....")
         for parameter, df in self.profile_summary_list.items():
             df.sort_values(by=[parameter], inplace=True)
             df.reset_index(drop=True, inplace=True)
@@ -295,7 +292,7 @@ class NetworkSimulationSummary:
             )
 
     def write_pump_operating_points(self):
-        self.logger.info("Writing Pump Operating Points.....")
+        logger.info("Writing Pump Operating Points.....")
         ExcelHandler.write_excel(
             self.pump_operating_points,
             self.profile_result_xl,

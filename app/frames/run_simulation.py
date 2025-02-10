@@ -3,6 +3,7 @@ import logging
 import os
 import threading
 import tkinter as tk
+import traceback
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
@@ -27,7 +28,7 @@ class RunSimulationFrame(tk.Frame):
     profile_vars_listbox: tk.Listbox
     unit_var: tk.StringVar
 
-    def __init__(self, parent):
+    def __init__(self, parent: tk.Tk):
         super().__init__(parent)
         FRAME_STORE[FrameNames.RUN_SIMULATION] = self
         self.parent = parent
@@ -158,51 +159,74 @@ class RunSimulationFrame(tk.Frame):
                 self.profile_vars_listbox.insert(tk.END, var)
             messagebox.showinfo("Success", "Selections loaded successfully")
 
+    def create_submit_button(self):
+        frame = tk.Frame(self)
+        frame.pack(pady=10)
+        tk.Button(frame, text="Submit", command=self.on_submit).pack()
+
+    def on_submit(self):
+        threading.Thread(target=self.run_simulation).start()
+
     def run_simulation(self):
         folder_path = self.folder_entry.get()
         system_vars = list(self.system_vars_listbox.get(0, tk.END))
         profile_vars = list(self.profile_vars_listbox.get(0, tk.END))
         unit = self.unit_var.get()
 
-        def task():
-            self.progress_bar.pack(pady=10)
-            logger.info("Running simulation")
-            folder = Path(folder_path)
-            logger.debug(
-                f"System Variables: {system_vars}, Profile Variables: {profile_vars}, Unit: {unit}"
-            )
-            self.progress_bar.start()
-            try:
-                ns = None
-                for pips_file in folder.glob("*.pips"):
-                    ns = NetworkSimulator(
-                        str(pips_file),
-                        system_vars,
-                        profile_vars,
-                        unit,
-                        folder=str(folder),
-                    )
-                    ns.run_existing_model()
-                if not ns:
-                    raise NetworkSimulationError(
-                        "No pipesim files found in the selected folder",
-                        model_path=folder,
-                    )
-                self.create_results_button_frame(
-                    ns.NODE_RESULTS_FILE, ns.PROFILE_RESULTS_FILE
-                )
-                messagebox.showinfo("Success", "Simulation completed successfully")
-            except NetworkSimulationError as e:
-                logger.error(str(e))
-                messagebox.showerror("Error", str(e))
-            finally:
-                self.progress_bar.stop()
-                self.progress_bar.pack_forget()
+        self.progress_bar.pack(pady=10)
+        self.progress_bar.start()
 
-        threading.Thread(target=task).start()
+        try:
+            ns = None
+            for pips_file in Path(folder_path).glob("*.pips"):
+                ns = NetworkSimulator(
+                    str(pips_file),
+                    system_vars,
+                    profile_vars,
+                    unit,
+                    folder=str(folder_path),
+                )
+                ns.run_existing_model()
+            if not ns:
+                raise NetworkSimulationError(
+                    "No pipesim files found in the selected folder",
+                    model_path=folder_path,
+                )
+            self.parent.after(
+                0,
+                lambda: messagebox.showinfo(
+                    "Success", "Simulation completed successfully"
+                ),
+            )
+            self.create_results_button_frame(
+                ns.node_results_file, ns.profile_results_file
+            )
+
+        except NetworkSimulationError as e:
+            logger.error(str(e))
+            self.parent.after(0, lambda: messagebox.showerror("Error", str(e)))
+        except Exception as e:
+            logger.error(str(e))
+            logger.error(traceback.format_exc())
+            self.parent.after(
+                0,
+                lambda: messagebox.showerror(
+                    "Unexpected Error", "Contact the developer for help"
+                ),
+            )
+
+        finally:
+            self.progress_bar.stop()
+            self.progress_bar.pack_forget()
 
     def create_results_button_frame(self, node_results, profile_results):
         frame = tk.Frame(self)
+        if not Path(node_results).exists() or not Path(profile_results).exists():
+            messagebox.showerror(
+                "Error", "Results files are not available to open", parent=self
+            )
+            return frame
+
         if ["Node Results", "Profile Results"] in self.winfo_children():
             for child in self.winfo_children():
                 if child.winfo_class() == "Frame":
