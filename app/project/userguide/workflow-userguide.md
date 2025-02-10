@@ -3,10 +3,11 @@
 ### **Table of Contents** 📑
 
 1. [Creating a Model Workflow](#creating-a-model-workflow)
-2. [Multi-Case Simulation Workflow](#multi-case-simulation-workflow)
-3. [Running Simulations Workflow](#running-simulations-workflow)
-4. [Copy Flowline Workflow](#copy-flowline-workflow)
-5. [Summarizing Results Workflow](#summarizing-results-workflow)
+2. [Populate Model Workflow](#populate-model-workflow)
+3. [Multi-Case Simulation Workflow](#multi-case-simulation-workflow)
+4. [Running Simulations Workflow](#running-simulations-workflow)
+5. [Copy Flowline Workflow](#copy-flowline-workflow)
+6. [Summarizing Results Workflow](#summarizing-results-workflow)
 
 ---
 
@@ -58,6 +59,39 @@ To create a model from scratch using an Excel file or populate an existing model
 
 - *Note* : Flowline parameters should be selected
 
+5. Click **"Submit"** to proceed.
+
+---
+
+### **Input Required** 📂
+
+- **Pipesim file**
+- **Excel file**
+
+### **License Requirement** 🔑
+
+- Only Python Toolkit license required
+
+### **Expected Runtime** ⏱️
+
+- Approximately 1-2 minutes per model
+
+---
+
+## Populate Model Workflow
+
+To populate an existing model with data from an Excel file, follow these steps:
+
+### **Steps** 📝
+
+1. **Open the application.**
+2. Navigate to the **"Populate Model Workflow"** section.
+3. Select the **Pipesim file** and the **Excel file.**
+4. Choose the appropriate mode:
+   - **Export**: Export the entire data from the model for the selected components.
+   - **Bulk Import**: Bulk import data into the model from the Excel file created by the export mode.
+   - **Simple Import**: Import data into the model from a selected sheet in the Excel file.
+   - **Flowline Geometry Import**: Import flowline geometry data into the model from the Excel file.
 5. Click **"Submit"** to proceed.
 
 ---
