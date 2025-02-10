@@ -8,6 +8,7 @@
 4. [Running Simulations Workflow](#running-simulations-workflow)
 5. [Copy Flowline Workflow](#copy-flowline-workflow)
 6. [Summarizing Results Workflow](#summarizing-results-workflow)
+7. [Downloading Sample Excel File](#downloading-sample-excel-file)
 
 ---
 
@@ -24,40 +25,11 @@ To create a model from scratch using an Excel file or populate an existing model
 
 #### **Create New Model** 🆕
 
-- The Excel sheet should contain the component name in the first column and its type in the second column.
-  | Name      | Component        | Name      | Component        |
-  | --------- | ---------------- | --------- | ---------------- |
-  | Src-101   | Source           | Src-102   | Source           |
-  | 6-BFW-001 | Flowline         | 6-BFW-002 | Flowline         |
-  | 6-BFW-002 | Flowline         | 6-BFW-003 | Flowline         |
-  | P-101     | Pump             | P-102     | Pump             |
-  | FV-101    | GenericEquipment | FV-102    | GenericEquipment |
-  | J1        | Junction         | J2        | Junction         |
-  | Sk        | Sink             | Sk2       | Sink             |
+- Refer to the sample Excel sheet for the format. You can download the sample Excel file from the help menu in the application.
 
 #### **Populate Existing Model** 🛠️
 
-- The Excel sheet should contain the component name in the first column and the corresponding data in the subsequent columns.
-
-  **Example:**
-
-  | #  | Name    | Component        | DetailedModel | InnerDiameter | WallThickness | Roughness | ElevationDifference | HorizontalDistance | PressureDifferential | PressureDrop | Pressure | Temperature | LiquidFlowRate |
-  | -- | ------- | ---------------- | ------------- | ------------- | ------------- | --------- | ------------------- | ------------------ | -------------------- | ------------ | -------- | ----------- | -------------- |
-  | 1  | 6-BFW-1 | Flowline         | False         | 254           | 9             | 0.045     | 10                  | 100                |                      |              |          |             |                |
-  | 2  | 6-BFW-2 | Flowline         | False         | 300           | 8             | 0.044     | 20                  | 200                |                      |              |          |             |                |
-  | 3  | 6-BFW-3 | Flowline         | False         | 354           | 10            | 0.04      | 30                  | 300                |                      |              |          |             |                |
-  | 4  | 6-BFW-4 | Flowline         | False         | 200           | 12            | 0.08      | 40                  | 400                |                      |              |          |             |                |
-  | 5  | 6-BFW-5 | Flowline         | False         | 600           | 20            | 0.021     | 50                  | 500                |                      |              |          |             |                |
-  | 6  | FE-101  | GenericEquipment |               |               |               |           |                     |                    |                      | 0.2          |          |             |                |
-  | 7  | P-101   | Pump             |               |               |               |           |                     |                    | 30                   |              |          |             |                |
-  | 8  | P-102   | Pump             |               |               |               |           |                     |                    | 40                   |              |          |             |                |
-  | 9  | Src-1   | Source           |               |               |               |           |                     |                    |                      |              | 100      | 50          |                |
-  | 10 | Sk-1    | Sink             |               |               |               |           |                     |                    |                      |              |          |             | 5              |
-  | 11 | Sk-2    | Sink             |               |               |               |           |                     |                    |                      |              |          |             | 6              |
-  | 12 | Sk-3    | Sink             |               |               |               |           |                     |                    |                      |              |          |             | 3              |
-  | 13 | Sk-4    | Sink             |               |               |               |           |                     |                    |                      |              |          |             | 2              |
-
-- *Note* : Flowline parameters should be selected
+- Refer to the sample Excel sheet for the format. You can download the sample Excel file from the help menu in the application.
 
 5. Click **"Submit"** to proceed.
 
@@ -226,3 +198,23 @@ To summarize the results of the model Node and Profile Results, follow these ste
 ### **Expected Runtime** ⏱️
 
 - Approximately 2-3 minutes per summary
+
+---
+
+## Downloading Sample Excel File
+
+To download the sample Excel file, follow these steps:
+
+### **Steps** 📝
+
+1. **Open the application.**
+2. Navigate to the **"Help"** menu.
+3. Select **"Sample Import File"** to download the sample Excel file.
+
+### **License Requirement** 🔑
+
+- No additional license required
+
+### **Expected Runtime** ⏱️
+
+- Instantaneous
