@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import requests
 
-VERSION = "2025.2.10"
+VERSION = "2025.2.11"
 BASE_URL = "https://sv03919.res1.rlaone.net"
 # BASE_URL = "http://10.29.1.69:80"
 URL = f"{BASE_URL}/streamline/pipesim-pilot/getAccess"

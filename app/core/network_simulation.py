@@ -7,10 +7,15 @@ using the Pipesim model.
 import logging
 import traceback
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import pandas as pd
-from sixgill.definitions import ProfileVariables, SystemVariables
+from sixgill.definitions import (
+    ModelComponents,
+    Parameters,
+    ProfileVariables,
+    SystemVariables,
+)
 from sixgill.pipesim import Model, Units
 
 from app.core import NetworkSimulationError
@@ -31,9 +36,12 @@ class NetworkSimulator:
         profile_results (Optional[pd.DataFrame]): DataFrame containing profile simulation results.
     """
 
+    NODE_RESULTS_xl = "Node_Results.xlsx"
+    PROFILE_RESULTS_xl = "Profile_Results.xlsx"
     node_results_file: str
     profile_results_file: str
     boundary_conditions: pd.DataFrame
+    MIN_FLOWRATE = 0.01
 
     def __init__(
         self,
@@ -63,6 +71,23 @@ class NetworkSimulator:
         self.node_results: Optional[pd.DataFrame] = None
         self.profile_results: Optional[pd.DataFrame] = None
         self.folder = folder
+
+    def deactivate_lowflow_sinks(self) -> None:
+        """Deactivates low flow sinks in the Pipesim model."""
+        sinks = self.model.get_values(component=ModelComponents.SINK)
+        for sink_name, sink_data in sinks.items():
+            try:
+                flowrate_type = sink_data.get(Parameters.Sink.FLOWRATETYPE)
+                if not sink_data.get(flowrate_type):
+                    continue
+                if sink_data.get(flowrate_type) < self.MIN_FLOWRATE:
+                    sink_data[Parameters.Sink.ISACTIVE] = False
+                    sinks[sink_name] = sink_data
+                    logger.info(f"Deactivated sink: {sink_name} due to low flowrate.")
+            except Exception as e:
+                logger.error(f"Error deactivating sink {sink_name}: {e}")
+        self.model.set_values(dict=sinks)
+        self.model.save()
 
     def run_simulation(self) -> None:
         """Runs the network simulation using Pipesim."""
@@ -103,12 +128,12 @@ class NetworkSimulator:
             )
         )
 
-        unit_row = self.node_results.iloc[:1]
-        self.node_results = self.node_results.iloc[1:]
+        unit_row = self.node_results.loc[self.node_results["Node"] == "Unit"].index
+        unit_row = self.node_results.loc[unit_row]
+        self.node_results = self.node_results.drop(unit_row.index)
         self.node_results.sort_values(
             by=[SystemVariables.TYPE, "Node"], ascending=[False, True], inplace=True
         )
-        # self.node_results.dropna(subset=[SystemVariables.TYPE], inplace=True)
         self.node_results = pd.concat([unit_row, self.node_results], ignore_index=True)
 
         cols = ["Node"] + [
@@ -163,28 +188,26 @@ class NetworkSimulator:
 
         sheet_name = Path(self.model_path).stem[:31]
 
-        self.node_results_file = str(
-            Path(self.folder).absolute()
-            / f"{Path(self.model_path).stem}_Node_Results.xlsx"
-        )
-        self.profile_results_file = str(
-            Path(self.folder).absolute()
-            / f"{Path(self.model_path).stem}_Profile_Results.xlsx"
-        )
+        results_dir = Path(self.folder) / "Results"
+        if not results_dir.exists():
+            results_dir.mkdir()
+
+        self.node_results_file = str(results_dir / self.NODE_RESULTS_xl)
+        self.profile_results_file = str(results_dir / self.PROFILE_RESULTS_xl)
 
         ExcelHandler.write_excel(
             df=self.node_results,
             sheet_name=sheet_name,
             clear_sheet=True,
             sht_range="A2",
-            workbook=str(Path(self.folder).absolute() / self.node_results_file),
+            workbook=self.node_results_file,
         )
 
         ExcelHandler.write_excel(
             df=self.profile_results,
             sheet_name=sheet_name,
             clear_sheet=True,
-            workbook=str(Path(self.folder).absolute() / self.profile_results_file),
+            workbook=self.profile_results_file,
         )
 
         logger.info("Results written to Excel successfully.")
@@ -196,25 +219,23 @@ class NetworkSimulator:
         )
         logger.info("Boundary conditions retrieved successfully.")
 
-    def close_model(self) -> None:
-        """Closes the Pipesim model to release resources."""
-        self.model.close()
-        logger.info("--------Network Simulation Object Closed.-------\n")
-
     def run_existing_model(self) -> None:
         """Runs an existing Pipesim model and processes results."""
         try:
             logger.info(f"Running simulation for model: \n {self.model_path}")
             self.get_boundary_conditions()
+            self.deactivate_lowflow_sinks()
             self.run_simulation()
             self.process_node_results()
             self.process_profile_results()
             self.write_results_to_excel()
             self.model.save()
+            logger.info("✅ Network simulation completed successfully.")
+
         except (NetworkSimulationError, ExcelHandlerError) as e:
             logger.error(e)
 
         except Exception as e:
             logger.error(f"An error occurred during simulation: {e}")
         finally:
-            self.close_model()
+            self.model.close()

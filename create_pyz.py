@@ -17,6 +17,10 @@ def create_pyz():
         print(f"❌ Error: Source directory '{SOURCE_DIR}' does not exist!")
         sys.exit(1)
 
+    if os.path.exists(OUTPUT_FILE):
+        print(f"⚠️  Warning: Output file '{OUTPUT_FILE}' already exists. Deleting it...")
+        os.remove(OUTPUT_FILE)
+
     print(f" Creating {OUTPUT_FILE} from '{SOURCE_DIR}'...")
 
     try:
