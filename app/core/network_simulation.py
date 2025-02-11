@@ -41,7 +41,7 @@ class NetworkSimulator:
     node_results_file: str
     profile_results_file: str
     boundary_conditions: pd.DataFrame
-    MIN_FLOWRATE = 0.01
+    MIN_FLOWRATE = 0.001
 
     def __init__(
         self,
