@@ -262,7 +262,7 @@ def _collect_flowline_geometry(df: pd.DataFrame, source_model: Model) -> list:
     return flowline_geometry
 
 
-def copy_flowline_data(source_model_path: str, destination_folder_path: str, unit: str):
+def copy_flowline_data(source_model_path: str, destination_folder_path: str):
     """
     Copy flowline data from the source model to all target models in the destination folder.
 
@@ -287,7 +287,7 @@ def copy_flowline_data(source_model_path: str, destination_folder_path: str, uni
         len(list(Path(destination_folder_path).glob("*.pips"))),
     )
 
-    source_model = Model.open(source_model_path, units=unit)
+    source_model = Model.open(source_model_path)
     logger.info(f"Getting flowline data from {Path(source_model_path).name}.....")
     source_values = source_model.get_values(component=ModelComponents.FLOWLINE)
     df = pd.DataFrame(source_values)
