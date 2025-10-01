@@ -3,7 +3,7 @@ import sys
 import zipapp
 
 # ✅ Modify this to specify the Python interpreter to be used
-PYTHON_INTERPRETER = "C:/Program Files/Schlumberger/Pipesim_PTK_2023.1/python.exe"
+PYTHON_INTERPRETER = "C:/Program Files/Schlumberger/PIPESIM_PTK_2024.2/python.exe"
 
 # ✅ Define paths
 SOURCE_DIR = "pipesim-pilot"  # The folder containing the app and pyarmor_runtime

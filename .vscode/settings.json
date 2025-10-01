@@ -1,11 +1,6 @@
 {
- 
-  "python.defaultInterpreterPath": "c:\\Program Files\\Schlumberger\\PIPESIM_PTK_2023.1\\python.exe",
+  "python.defaultInterpreterPath": "c:\\Program Files\\Schlumberger\\PIPESIM_PTK_2024.2\\python.exe",
   "explorer.excludeGitIgnore": false,
-  "python.analysis.exclude": [
-    "logic.py"
-  ],
-  "pylint.args": [
-    "--rcfile=.pylintrc"
-  ]
+  "python.analysis.exclude": ["logic.py"],
+  "pylint.args": ["--rcfile=.pylintrc"]
 }

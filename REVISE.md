@@ -38,7 +38,7 @@ PANDORA Pipesim Pilot is a **desktop GUI application** built to streamline hydra
 
 - Hydraulic engineers working on pipeline projects
 - Bilfinger Study Team members
-- Users with Pipesim 2023 and Python Toolkit installed
+- Users with PIPESIM 2024.2 and Python Toolkit installed
 
 ---
 
@@ -279,7 +279,7 @@ PIPSIM/
 
 **Critical**: Application MUST run with Schlumberger's Python installation:
 ```
-C:/Program Files/Schlumberger/Pipesim_PTK_2023.1/python.exe
+C:/Program Files/Schlumberger/PIPESIM_PTK_2024.2/python.exe
 ```
 
 This is the ONLY Python environment with the `sixgill` library installed.
@@ -314,13 +314,13 @@ run.bat
 
 **Option 2: Direct Python**
 ```bash
-"C:/Program Files/Schlumberger/Pipesim_PTK_2023.1/python.exe" -m app.app
+"C:/Program Files/Schlumberger/PIPESIM_PTK_2024.2/python.exe" -m app.app
 ```
 
 **Option 3: Running as module**
 ```bash
 cd /path/to/PIPSIM
-"C:/Program Files/Schlumberger/Pipesim_PTK_2023.1/python.exe" -m app.app
+"C:/Program Files/Schlumberger/PIPESIM_PTK_2024.2/python.exe" -m app.app
 ```
 
 ### Key Environment Variables
@@ -542,7 +542,7 @@ Creates obfuscated version in `pipesim-pilot/` folder
 zipapp.create_archive(
     "pipesim-pilot",
     "pipesim-pilot.pyz",
-    interpreter="C:/Program Files/Schlumberger/Pipesim_PTK_2023.1/python.exe"
+    interpreter="C:/Program Files/Schlumberger/PIPESIM_PTK_2024.2/python.exe"
 )
 ```
 
@@ -572,7 +572,7 @@ Creates self-contained `.pyz` file with hardcoded Python interpreter
 ### Pre-requisites
 
 Users MUST have:
-- **Pipesim 2023** installed
+- **PIPESIM 2024.2** installed
 - **Python Toolkit** (sixgill) installed
 - Connection to **office network**
 

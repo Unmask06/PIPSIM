@@ -26,7 +26,7 @@ def fetch_response(trail=False):
                 "trail": trail,
             }
     # Define the start date for the trail period
-    trail_start_date = datetime(2025, 2, 10).date()  # Example start date
+    trail_start_date = datetime(2025, 10, 1).date()  # Example start date
     trail_end_date = trail_start_date + timedelta(days=7)
 
     if trail:

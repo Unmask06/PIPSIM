@@ -30,7 +30,7 @@ Pipesim is a powerful but costly software, and with limited licenses available, 
 ### 📋 Pre-requisites
 
 - **Pipesim** installed along with the **Python Toolkit**
-- **Pipesim 2023**
+- **PIPESIM 2024.2**
 - Connection to the **office network**
 
 ## 🌐 Network Requirements
